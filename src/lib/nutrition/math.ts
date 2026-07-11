@@ -1,4 +1,5 @@
 const MAX_SAFE_INTEGER = BigInt(Number.MAX_SAFE_INTEGER);
+const PORTION_COUNT_SCALE = 1000n;
 
 export function divideRoundHalfUp(numerator: bigint, denominator: bigint): bigint {
   if (numerator < 0n) { // i.e. food protein
@@ -54,3 +55,25 @@ export function toSafeInteger(value: bigint): number {
   return Number(value);
 }
 
+export function resolvePortionAmount(
+  portionAmount: bigint,
+  portionCountMilli: bigint
+): bigint {
+  if (portionAmount <= 0) {
+    throw new RangeError('Portion amount must be positive');
+  }
+  if (portionCountMilli <= 0) {
+    throw new RangeError('Portion count must be positive');
+  }
+
+  const resolvedAmount = divideRoundHalfUp(
+    portionAmount * portionCountMilli,
+    PORTION_COUNT_SCALE
+  );
+
+  if (resolvedAmount === 0n) {
+    throw new RangeError('Resolved amount must be positive');
+  }
+
+  return resolvedAmount;
+}

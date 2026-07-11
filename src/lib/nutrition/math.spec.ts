@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { divideRoundHalfUp, parseFixedPoint, toSafeInteger } from "./math";
+import { divideRoundHalfUp, parseFixedPoint, resolvePortionAmount, toSafeInteger } from "./math";
 
 describe('divideRoundHalfUp', () => {
   it.each([
@@ -39,7 +39,7 @@ describe('parseFixedPoint', () => {
     { input: '132.5', fractionalDigits: 3, expected: 132_500n },
     { input: '4.7', fractionalDigits: 3, expected: 4_700n },
     { input: '250.25', fractionalDigits: 3, expected: 250_250n },
-    { input: '250', fractionalDigits: 0, expected: 250n },
+    { input: '250', fractionalDigits: 3, expected: 250_000n },
     { input: '1.5', fractionalDigits: 3, expected: 1_500n },
     { input: '1.50', fractionalDigits: 3, expected: 1_500n },
     { input: '0001.005', fractionalDigits: 3, expected: 1_005n },
@@ -65,7 +65,11 @@ describe('parseFixedPoint', () => {
     );
   });
 
-  it('rejects decimal liquid input when no fractional digits are supported', () => {
+  it('parses fractional milliliters as microliters', () => {
+    expect(parseFixedPoint('250.125', 3)).toBe(250_125n);
+  });
+
+  it('rejects decimals when configured with zero fractional digits', () => {
     expect(() => parseFixedPoint('250.0', 0)).toThrow(
       new RangeError('Value supports at most 0 fractional digits')
     );
@@ -106,6 +110,66 @@ describe('toSafeInteger', () => {
 
     expect(() => toSafeInteger(unsafeValue)).toThrow(
       new RangeError('Value exceeds the safe integer range')
+    );
+  });
+});
+
+describe('resolvePortionAmount', () => {
+  it('resolves 2.5 portions of 100 g', () => {
+    expect(resolvePortionAmount(100_000n, 2_500n)).toBe(250_000n);
+  });
+
+  it('resolves 1.5 portions of a 250 g serving', () => {
+    expect(resolvePortionAmount(250_000n, 1_500n)).toBe(375_000n);
+  });
+
+  it('resolves one 330 ml container', () => {
+    expect(resolvePortionAmount(330_000n, 1_000n)).toBe(330_000n);
+  });
+
+  it('preserves fractional milliliter precision', () => {
+    expect(resolvePortionAmount(1_000n, 333n)).toBe(333n);
+  });
+
+  it('rounds a resolved amount below half downward', () => {
+    expect(resolvePortionAmount(3n, 499n)).toBe(1n);
+  });
+
+  it('rounds an exact half upward', () => {
+    expect(resolvePortionAmount(3n, 500n)).toBe(2n);
+  });
+
+  it('rounds a resolved amount above half upward', () => {
+    expect(resolvePortionAmount(3n, 501n)).toBe(2n);
+  });
+
+  it('rejects a zero portion amount', () => {
+    expect(() => resolvePortionAmount(0n, 1_000n)).toThrow(
+      new RangeError('Portion amount must be positive')
+    );
+  });
+
+  it('rejects a negative portion amount', () => {
+    expect(() => resolvePortionAmount(-1n, 1_000n)).toThrow(
+      new RangeError('Portion amount must be positive')
+    );
+  });
+
+  it('rejects a zero portion count', () => {
+    expect(() => resolvePortionAmount(100_000n, 0n)).toThrow(
+      new RangeError('Portion count must be positive')
+    );
+  });
+
+  it('rejects a negative portion count', () => {
+    expect(() => resolvePortionAmount(100_000n, -1n)).toThrow(
+      new RangeError('Portion count must be positive')
+    );
+  });
+
+  it('rejects an amount that rounds to zero storage units', () => {
+    expect(() => resolvePortionAmount(1n, 333n)).toThrow(
+      new RangeError('Resolved amount must be positive')
     );
   });
 });
