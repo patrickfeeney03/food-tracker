@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { divideRoundHalfUp, parseFixedPoint, resolvePortionAmount, toSafeInteger } from "./math";
+import {
+  divideRoundHalfUp,
+  parseFixedPoint,
+  resolvePortionAmount,
+  scaleNutritionValue,
+  toSafeInteger
+} from "./math";
 
 describe('divideRoundHalfUp', () => {
   it.each([
@@ -170,6 +176,80 @@ describe('resolvePortionAmount', () => {
   it('rejects an amount that rounds to zero storage units', () => {
     expect(() => resolvePortionAmount(1n, 333n)).toThrow(
       new RangeError('Resolved amount must be positive')
+    );
+  });
+});
+
+describe('scaleNutritionValue', () => {
+  it('scales label calories independently', () => {
+    expect(
+      scaleNutritionValue(342_000n, 150_000n, 250_000n)
+    ).toBe(205_200n);
+  });
+
+  it('scales protein from the entered basis', () => {
+    expect(
+      scaleNutritionValue(52_500n, 150_000n, 250_000n)
+    ).toBe(31_500n);
+  });
+
+  it('scales fat from the entered basis', () => {
+    expect(
+      scaleNutritionValue(12_500n, 150_000n, 250_000n)
+    ).toBe(7_500n);
+  });
+
+  it('allows zero nutrition', () => {
+    expect(
+      scaleNutritionValue(0n, 150_000n, 250_000n)
+    ).toBe(0n);
+  });
+
+  it('scales an amount larger than the entered basis', () => {
+    expect(
+      scaleNutritionValue(342_000n, 375_000n, 250_000n)
+    ).toBe(513_000n);
+  });
+
+  it('rounds a result below half downward', () => {
+    expect(scaleNutritionValue(1n, 1n, 3n)).toBe(0n);
+  });
+
+  it('rounds an exact half upward', () => {
+    expect(scaleNutritionValue(1n, 1n, 2n)).toBe(1n);
+  });
+
+  it('rounds a result above half upward', () => {
+    expect(scaleNutritionValue(2n, 1n, 3n)).toBe(1n);
+  });
+
+  it('rejects negative nutrition', () => {
+    expect(() => scaleNutritionValue(-1n, 100_000n, 100_000n)).toThrow(
+      new RangeError('Nutrition value must be non-negative')
+    );
+  });
+
+  it('rejects a zero resolved amount', () => {
+    expect(() => scaleNutritionValue(100n, 0n, 100_000n)).toThrow(
+      new RangeError('Resolved amount must be positive')
+    );
+  });
+
+  it('rejects a negative resolved amount', () => {
+    expect(() => scaleNutritionValue(100n, -1n, 100_000n)).toThrow(
+      new RangeError('Resolved amount must be positive')
+    );
+  });
+
+  it('rejects a zero basis amount', () => {
+    expect(() => scaleNutritionValue(100n, 100_000n, 0n)).toThrow(
+      new RangeError('Basis amount must be positive')
+    );
+  });
+
+  it('rejects a negative basis amount', () => {
+    expect(() => scaleNutritionValue(100n, 100_000n, -1n)).toThrow(
+      new RangeError('Basis amount must be positive')
     );
   });
 });

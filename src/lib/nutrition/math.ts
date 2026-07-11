@@ -77,3 +77,31 @@ export function resolvePortionAmount(
 
   return resolvedAmount;
 }
+
+/**
+ * Scales one nutrition value from the food's entered basis to a resolved amount.
+ *
+ * The value can represent mkcal or any nutrient stored in mg.
+ */
+export function scaleNutritionValue(
+  valuePerBasis: bigint,
+  resolvedAmount: bigint,
+  basisAmount: bigint
+): bigint {
+  if (valuePerBasis < 0n) {
+    throw new RangeError('Nutrition value must be non-negative');
+  }
+
+  if (resolvedAmount <= 0n) {
+    throw new RangeError('Resolved amount must be positive');
+  }
+
+  if (basisAmount <= 0n) {
+    throw new RangeError('Basis amount must be positive');
+  }
+
+  return divideRoundHalfUp(
+    valuePerBasis * resolvedAmount,
+    basisAmount
+  );
+}
