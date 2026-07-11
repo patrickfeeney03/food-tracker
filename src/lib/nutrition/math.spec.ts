@@ -3,6 +3,11 @@ import {
   divideRoundHalfUp,
   formatStoredValue,
   parseFixedPoint,
+  parseGramsToMg,
+  parseKcalToMkcal,
+  parseMilligrams,
+  parseMillilitresToUl,
+  parsePortionCountToMilli,
   resolvePortionAmount,
   scaleNutritionValue,
   toSafeInteger
@@ -89,6 +94,34 @@ describe('parseFixedPoint', () => {
       );
     }
   );
+});
+
+describe('unit-specific parsers', () => {
+  it('parses kcal into mkcal', () => {
+    expect(parseKcalToMkcal('132.5')).toBe(132_500n);
+  });
+
+  it('parses grams into mg', () => {
+    expect(parseGramsToMg('4.7')).toBe(4_700n);
+  });
+
+  it('parses millilitres into ul', () => {
+    expect(parseMillilitresToUl('12.5')).toBe(12_500n);
+  });
+
+  it('parses portions into milli-portions', () => {
+    expect(parsePortionCountToMilli('1.5')).toBe(1_500n);
+  });
+
+  it('parses nutrients entered in whole milligrams', () => {
+    expect(parseMilligrams('450')).toBe(450n);
+  });
+
+  it('rejects fractional values for nutrients stored in whole milligrams', () => {
+    expect(() => parseMilligrams('1.5')).toThrow(
+      new RangeError('Value supports at most 0 fractional digits')
+    );
+  });
 });
 
 describe('toSafeInteger', () => {

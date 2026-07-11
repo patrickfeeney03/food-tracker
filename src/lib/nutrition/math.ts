@@ -44,6 +44,29 @@ export function parseFixedPoint(input: string, fractionalDigits: number): bigint
   );
 }
 
+export function parseKcalToMkcal(input: string): bigint {
+  return parseFixedPoint(input, STORAGE_FRACTIONAL_DIGITS);
+}
+
+export function parseGramsToMg(input: string): bigint {
+  return parseFixedPoint(input, STORAGE_FRACTIONAL_DIGITS);
+}
+
+export function parseMillilitresToUl(input: string): bigint {
+  return parseFixedPoint(input, STORAGE_FRACTIONAL_DIGITS);
+}
+
+export function parsePortionCountToMilli(input: string): bigint {
+  return parseFixedPoint(input, STORAGE_FRACTIONAL_DIGITS);
+}
+
+/**
+ * Parses a nutrient entered directly in whole milligrams, such as sodium.
+ */
+export function parseMilligrams(input: string): bigint {
+  return parseFixedPoint(input, 0);
+}
+
 export function toSafeInteger(value: bigint): number {
   if (value < 0n) {
     throw new RangeError('Value must be non-negative');
