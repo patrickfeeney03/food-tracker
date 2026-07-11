@@ -8,7 +8,7 @@ import {
   uniqueIndex
 } from 'drizzle-orm/sqlite-core';
 
-export const amountUnits = ['mg', 'ml'] as const;
+export const amountUnits = ['mg', 'ul' /* micro liters */] as const;
 export const authProviders = ['google'] as const;
 export const mealSlots = ['breakfast', 'lunch', 'dinner', 'snacks'] as const;
 export const portionKinds = ['unit', 'hundred', 'serving', 'container'] as const;
