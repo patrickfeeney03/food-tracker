@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { amountUnits } from "./units";
 
 const decimalPattern = /^\d+(?:\.\d+)?$/;
 const zeroPattern = /^0+(?:\.0+)?$/;
@@ -31,3 +32,58 @@ export function positiveDecimalString(maxFractionalDigits: number) {
     'Must be greater than zero'
   );
 }
+
+const optionalText = z
+  .string()
+  .trim()
+  .optional()
+  .default('');
+
+const optionalDecimal = (maxFractionalDigits: number) => z
+  .union([
+    z.literal(''),
+    decimalString(maxFractionalDigits)
+  ])
+  .optional()
+  .default('');
+
+const optionalPositiveDecimal = (maxFractionalDigits: number) => z
+  .union([
+    z.literal(''),
+    positiveDecimalString(maxFractionalDigits)
+  ])
+  .optional()
+  .default('');
+
+export const createFoodSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Name is required')
+    .max(200, 'Name must have at most 200 characters'),
+
+  brand: optionalText,
+  barcode: optionalText,
+
+  amountUnit: z.enum(amountUnits),
+
+  basisAmount: positiveDecimalString(3),
+  servingAmount: optionalPositiveDecimal(3),
+  containerAmount: optionalPositiveDecimal(3),
+
+  energyKcal: decimalString(3),
+  proteinG: decimalString(3),
+  carbsG: decimalString(3),
+  fatG: decimalString(3),
+
+  fibreG: optionalDecimal(3),
+  sugarG: optionalDecimal(3),
+  saturatedFatG: optionalDecimal(3),
+
+  sodiumMg: optionalDecimal(0),
+  potassiumMg: optionalDecimal(0),
+
+  notes: optionalText
+});
+
+export type createFoodSchema = z.infer<typeof createFoodSchema>;
