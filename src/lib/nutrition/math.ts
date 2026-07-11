@@ -1,5 +1,6 @@
 const MAX_SAFE_INTEGER = BigInt(Number.MAX_SAFE_INTEGER);
 const PORTION_COUNT_SCALE = 1000n;
+const STORAGE_FRACTIONAL_DIGITS = 3;
 
 export function divideRoundHalfUp(numerator: bigint, denominator: bigint): bigint {
   if (numerator < 0n) { // i.e. food protein
@@ -104,4 +105,44 @@ export function scaleNutritionValue(
     valuePerBasis * resolvedAmount,
     basisAmount
   );
+}
+
+export function formatStoredValue(
+  value: bigint,
+  displayFractionalDigits: number
+): string {
+  if (value < 0n) {
+    throw new RangeError('Value must be non-negative');
+  }
+
+  if (
+    !Number.isInteger(displayFractionalDigits) ||
+    displayFractionalDigits < 0 ||
+    displayFractionalDigits > STORAGE_FRACTIONAL_DIGITS
+  ) {
+    throw new RangeError(
+      'Display fractional digits must be between 0 and 3'
+    );
+  }
+
+  const discardedDigits = STORAGE_FRACTIONAL_DIGITS - displayFractionalDigits;
+
+  const divisor = 10n ** BigInt(discardedDigits);
+  const roundedValue = divideRoundHalfUp(value, divisor);
+
+  if (displayFractionalDigits === 0) {
+    return roundedValue.toString();
+  }
+
+  const displayScale = 10n ** BigInt(displayFractionalDigits);
+  const wholePart = roundedValue / displayScale;
+
+  const fractionalPart = (roundedValue % displayScale)
+    .toString()
+    .padStart(displayFractionalDigits, '0')
+    .replace(/0+$/, '');
+
+  return fractionalPart === ''
+    ? wholePart.toString()
+    : `${wholePart}.${fractionalPart}`;
 }

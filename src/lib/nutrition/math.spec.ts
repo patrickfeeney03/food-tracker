@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   divideRoundHalfUp,
+  formatStoredValue,
   parseFixedPoint,
   resolvePortionAmount,
   scaleNutritionValue,
@@ -252,4 +253,44 @@ describe('scaleNutritionValue', () => {
       new RangeError('Basis amount must be positive')
     );
   });
+});
+
+describe('formatStoredValue', () => {
+  it.each([
+    { value: 205_200n, displayFractionalDigits: 1, expected: '205.2' },
+    { value: 205_250n, displayFractionalDigits: 1, expected: '205.3' },
+    { value: 205_249n, displayFractionalDigits: 1, expected: '205.2' },
+    { value: 342_500n, displayFractionalDigits: 0, expected: '343' },
+    { value: 31_500n, displayFractionalDigits: 1, expected: '31.5' },
+    { value: 250_125n, displayFractionalDigits: 3, expected: '250.125' },
+    { value: 12_000n, displayFractionalDigits: 1, expected: '12' },
+    { value: 5n, displayFractionalDigits: 3, expected: '0.005' },
+    { value: 5n, displayFractionalDigits: 2, expected: '0.01' },
+    { value: 5n, displayFractionalDigits: 1, expected: '0' },
+    { value: 0n, displayFractionalDigits: 3, expected: '0' }
+  ])(
+    'formats $value with $displayFractionalDigits fractional digits as $expected',
+    ({ value, displayFractionalDigits, expected }) => {
+      expect(formatStoredValue(value, displayFractionalDigits)).toBe(expected);
+    }
+  );
+
+  it('carries display rounding into the whole part', () => {
+    expect(formatStoredValue(999_950n, 1)).toBe('1000');
+  });
+
+  it('rejects a negative value', () => {
+    expect(() => formatStoredValue(-1n, 1)).toThrow(
+      new RangeError('Value must be non-negative')
+    );
+  });
+
+  it.each([-1, 4, 1.5, Number.NaN])(
+    'rejects invalid display precision: %s',
+    (displayFractionalDigits) => {
+      expect(() => formatStoredValue(1_000n, displayFractionalDigits)).toThrow(
+        new RangeError('Display fractional digits must be between 0 and 3')
+      );
+    }
+  );
 });
