@@ -155,6 +155,18 @@ describe('toSafeInteger', () => {
 });
 
 describe('resolvePortionAmount', () => {
+  it('keeps a large portion multiplication exact', () => {
+    const maximumSafeAmount = BigInt(Number.MAX_SAFE_INTEGER);
+
+    const result = resolvePortionAmount(
+      maximumSafeAmount,
+      1_000n
+    );
+
+    expect(result).toBe(maximumSafeAmount);
+    expect(toSafeInteger(result)).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
   it('resolves 2.5 portions of 100 g', () => {
     expect(resolvePortionAmount(100_000n, 2_500n)).toBe(250_000n);
   });
@@ -215,6 +227,31 @@ describe('resolvePortionAmount', () => {
 });
 
 describe('scaleNutritionValue', () => {
+  it('keeps a very large intermediate multiplication exact', () => {
+    const maximumSafeValue = BigInt(Number.MAX_SAFE_INTEGER);
+
+    expect(
+      scaleNutritionValue(
+        maximumSafeValue,
+        maximumSafeValue,
+        maximumSafeValue
+      )
+    ).toBe(maximumSafeValue);
+  });
+
+  it('rejects a final result outside the safe database range', () => {
+    const unsafeValue = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
+
+    const result = scaleNutritionValue(
+      unsafeValue,
+      1n,
+      1n
+    );
+
+    expect(() => toSafeInteger(result)).toThrow(
+      new RangeError('Value exceeds the safe integer range')
+    );
+  });
   it('scales label calories independently', () => {
     expect(
       scaleNutritionValue(342_000n, 150_000n, 250_000n)
