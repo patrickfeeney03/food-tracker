@@ -256,6 +256,7 @@ This is the first step of an atomic create-and-log wizard, not a standalone cata
 ### Measurement
 
 - Solid (`g`) or Liquid (`ml`).
+- Solid and liquid amounts accept up to three decimal places; liquid values are stored internally as microlitres.
 - Nutrition basis amount, default `100`, editable.
 - Exact Serving amount, optional.
 - Exact Container amount, optional.

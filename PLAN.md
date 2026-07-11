@@ -31,15 +31,16 @@ This document defines the implementation-level data model agreed during pre-buil
 ### Food Amounts
 
 - Solid UI unit: grams; storage unit: milligrams.
-- Liquid UI and storage unit: whole millilitres.
-- Each food has an `amount_unit` of either `mg` or `ml`.
+- Liquid UI unit: millilitres; storage unit: microlitres (`ul`).
+- One millilitre is stored as `1000 ul`, giving liquid amounts the same three-decimal UI precision as solid amounts.
+- Each food has an `amount_unit` of either `mg` or `ul`.
 - A food's basis, serving, container, diary amount, and shortcut amount all use the food's `amount_unit`.
 
 ### Fixed-Point Parsing
 
 - Decimal UI values are parsed from strings directly into integers; they are never routed through binary floating point before conversion.
 - Portion counts use an integer fixed-point scale, initially thousandths. For example, `1.5` is stored as `1500`.
-- Ratio results are rounded to the nearest integer mg or mkcal at the individual diary-entry boundary.
+- Ratio results are rounded to the nearest integer mg, ul, or mkcal at the individual diary-entry boundary.
 - `NUTRITION_MATH.md` is the source of truth for parsing, scaling, rounding, totals, and display precision.
 
 ## `users`
@@ -135,7 +136,7 @@ Identity and ownership:
 
 Measurement and label basis:
 
-- `amount_unit`: `mg` or `ml`
+- `amount_unit`: `mg` or `ul`
 - `basis_amount`: positive integer in `amount_unit`
 - `serving_amount`, nullable positive integer in `amount_unit`
 - `container_amount`, nullable positive integer in `amount_unit`
@@ -232,7 +233,7 @@ Constraints and indexes:
 - Meal slot is restricted to the fixed four values.
 - Unique `(user_id, client_mutation_id)` when the idempotency key is non-null.
 - Dashboard index `(user_id, diary_date, meal_slot, deleted_at)`.
-- Recency index `(user_id, food_id, deleted_at, logged_at DESC)`.
+- Recency index `(user_id, food_id, deleted_at, logged_at)`; SQLite may scan it backward for newest-first results.
 - Shortcut Undo index `(user_id, shortcut_batch_id, deleted_at)`.
 
 All snapshot fields and calculated totals are written or updated in one transaction by the nutrition service. Editing a reusable food never updates these rows.

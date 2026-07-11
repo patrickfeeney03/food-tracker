@@ -20,7 +20,7 @@ Macro energy calculations such as `protein × 4 + carbohydrate × 4 + fat × 9` 
 | Energy | kcal | milli-kilocalories (`mkcal`) | 1 kcal = 1,000 mkcal |
 | Nutrients | g | milligrams (`mg`) | 1 g = 1,000 mg |
 | Solid amount | g | milligrams (`mg`) | 1 g = 1,000 mg |
-| Liquid amount | ml | millilitres (`ml`) | whole ml |
+| Liquid amount | ml | microlitres (`ul`) | 1 ml = 1,000 ul |
 | Portion count | portions | milli-portions | 1 portion = 1,000 milli-portions |
 
 Sodium is stored in milligrams. Salt is not modelled initially.
@@ -28,7 +28,7 @@ Sodium is stored in milligrams. Salt is not modelled initially.
 Each food has exactly one `amount_unit`:
 
 - A solid food uses `mg` for its basis, optional serving, optional container, diary amount, and shortcut amount.
-- A liquid food uses whole `ml` for all of those values.
+- A liquid food uses `ul` for all of those values. `ul` is the ASCII storage identifier for microlitres (`µl`).
 - The application does not convert between mass and volume. It has no density model.
 
 ## Decimal Input Parsing
@@ -48,7 +48,7 @@ Examples:
 parse kcal "132.5"       -> 132500 mkcal
 parse nutrient g "4.7"  -> 4700 mg
 parse solid g "250.25"  -> 250250 mg
-parse liquid ml "250"   -> 250 ml
+parse liquid ml "250.125" -> 250125 ul
 parse portions "1.5"    -> 1500 milli-portions
 ```
 
@@ -57,7 +57,7 @@ Initial supported precision:
 - Calories: at most 3 decimal places.
 - Nutrients in grams: at most 3 decimal places.
 - Solid amounts in grams: at most 3 decimal places.
-- Liquid amounts in millilitres: no decimal places.
+- Liquid amounts in millilitres: at most 3 decimal places.
 - Portion counts: at most 3 decimal places.
 
 Trailing zeroes do not affect the stored value. For example, `1.5`, `1.50`, and `1.500` all become `1500` milli-portions.
@@ -97,8 +97,8 @@ Stored fat_mg_per_basis:          12500 mg
 
 The available portion kinds are:
 
-- `unit`: 1 g for solids or 1 ml for liquids.
-- `hundred`: 100 g for solids or 100 ml for liquids.
+- `unit`: 1 g (`1000 mg`) for solids or 1 ml (`1000 ul`) for liquids.
+- `hundred`: 100 g (`100000 mg`) for solids or 100 ml (`100000 ul`) for liquids.
 - `serving`: the food's optional exact serving amount.
 - `container`: the food's optional exact container amount.
 
@@ -125,7 +125,7 @@ resolved amount = round_half_up(100000 * 2500 / 1000)
                 = 250 g
 ```
 
-Rounding the resolved amount matters only when a fractional portion produces less than one storage unit. For example, `0.333 × 1 ml` resolves from `0.333 ml` to `0 ml` and is invalid. Whole-millilitre precision is an intentional initial limitation.
+Rounding the resolved amount matters only when a fractional portion produces part of one storage unit. For example, `0.333 × 1 ml` resolves exactly to `333 ul` and is valid. A result below half a microlitre rounds to `0 ul` and is invalid because every resolved amount must be positive.
 
 ## Nutrition Scaling
 
@@ -211,7 +211,7 @@ Display formatting does not alter stored values. Initial defaults:
 - Amount Adjuster calorie preview: up to 1 decimal place when needed.
 - Macronutrients in compact and preview views: up to 1 decimal gram when needed.
 - Solid amounts: up to 3 decimal grams, with insignificant trailing zeroes removed.
-- Liquid amounts: whole ml.
+- Liquid amounts: up to 3 decimal ml, with insignificant trailing zeroes removed.
 
 Display rounding also uses half-up behavior. Values such as `12.0 g` may be displayed as `12 g`; this is formatting only.
 
