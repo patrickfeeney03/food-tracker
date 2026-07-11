@@ -49,7 +49,7 @@ ALTER TABLE `__new_diary_logs` RENAME TO `diary_logs`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint
 CREATE UNIQUE INDEX `diary_logs_user_client_mutation_unique` ON `diary_logs` (`user_id`,`client_mutation_id`) WHERE "diary_logs"."client_mutation_id" is not null;--> statement-breakpoint
 CREATE INDEX `diary_logs_dashboard_idx` ON `diary_logs` (`user_id`,`diary_date`,`meal_slot`,`deleted_at`);--> statement-breakpoint
-CREATE INDEX `diary_logs_recency_idx` ON `diary_logs` (`user_id`,`food_id`,`deleted_at`,`"logged_at" desc`);--> statement-breakpoint
+CREATE INDEX `diary_logs_recency_idx` ON `diary_logs` (`user_id`,`food_id`,`deleted_at`,"logged_at" desc);--> statement-breakpoint
 CREATE INDEX `diary_logs_shortcut_undo_idx` ON `diary_logs` (`user_id`,`shortcut_batch_id`,`deleted_at`);--> statement-breakpoint
 CREATE TABLE `__new_foods` (
 	`id` text PRIMARY KEY NOT NULL,

@@ -15,6 +15,13 @@
       "when": 1783783075413,
       "tag": "0001_cheerful_karma",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783783511721,
+      "tag": "0002_messy_blockbuster",
+      "breakpoints": true
     }
   ]
 }

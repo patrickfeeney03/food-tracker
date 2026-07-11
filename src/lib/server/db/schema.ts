@@ -1,4 +1,4 @@
-import { desc, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import {
   check,
   index,
@@ -136,7 +136,7 @@ export const nutritionGoals = sqliteTable(
     ),
     index('nutrition_goals_user_effective_from_idx').on(
       table.userId,
-      desc(table.effectiveFrom)
+      table.effectiveFrom
     ),
     check( // date format checker
       'nutrition_goals_effective_from_check',
@@ -306,7 +306,7 @@ export const diaryLogs = sqliteTable(
       table.userId,
       table.foodId,
       table.deletedAt,
-      desc(table.loggedAt)
+      table.loggedAt
     ),
     index('diary_logs_shortcut_undo_idx').on(
       table.userId,
