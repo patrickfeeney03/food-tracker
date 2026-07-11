@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { divideRoundHalfUp } from "./math";
+import { divideRoundHalfUp, parseFixedPoint } from "./math";
 
 describe('divideRoundHalfUp', () => {
   it.each([
@@ -10,7 +10,7 @@ describe('divideRoundHalfUp', () => {
     { numerator: 1n, denominator: 3n, expected: 0n },
     { numerator: 2n, denominator: 3n, expected: 1n },
   ])(
-    'rounds $numerator / $denominator to $expected',
+    'rounds "$numerator: / "$denominator" to "$expected"',
     ({ numerator, denominator, expected }) => {
       expect(divideRoundHalfUp(numerator, denominator)).toBe(expected);
     });
@@ -32,4 +32,50 @@ describe('divideRoundHalfUp', () => {
       RangeError('Denominator must be positive')
     );
   })
+});
+
+describe('parseFixedPoint', () => {
+  it.each([
+    { input: '132.5', fractionalDigits: 3, expected: 132_500n },
+    { input: '4.7', fractionalDigits: 3, expected: 4_700n },
+    { input: '250.25', fractionalDigits: 3, expected: 250_250n },
+    { input: '250', fractionalDigits: 0, expected: 250n },
+    { input: '1.5', fractionalDigits: 3, expected: 1_500n },
+    { input: '1.50', fractionalDigits: 3, expected: 1_500n },
+    { input: '0001.005', fractionalDigits: 3, expected: 1_005n },
+    { input: ' 12.5', fractionalDigits: 3, expected: 12_500n },
+    { input: '0', fractionalDigits: 3, expected: 0n },
+  ])(
+    'parses "$input" with "$fractionalDigits" fraction digits',
+    ({ input, fractionalDigits, expected }) => {
+      expect(parseFixedPoint(input, fractionalDigits)).toBe(expected);
+    });
+
+  it.each([
+    '', '   ', '-1', '+1', '.5', '1.', '1e3', '1,000', 'NaN', 'Infinity'
+  ])('rejects invalid decimal syntax: "%s"', (input) => {
+    expect(() => parseFixedPoint(input, 3)).toThrow(
+      new TypeError('Value must be a non-negative decimal')
+    )
+  });
+
+  it('rejects more fractinoal digits than supported', () => {
+    expect(() => parseFixedPoint('1.2345', 3)).toThrow(
+      new RangeError('Value supports at most 3 fractional digits')
+    );
+  });
+
+  it('rejects decimal liquid input when no fractional digits are supported', () => {
+    expect(() => parseFixedPoint('250.0', 0)).toThrow(
+      new RangeError('Value supports at most 0 fractional digits')
+    );
+  });
+
+  it.each([-1, 1.5, Number.NaN])(
+    'rejects invalid fractional-digit configuration %s', (input) => {
+      expect(() => parseFixedPoint('1', input)).toThrow(
+        new RangeError('Fractional digits must be a non-negative integer')
+      );
+    }
+  );
 });
