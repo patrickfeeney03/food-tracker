@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { divideRoundHalfUp, parseFixedPoint } from "./math";
+import { divideRoundHalfUp, parseFixedPoint, toSafeInteger } from "./math";
 
 describe('divideRoundHalfUp', () => {
   it.each([
@@ -78,4 +78,34 @@ describe('parseFixedPoint', () => {
       );
     }
   );
+});
+
+describe('toSafeInteger', () => {
+  it('converts zero', () => {
+    expect(toSafeInteger(0n)).toBe(0);
+  });
+
+  it('converts a normal nutrition value', () => {
+    expect(toSafeInteger(342000n)).toBe(342_000);
+  });
+
+  it('accepts the largest safe integer', () => {
+    expect(toSafeInteger(BigInt(Number.MAX_SAFE_INTEGER))).toBe(
+      Number.MAX_SAFE_INTEGER
+    );
+  });
+
+  it('rejects a negative value', () => {
+    expect(() => toSafeInteger(-1n)).toThrow(
+      new RangeError('Value must be non-negative')
+    );
+  });
+
+  it('rejects a value above the safe integer range', () => {
+    const unsafeValue = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
+
+    expect(() => toSafeInteger(unsafeValue)).toThrow(
+      new RangeError('Value exceeds the safe integer range')
+    );
+  });
 });

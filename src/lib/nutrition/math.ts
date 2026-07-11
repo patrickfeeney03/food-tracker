@@ -1,3 +1,5 @@
+const MAX_SAFE_INTEGER = BigInt(Number.MAX_SAFE_INTEGER);
+
 export function divideRoundHalfUp(numerator: bigint, denominator: bigint): bigint {
   if (numerator < 0n) { // i.e. food protein
     throw new RangeError('Numerator must be non-negative');
@@ -39,3 +41,16 @@ export function parseFixedPoint(input: string, fractionalDigits: number): bigint
     BigInt(paddedFraction === '' ? '0' : paddedFraction)
   );
 }
+
+export function toSafeInteger(value: bigint): number {
+  if (value < 0n) {
+    throw new RangeError('Value must be non-negative');
+  }
+
+  if (value > MAX_SAFE_INTEGER) {
+    throw new RangeError('Value exceeds the safe integer range');
+  }
+
+  return Number(value);
+}
+
