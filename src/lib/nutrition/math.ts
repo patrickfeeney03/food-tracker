@@ -83,10 +83,10 @@ export function resolvePortionAmount(
   portionAmount: bigint,
   portionCountMilli: bigint
 ): bigint {
-  if (portionAmount <= 0) {
+  if (portionAmount <= 0n) {
     throw new RangeError('Portion amount must be positive');
   }
-  if (portionCountMilli <= 0) {
+  if (portionCountMilli <= 0n) {
     throw new RangeError('Portion count must be positive');
   }
 
