@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createFoodSchema, decimalString, positiveDecimalString } from "./food-input";
-import z from "zod";
+import { z } from 'zod';
 
 describe('decimalString', () => {
   it.each([
