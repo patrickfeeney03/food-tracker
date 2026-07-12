@@ -46,5 +46,8 @@
 	"dependencies": {
 		"better-sqlite3": "^12.10.0",
 		"zod": "^4.4.3"
+	},
+	"volta": {
+		"node": "24.18.0"
 	}
 }

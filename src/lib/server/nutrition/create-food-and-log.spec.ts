@@ -35,14 +35,15 @@ function withMigratedDatabase(
   }
 }
 
-function insertUser(
-  connection: DatabaseConnection
+export function insertUser(
+  connection: DatabaseConnection,
+  email = 'patrick@example.com'
 ): string {
   return connection.db
     .insert(users)
     .values({
       name: 'Patrick',
-      email: 'patrick@example.com'
+      email
     })
     .returning({
       id: users.id
