@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { amountUnits } from "./units";
+import { amountUnits } from "./constants";
 
 const decimalPattern = /^\d+(?:\.\d+)?$/;
 const zeroPattern = /^0+(?:\.0+)?$/;

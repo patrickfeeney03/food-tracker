@@ -1,4 +1,4 @@
-import { amountUnits } from '$lib/nutrition/units';
+import { amountUnits, mealSlots, portionKinds } from '$lib/nutrition/constants';
 import { sql } from 'drizzle-orm';
 import {
   check,
@@ -10,13 +10,9 @@ import {
 } from 'drizzle-orm/sqlite-core';
 
 export const authProviders = ['google'] as const;
-export const mealSlots = ['breakfast', 'lunch', 'dinner', 'snacks'] as const;
-export const portionKinds = ['unit', 'hundred', 'serving', 'container'] as const;
 export const themes = ['light', 'dark', 'system'] as const;
 
 export type AuthProvider = (typeof authProviders)[number];
-export type MealSlot = (typeof mealSlots)[number];
-export type PortionKind = (typeof portionKinds)[number];
 export type Theme = (typeof themes)[number];
 
 export interface UserSettings {
