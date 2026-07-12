@@ -1,0 +1,199 @@
+import type { PortionKind } from "$lib/nutrition/constants";
+import { parsePortionCountToMilli, resolvePortionAmount, scaleNutritionValue, toSafeInteger } from "$lib/nutrition/math";
+import type { LogFoodInput } from "$lib/nutrition/portion-input";
+import type { AdditionalNutrition, Food, NewDiaryLog } from "$lib/server/db/schema";
+
+export interface PortionDefinition {
+  label: string;
+  amount: bigint;
+}
+
+export function resolvePortionDefinition(
+  food: Food,
+  portionKind: PortionKind
+): PortionDefinition {
+  const displayUnit = food.amountUnit === 'mg' ? 'g' : 'ml';
+
+  switch (portionKind) {
+    case 'unit':
+      return {
+        label: `1 ${displayUnit}`,
+        amount: 1_000n
+      }
+
+    case 'hundred':
+      return {
+        label: `100 ${displayUnit}`,
+        amount: 100_000n
+      }
+
+    case 'serving':
+      if (food.servingAmount === null) {
+        throw new RangeError(
+          'Food does not define a serving amount'
+        );
+      }
+
+      return {
+        label: `Serving`,
+        amount: BigInt(food.servingAmount)
+      };
+
+    case 'container':
+      if (food.containerAmount === null) {
+        throw new RangeError(
+          'Food does not define a container amount'
+        );
+      }
+
+      return {
+        label: 'Container',
+        amount: BigInt(food.containerAmount)
+      };
+  }
+}
+
+function scaleForStorage(
+  valuePerBasis: number,
+  resolvedAmount: bigint,
+  basisAmount: number
+): number {
+  return toSafeInteger(
+    scaleNutritionValue(
+      BigInt(valuePerBasis),
+      resolvedAmount,
+      BigInt(basisAmount)
+    )
+  );
+}
+
+function scaleAdditionalNutrition(
+  valuesPerBasis: AdditionalNutrition | null,
+  resolvedAmount: bigint,
+  basisAmount: number
+): AdditionalNutrition | null {
+  if (valuesPerBasis === null) {
+    return null;
+  }
+
+  const totals: AdditionalNutrition = {};
+
+  if (valuesPerBasis.fibreMg !== undefined) {
+    totals.fibreMg = scaleForStorage(
+      valuesPerBasis.fibreMg,
+      resolvedAmount,
+      basisAmount
+    );
+  }
+
+  if (valuesPerBasis.sugarMg !== undefined) {
+    totals.sugarMg = scaleForStorage(
+      valuesPerBasis.sugarMg,
+      resolvedAmount,
+      basisAmount
+    );
+  }
+
+  if (valuesPerBasis.saturatedFatMg !== undefined) {
+    totals.saturatedFatMg = scaleForStorage(
+      valuesPerBasis.saturatedFatMg,
+      resolvedAmount,
+      basisAmount
+    );
+  }
+
+  if (valuesPerBasis.sodiumMg !== undefined) {
+    totals.sodiumMg = scaleForStorage(
+      valuesPerBasis.sodiumMg,
+      resolvedAmount,
+      basisAmount
+    );
+  }
+
+  if (valuesPerBasis.potassiumMg !== undefined) {
+    totals.potassiumMg = scaleForStorage(
+      valuesPerBasis.potassiumMg,
+      resolvedAmount,
+      basisAmount
+    );
+  }
+
+  return totals;
+}
+
+export function buildDiaryLogValues(
+  food: Food,
+  input: LogFoodInput
+): NewDiaryLog {
+  if (food.deletedAt !== null) {
+    throw new RangeError(
+      'Cannot log an archived food'
+    );
+  }
+
+  const portion = resolvePortionDefinition(
+    food,
+    input.portionKind
+  );
+
+  const portionCountMilli = parsePortionCountToMilli(input.portionCount);
+
+  const resolvedAmount = resolvePortionAmount(portion.amount, portionCountMilli);
+
+  return {
+    userId: food.userId,
+    foodId: food.id,
+
+    diaryDate: input.diaryDate,
+    mealSlot: input.mealSlot,
+    clientMutationId: input.clientMutationId,
+
+    foodName: food.name,
+    foodBrand: food.brand,
+    amountUnit: food.amountUnit,
+    basisAmount: food.basisAmount,
+
+    energyMkcalPerBasis: food.energyMkcalPerBasis,
+    proteinMgPerBasis: food.proteinMgPerBasis,
+    carbsMgPerBasis: food.carbsMgPerBasis,
+    fatMgPerBasis: food.fatMgPerBasis,
+
+    additionalNutritionPerBasisJson: food.additionalNutritionJson,
+
+    portionKind: input.portionKind,
+    portionLabel: portion.label,
+    portionAmount: toSafeInteger(portion.amount),
+    portionCountMilli: toSafeInteger(portionCountMilli),
+    resolvedAmount: toSafeInteger(resolvedAmount),
+
+    energyMkcal: scaleForStorage(
+      food.energyMkcalPerBasis,
+      resolvedAmount,
+      food.basisAmount
+    ),
+
+    proteinMg: scaleForStorage(
+      food.proteinMgPerBasis,
+      resolvedAmount,
+      food.basisAmount
+    ),
+
+    carbsMg: scaleForStorage(
+      food.carbsMgPerBasis,
+      resolvedAmount,
+      food.basisAmount
+    ),
+
+    fatMg: scaleForStorage(
+      food.fatMgPerBasis,
+      resolvedAmount,
+      food.basisAmount
+    ),
+
+    additionalNutritionTotalJson: scaleAdditionalNutrition(
+      food.additionalNutritionJson,
+      resolvedAmount,
+      food.basisAmount
+    )
+  };
+}

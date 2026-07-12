@@ -8,7 +8,10 @@ import {
   logFoodInputSchema
 } from './portion-input';
 
+const clientMutationId = '550e8400-e29b-41d4-a716-446655440000';
+
 const validInput = {
+  clientMutationId,
   portionKind: 'hundred',
   portionCount: '2.5',
   diaryDate: '2026-07-12',
@@ -113,6 +116,22 @@ describe('logFoodInputSchema', () => {
         mealSlot: 'supper'
       }).success
     ).toBe(false);
+  });
+
+  it('rejects an invalid mutation ID', () => {
+    expect(
+      logFoodInputSchema.safeParse({
+        ...validInput,
+        clientMutationId: 'not-a-uuid'
+      }).success
+    ).toBe(false)
+  });
+
+  it('preserves the client mutation ID', () => {
+    expect(
+      logFoodInputSchema.parse(validInput)
+        .clientMutationId
+    ).toBe(clientMutationId)
   });
 });
 

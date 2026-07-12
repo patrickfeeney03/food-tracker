@@ -55,6 +55,10 @@ export const calendarDateString = z
   );
 
 export const logFoodInputSchema = z.object({
+  clientMutationId: z.uuid(
+    'Must be a valid mutation ID'
+  ),
+
   portionKind: z.enum(portionKinds),
 
   portionCount: positiveDecimalString(3),
@@ -63,5 +67,6 @@ export const logFoodInputSchema = z.object({
 
   mealSlot: z.enum(mealSlots)
 });
+
 
 export type LogFoodInput = z.infer<typeof logFoodInputSchema>;
