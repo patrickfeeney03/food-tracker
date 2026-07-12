@@ -338,3 +338,5 @@ export type Food = typeof foods.$inferSelect;
 export type NewFood = typeof foods.$inferInsert;
 export type DiaryLog = typeof diaryLogs.$inferSelect;
 export type NewDiaryLog = typeof diaryLogs.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
