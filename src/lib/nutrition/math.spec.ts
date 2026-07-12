@@ -22,7 +22,7 @@ describe('divideRoundHalfUp', () => {
     { numerator: 1n, denominator: 3n, expected: 0n },
     { numerator: 2n, denominator: 3n, expected: 1n },
   ])(
-    'rounds "$numerator: / "$denominator" to "$expected"',
+    'rounds "$numerator": / "$denominator" to "$expected"',
     ({ numerator, denominator, expected }) => {
       expect(divideRoundHalfUp(numerator, denominator)).toBe(expected);
     });
@@ -71,7 +71,7 @@ describe('parseFixedPoint', () => {
     )
   });
 
-  it('rejects more fractinoal digits than supported', () => {
+  it('rejects more fractional digits than supported', () => {
     expect(() => parseFixedPoint('1.2345', 3)).toThrow(
       new RangeError('Value supports at most 3 fractional digits')
     );
