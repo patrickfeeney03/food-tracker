@@ -86,4 +86,4 @@ export const createFoodSchema = z.object({
   notes: optionalText
 });
 
-export type createFoodSchema = z.infer<typeof createFoodSchema>;
+export type CreateFoodFormInput = z.infer<typeof createFoodSchema>;
