@@ -3,6 +3,7 @@ import {
   createSession,
   generateSessionToken,
   hashSessionToken,
+  revokeSession,
   SESSION_DURATION_MS,
   SESSION_REFRESH_INTERVAL_MS,
   validateSessionToken
@@ -41,13 +42,14 @@ function withMigratedDatabase(
 }
 
 function insertUser(
-  connection: DatabaseConnection
+  connection: DatabaseConnection,
+  email = 'patrick@example.com'
 ): string {
   return connection.db
     .insert(users)
     .values({
       name: 'Patrick',
-      email: 'patrick@example.com'
+      email
     })
     .returning({ id: users.id })
     .get().id;
@@ -290,6 +292,106 @@ describe('validateSessionToken', () => {
         )
       );
       expect(storedSession).toEqual(result.session);
+    });
+  });
+});
+
+describe('revokeSession', () => {
+  it('revokes an active session', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const createdAt = new Date(
+        '2026-07-12T12:00:00Z'
+      );
+      const revokedAt = new Date(
+        '2026-07-13T12:00:00Z'
+      );
+      const created = createSession(
+        connection.db,
+        userId,
+        null,
+        createdAt
+      );
+
+      expect(
+        revokeSession(
+          connection.db,
+          userId,
+          created.session.id,
+          revokedAt
+        )
+      ).toBe(true);
+      expect(
+        validateSessionToken(
+          connection.db,
+          created.token,
+          revokedAt
+        )
+      ).toEqual({
+        user: null,
+        session: null
+      });
+    });
+  });
+
+  it('does not revoke the same session twice', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const created = createSession(
+        connection.db,
+        userId,
+        null
+      );
+
+      expect(
+        revokeSession(
+          connection.db,
+          userId,
+          created.session.id
+        )
+      ).toBe(true);
+      expect(
+        revokeSession(
+          connection.db,
+          userId,
+          created.session.id
+        )
+      ).toBe(false);
+    });
+  });
+
+  it('does not let another user revoke the session', () => {
+    withMigratedDatabase((connection) => {
+      const ownerId = insertUser(connection);
+      const otherUserId = insertUser(
+        connection,
+        'other@example.com'
+      );
+      const now = new Date(
+        '2026-07-12T12:00:00Z'
+      );
+      const created = createSession(
+        connection.db,
+        ownerId,
+        null,
+        now
+      );
+
+      expect(
+        revokeSession(
+          connection.db,
+          otherUserId,
+          created.session.id,
+          now
+        )
+      ).toBe(false);
+      expect(
+        validateSessionToken(
+          connection.db,
+          created.token,
+          now
+        ).user?.id
+      ).toBe(ownerId);
     });
   });
 });

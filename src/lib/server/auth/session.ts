@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { DatabaseConnection } from "../db/connection";
 import {
   sessions,
@@ -95,7 +95,7 @@ export function validateSessionToken(
 
   if (
     now.getTime() -
-      result.session.lastSeenAt.getTime() >=
+    result.session.lastSeenAt.getTime() >=
     SESSION_REFRESH_INTERVAL_MS
   ) {
     const refreshedSession = db
@@ -117,4 +117,27 @@ export function validateSessionToken(
   }
 
   return result;
+}
+
+export function revokeSession(
+  db: AppDatabase,
+  userId: string,
+  sessionId: string,
+  now = new Date()
+): boolean {
+  const result = db
+    .update(sessions)
+    .set({
+      revokedAt: now
+    })
+    .where(
+      and(
+        eq(sessions.id, sessionId),
+        eq(sessions.userId, userId),
+        isNull(sessions.revokedAt)
+      )
+    )
+    .run();
+
+  return result.changes === 1;
 }
