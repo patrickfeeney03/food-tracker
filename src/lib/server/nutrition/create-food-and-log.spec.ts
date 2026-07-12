@@ -221,4 +221,66 @@ describe('createFoodAndLog', () => {
       ).toHaveLength(0);
     });
   });
+
+  it('returns the original result when the mutation is retried', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+
+      const foodInput = {
+        name: 'Greek yogurt',
+        amountUnit: 'mg',
+        basisAmount: '100',
+        energyKcal: '65',
+        proteinG: '10',
+        carbsG: '3.5',
+        fatG: '0.8'
+      };
+
+      const logInput = {
+        clientMutationId,
+        portionKind: 'hundred',
+        portionCount: '2',
+        diaryDate: '2026-07-12',
+        mealSlot: 'breakfast'
+      } as const;
+
+      const firstResult = createFoodAndLog(
+        connection.db,
+        userId,
+        foodInput,
+        logInput
+      );
+
+      const replayedResult = createFoodAndLog(
+        connection.db,
+        userId,
+        foodInput,
+        logInput
+      );
+
+      expect(replayedResult.food.id).toBe(
+        firstResult.food.id
+      );
+
+      expect(replayedResult.diaryLog.id).toBe(
+        firstResult.diaryLog.id
+      );
+
+      expect(
+        connection.db
+          .select()
+          .from(foods)
+          .where(eq(foods.userId, userId))
+          .all()
+      ).toHaveLength(1);
+
+      expect(
+        connection.db
+          .select()
+          .from(diaryLogs)
+          .where(eq(diaryLogs.userId, userId))
+          .all()
+      ).toHaveLength(1);
+    });
+  });
 });
