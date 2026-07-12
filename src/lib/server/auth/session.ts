@@ -13,6 +13,9 @@ type AppDatabase = DatabaseConnection['db'];
 export const SESSION_DURATION_MS =
   90 * 24 * 60 * 60 * 1000;
 
+export const SESSION_REFRESH_INTERVAL_MS =
+  24 * 60 * 60 * 1000;
+
 export interface SessionValidationResult {
   user: User | null;
   session: Session | null;
@@ -87,6 +90,29 @@ export function validateSessionToken(
     return {
       user: null,
       session: null
+    };
+  }
+
+  if (
+    now.getTime() -
+      result.session.lastSeenAt.getTime() >=
+    SESSION_REFRESH_INTERVAL_MS
+  ) {
+    const refreshedSession = db
+      .update(sessions)
+      .set({
+        lastSeenAt: now,
+        expiresAt: new Date(
+          now.getTime() + SESSION_DURATION_MS
+        )
+      })
+      .where(eq(sessions.id, result.session.id))
+      .returning()
+      .get();
+
+    return {
+      user: result.user,
+      session: refreshedSession
     };
   }
 

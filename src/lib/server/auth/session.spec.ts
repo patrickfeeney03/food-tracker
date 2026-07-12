@@ -4,6 +4,7 @@ import {
   generateSessionToken,
   hashSessionToken,
   SESSION_DURATION_MS,
+  SESSION_REFRESH_INTERVAL_MS,
   validateSessionToken
 } from './session';
 import { createDatabase, type DatabaseConnection } from '../db/connection';
@@ -216,6 +217,79 @@ describe('validateSessionToken', () => {
         user: null,
         session: null
       });
+    });
+  });
+
+  it('does not refresh a session before 24 hours', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const createdAt = new Date(
+        '2026-07-12T12:00:00Z'
+      );
+      const created = createSession(
+        connection.db,
+        userId,
+        null,
+        createdAt
+      );
+      const beforeRefreshThreshold = new Date(
+        createdAt.getTime() +
+          SESSION_REFRESH_INTERVAL_MS -
+          1
+      );
+
+      const result = validateSessionToken(
+        connection.db,
+        created.token,
+        beforeRefreshThreshold
+      );
+
+      expect(result.session?.lastSeenAt).toEqual(
+        createdAt
+      );
+      expect(result.session?.expiresAt).toEqual(
+        created.session.expiresAt
+      );
+    });
+  });
+
+  it('refreshes a session at the 24-hour threshold', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const createdAt = new Date(
+        '2026-07-12T12:00:00Z'
+      );
+      const created = createSession(
+        connection.db,
+        userId,
+        null,
+        createdAt
+      );
+      const refreshedAt = new Date(
+        createdAt.getTime() +
+          SESSION_REFRESH_INTERVAL_MS
+      );
+
+      const result = validateSessionToken(
+        connection.db,
+        created.token,
+        refreshedAt
+      );
+      const storedSession = connection.db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, created.session.id))
+        .get();
+
+      expect(result.session?.lastSeenAt).toEqual(
+        refreshedAt
+      );
+      expect(result.session?.expiresAt).toEqual(
+        new Date(
+          refreshedAt.getTime() + SESSION_DURATION_MS
+        )
+      );
+      expect(storedSession).toEqual(result.session);
     });
   });
 });
