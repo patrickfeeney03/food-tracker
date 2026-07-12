@@ -8,7 +8,6 @@ import {
   text,
   uniqueIndex
 } from 'drizzle-orm/sqlite-core';
-
 export const authProviders = ['google'] as const;
 export const themes = ['light', 'dark', 'system'] as const;
 

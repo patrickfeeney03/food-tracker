@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { createSession, generateSessionToken, hashSessionToken, SESSION_DURATION_MS } from './session';
+import {
+  createSession,
+  generateSessionToken,
+  hashSessionToken,
+  SESSION_DURATION_MS,
+  validateSessionToken
+} from './session';
 import { createDatabase, type DatabaseConnection } from '../db/connection';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { users } from '../db/schema';
+import { eq } from 'drizzle-orm';
+import { sessions, users } from '../db/schema';
 
 function withMigratedDatabase(
   run: (connection: DatabaseConnection) => void
@@ -31,6 +38,20 @@ function withMigratedDatabase(
     });
   }
 }
+
+function insertUser(
+  connection: DatabaseConnection
+): string {
+  return connection.db
+    .insert(users)
+    .values({
+      name: 'Patrick',
+      email: 'patrick@example.com'
+    })
+    .returning({ id: users.id })
+    .get().id;
+}
+
 describe('hashSessionToken', () => {
   it('returns the same hash for the same token', () => {
     expect(hashSessionToken('secret-token')).toBe(
@@ -99,6 +120,102 @@ describe('createSession', () => {
       expect(result.session.tokenHash).not.toBe(
         result.token
       );
+    });
+  });
+});
+
+describe('validateSessionToken', () => {
+  it('returns the associated user and session', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const now = new Date('2026-07-12T12:00:00Z');
+      const created = createSession(
+        connection.db,
+        userId,
+        'Test browser',
+        now
+      );
+
+      const result = validateSessionToken(
+        connection.db,
+        created.token,
+        now
+      );
+
+      expect(result.user?.id).toBe(userId);
+      expect(result.session?.id).toBe(
+        created.session.id
+      );
+    });
+  });
+
+  it('rejects an unknown token', () => {
+    withMigratedDatabase((connection) => {
+      expect(
+        validateSessionToken(
+          connection.db,
+          'unknown-token'
+        )
+      ).toEqual({
+        user: null,
+        session: null
+      });
+    });
+  });
+
+  it('rejects an expired session', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const createdAt = new Date(
+        '2026-01-01T12:00:00Z'
+      );
+      const created = createSession(
+        connection.db,
+        userId,
+        null,
+        createdAt
+      );
+
+      const result = validateSessionToken(
+        connection.db,
+        created.token,
+        new Date('2026-04-02T12:00:00Z')
+      );
+
+      expect(result).toEqual({
+        user: null,
+        session: null
+      });
+    });
+  });
+
+  it('rejects a revoked session', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const now = new Date('2026-07-12T12:00:00Z');
+      const created = createSession(
+        connection.db,
+        userId,
+        null,
+        now
+      );
+
+      connection.db
+        .update(sessions)
+        .set({ revokedAt: now })
+        .where(eq(sessions.id, created.session.id))
+        .run();
+
+      expect(
+        validateSessionToken(
+          connection.db,
+          created.token,
+          now
+        )
+      ).toEqual({
+        user: null,
+        session: null
+      });
     });
   });
 });
