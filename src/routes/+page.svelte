@@ -51,7 +51,7 @@
 
   <nav aria-label="Diary date">
     <a
-      href={`${resolve("/")}?date=${encodeURIComponent(previousDate)}`}
+      href={resolve(`/?date=${encodeURIComponent(previousDate)}`)}
       aria-label="Previous Day">Previous</a
     >
     <div>
@@ -59,7 +59,7 @@
       <a href={resolve("/")}>Today</a>
     </div>
     <a
-      href={`${resolve("/")}?date=${encodeURIComponent(nextDate)}`}
+      href={resolve(`/?date=${encodeURIComponent(nextDate)}`)}
       aria-label="Next day">Next</a
     >
   </nav>
