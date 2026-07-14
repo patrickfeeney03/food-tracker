@@ -4,6 +4,7 @@
   import type { PageProps } from "./$types";
   import { resolve } from "$app/paths";
   import { shiftDate } from "$lib/date";
+  import { withQuery } from "$lib/navigation";
 
   let { data }: PageProps = $props();
 
@@ -51,7 +52,7 @@
 
   <nav aria-label="Diary date">
     <a
-      href={resolve(`/?date=${encodeURIComponent(previousDate)}`)}
+      href={resolve(withQuery("/", { date: previousDate }))}
       aria-label="Previous Day">Previous</a
     >
     <div>
@@ -59,7 +60,7 @@
       <a href={resolve("/")}>Today</a>
     </div>
     <a
-      href={resolve(`/?date=${encodeURIComponent(nextDate)}`)}
+      href={resolve(withQuery("/", { date: nextDate }))}
       aria-label="Next day">Next</a
     >
   </nav>
@@ -140,6 +141,13 @@
           kcal
         </strong>
       </header>
+      <a
+        href={resolve(
+          withQuery("/foods", { date: data.diary.date, mealSlot: slot }),
+        )}
+      >
+        Add food
+      </a>
 
       {#if data.diary.meals[slot].entries.length === 0}
         <p>No food logged.</p>
