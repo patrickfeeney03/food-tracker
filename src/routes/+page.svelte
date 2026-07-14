@@ -38,31 +38,53 @@
   <title>Diary {data.diary.date} | Calorie Tracker</title>
 </svelte:head>
 
-<main>
-  <header>
-    <div>
-      <p>Hello, {data.user.name}</p>
-      <h1>Food diary</h1>
+<main class="mx-auto min-h-dvh w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+  <header class="mb-6 flex items-start justify-between gap-4">
+    <div class="space-y-1">
+      <p class="text-sm font-medium text-slate-600">Hello, {data.user.name}</p>
+      <h1 class="text-3xl font-bold tracking-tight text-slate-950">
+        Food diary
+      </h1>
     </div>
 
-    <form method="POST" action={resolve("/logout")}>
-      <button type="submit">Sign out</button>
+    <form method="POST" action={resolve("/logout")} class="shrink-0">
+      <button
+        type="submit"
+        class="inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+        >Sign out</button
+      >
     </form>
   </header>
 
-  <nav aria-label="Diary date">
+  <nav
+    aria-label="Diary date"
+    class="mb-6 flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
+  >
     <a
       href={resolve(withQuery("/", { date: previousDate }))}
-      aria-label="Previous Day">Previous</a
+      aria-label="Previous Day"
+      class="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
     >
-    <div>
-      <strong>{data.diary.date}</strong>
-      <a href={resolve("/")}>Today</a>
+      Previous
+    </a>
+    <div class="space-y-1 text-center">
+      <strong class="block text-sm font-semibold text-slate-950">
+        {data.diary.date}
+      </strong>
+      <a
+        href={resolve("/")}
+        class="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+      >
+        Today
+      </a>
     </div>
     <a
       href={resolve(withQuery("/", { date: nextDate }))}
-      aria-label="Next day">Next</a
+      aria-label="Next day"
+      class="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
     >
+      Next
+    </a>
   </nav>
 
   {#if data.diary.balances}
