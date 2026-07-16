@@ -30,9 +30,10 @@ export const load: PageServerLoad = ({
     return redirect(303, '/goals/setup');
   }
 
+  const today = todayInDublin();
   const rawDate =
     url.searchParams.get('date') ??
-    todayInDublin();
+    today;
 
   const dateResult =
     calendarDateString.safeParse(rawDate);
@@ -42,6 +43,7 @@ export const load: PageServerLoad = ({
   }
 
   return {
+    today,
     user: {
       name: locals.user.name
     },
