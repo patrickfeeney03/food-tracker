@@ -16,6 +16,7 @@ This file records the current implementation state, important decisions, known c
 - Explain new SvelteKit concepts incrementally.
 - Use the generated route types from `./$types`, such as `PageServerLoad`, `Actions`, and `PageProps`.
 - Use `z.flattenError()` rather than deprecated Zod error flattening methods.
+- Use Tailwind CSS utility classes as the default approach for UI styling. Reserve component-level CSS for effects or behavior that would be awkward or unclear to express with utilities.
 
 ## Core Nutrition Decisions
 
@@ -341,4 +342,3 @@ npm run db:migrate
 npm run db:generate
 npm run db:studio
 ```
-
