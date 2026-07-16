@@ -267,13 +267,18 @@ The Create Food form should provide:
 
 Server validation must also reject `serving` or `container` when the corresponding amount is absent. Do not rely solely on disabled or hidden UI options.
 
-### Styling has not started
+### Styling has started on the diary
 
-The application currently uses semantic but mostly unstyled HTML.
+The home diary screen now follows the supplied product design:
 
-This was intentional while authentication, validation, database transactions, and fixed-point calculations were stabilized. That phase has reached its useful limit.
+- Mobile-first 390 px-style shell.
+- Compact date navigation.
+- Daily energy equation card.
+- Colored macro progress indicators.
+- Empty and populated meal cards.
+- Responsive centered presentation on wider screens.
 
-After correcting the portion UX, begin the design foundation:
+The other routes remain mostly unstyled. Continue the design foundation with:
 
 - Colour, typography, spacing, radius, border, and shadow tokens.
 - Global page shell.
