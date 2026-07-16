@@ -50,11 +50,11 @@
   <title>{dateLabel} | Calorie Tracker</title>
 </svelte:head>
 
-<main class="min-h-dvh bg-[#e7e7e7] text-[#18212f] lg:p-7">
+<main class="min-h-dvh bg-[#e7e7e7] text-[#18212f] sm:py-5 lg:p-7">
   <div
     class="mx-auto min-h-dvh w-full max-w-[430px] bg-[#f5f7fa] px-4 pb-12
-      pt-[18px] sm:my-5 sm:min-h-[calc(100dvh-40px)] sm:rounded-[26px]
-      sm:shadow-[0_18px_55px_rgba(24,33,47,0.1)] lg:my-0
+      pt-[18px] sm:min-h-[calc(100dvh-40px)] sm:rounded-[26px]
+      sm:shadow-[0_18px_55px_rgba(24,33,47,0.1)]
       lg:min-h-[calc(100dvh-56px)] lg:max-w-[1180px] lg:rounded-[28px]
       lg:px-[30px] lg:pb-[38px] lg:pt-6 xl:max-w-[1260px] xl:px-10"
   >
