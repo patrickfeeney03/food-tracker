@@ -3,9 +3,9 @@ import { calendarDateString } from "$lib/nutrition/portion-input";
 import z from "zod";
 import type { PageServerLoad } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
-import { and, asc, eq, isNull, like, or } from "drizzle-orm";
-import { foods } from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
+import { todayInDublin } from "$lib/date";
+import { listActiveFoods } from "$lib/server/nutrition/food-catalogue";
 
 const destinationSchema = z.object({
   date: calendarDateString,
@@ -42,39 +42,15 @@ export const load: PageServerLoad = ({
 
   const query = searchResult.data;
 
-  const ownerAndActive = and(
-    eq(foods.userId, locals.user.id),
-    isNull(foods.deletedAt)
-  );
-
-  const results = db
-    .select({
-      id: foods.id,
-      name: foods.name,
-      brand: foods.brand,
-      amountUnit: foods.amountUnit,
-      basisAmount: foods.basisAmount,
-      energyMkcalPerBasis: foods.energyMkcalPerBasis
-    })
-    .from(foods)
-    .where(
-      query === ''
-        ? ownerAndActive
-        : and(
-          ownerAndActive,
-          or(
-            like(foods.name, `%${query}%`),
-            like(foods.brand, `%${query}%`)
-          )
-        )
-    )
-    .orderBy(asc(foods.name))
-    .limit(50)
-    .all();
-
   return {
     destination: destinationResult.data,
+    created: url.searchParams.get('created') === '1',
+    isToday: destinationResult.data.date === todayInDublin(),
     query,
-    foods: results
+    foods: listActiveFoods(
+      db,
+      locals.user.id,
+      query
+    )
   };
 }
