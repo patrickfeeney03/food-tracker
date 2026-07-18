@@ -87,3 +87,12 @@ export const createFoodSchema = z.object({
 });
 
 export type CreateFoodFormInput = z.infer<typeof createFoodSchema>;
+
+export const editFoodSchema = createFoodSchema.extend({
+  expectedUpdatedAt: z
+    .string()
+    .trim()
+    .regex(/^\d+$/, 'Food version is missing')
+});
+
+export type EditFoodFormInput = z.infer<typeof editFoodSchema>;
