@@ -215,6 +215,16 @@ Never commit `.env` or Google client secrets.
 - Returns validation errors and all entered values on failure.
 - Redirects back to Search/Add after success.
 
+### `/settings`
+
+- Requires authentication.
+- Displays the current effective nutrition targets.
+- Displays the signed-in Google identity and active-session count.
+- Persists Light, Dark, or System appearance preference.
+- Reports browser network status and the application version.
+- Provides current-session sign out.
+- Goal history, account, active-session management, and data export destination screens are not yet implemented.
+
 ## Shared UI/Navigation Utilities
 
 - `src/lib/date.ts`
@@ -324,7 +334,7 @@ The other routes remain mostly unstyled. Continue the design foundation with:
 6. Implement logging an existing food through an Amount Adjuster.
 7. Add Recently Logged ordering and quick-add.
 8. Add success feedback and Undo.
-9. Continue with editing entries, editing foods, meal shortcuts, barcode scanning, settings, goal history, sessions, and export.
+9. Continue with editing entries, editing foods, meal shortcuts, barcode scanning, goal history, sessions, and export.
 
 ## Verification Commands
 

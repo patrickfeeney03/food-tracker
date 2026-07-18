@@ -90,26 +90,24 @@
         {dateLabel}
       </a>
 
-      <form method="POST" action={resolve("/logout")} class="contents">
-        <button
-          type="submit"
-          class="inline-flex size-11 cursor-pointer items-center justify-center rounded-full
-            border-0 bg-transparent text-[#18212f] transition hover:bg-white
-            focus-visible:outline-3 focus-visible:outline-offset-2
-            focus-visible:outline-[#2865e8]/30"
-          aria-label="Sign out"
-          title="Sign out"
+      <a
+        href={resolve("/settings")}
+        class="inline-flex size-11 items-center justify-center rounded-full
+          text-[#18212f] transition hover:bg-white focus-visible:outline-3
+          focus-visible:outline-offset-2 focus-visible:outline-[#2865e8]/30"
+        aria-label="Open settings"
+        title="Settings"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          class="size-[21px] fill-none stroke-current stroke-2 [stroke-linecap:round]
+            [stroke-linejoin:round]"
         >
-          <svg
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            class="size-[21px] fill-none stroke-current stroke-2 [stroke-linecap:round]
-              [stroke-linejoin:round]"
-          >
-            <path d="M10 17l5-5-5-5M15 12H3M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
-          </svg>
-        </button>
-      </form>
+          <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+          <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.51 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.14.37.36.72.66 1 .3.28.68.42 1.1.4H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
+        </svg>
+      </a>
 
       <a
         href={resolve(withQuery("/", { date: nextDate }))}

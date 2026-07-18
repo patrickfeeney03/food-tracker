@@ -1,9 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="system">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<script>
+			const root = document.documentElement;
+			const preference = root.dataset.theme ?? 'system';
+			const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+			root.classList.toggle(
+				'dark',
+				preference === 'dark' || (preference === 'system' && systemPrefersDark)
+			);
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
