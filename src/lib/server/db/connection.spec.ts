@@ -68,6 +68,7 @@ describe('SQLite database', () => {
 				'auth_accounts',
 				'diary_logs',
 				'foods',
+				'meal_shortcut_applications',
 				'meal_shortcut_items',
 				'meal_shortcuts',
 				'nutrition_goals',
@@ -127,7 +128,14 @@ describe('SQLite database', () => {
 
 			connection.db
 				.insert(mealShortcutItems)
-				.values({ shortcutId, foodId, position: 0, defaultAmount: 100_000 })
+				.values({
+					userId,
+					shortcutId,
+					foodId,
+					amountUnit: 'mg',
+					position: 0,
+					defaultAmount: 100_000
+				})
 				.run();
 
 			expect(() => connection.db.delete(foods).where(eq(foods.id, foodId)).run()).toThrow(
@@ -150,8 +158,10 @@ describe('SQLite database', () => {
 				connection.db
 					.insert(mealShortcutItems)
 					.values({
+						userId,
 						shortcutId,
 						foodId,
+						amountUnit: 'mg',
 						position: 0,
 						defaultAmount: 100_000,
 						defaultPortionKind: 'unit',

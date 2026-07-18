@@ -1,11 +1,15 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
+
   let {
     message,
     tone = "success",
+    action,
     class: className = "",
   }: {
     message: string;
     tone?: "success" | "danger";
+    action?: Snippet;
     class?: string;
   } = $props();
 
@@ -27,5 +31,12 @@
     className,
   ]}
 >
-  {message}
+  {#if action}
+    <div class="flex items-center justify-between gap-3">
+      <span class="min-w-0">{message}</span>
+      <div class="shrink-0">{@render action()}</div>
+    </div>
+  {:else}
+    {message}
+  {/if}
 </div>

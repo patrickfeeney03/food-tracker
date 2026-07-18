@@ -1,3 +1,4 @@
+import { createRawSnippet } from "svelte";
 import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-svelte";
@@ -17,5 +18,17 @@ describe("FeedbackBanner", () => {
     });
 
     await expect.element(page.getByRole("alert")).toHaveTextContent("Targets could not be saved.");
+  });
+
+  it("renders an optional feedback action", async () => {
+    render(FeedbackBanner, {
+      message: "Shortcut added.",
+      action: createRawSnippet(() => ({
+        render: () => '<button type="button">Undo</button>',
+      })),
+    });
+
+    await expect.element(page.getByRole("status")).toHaveTextContent("Shortcut added.");
+    await expect.element(page.getByRole("button", { name: "Undo" })).toBeInTheDocument();
   });
 });

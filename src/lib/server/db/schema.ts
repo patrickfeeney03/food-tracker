@@ -2,6 +2,7 @@ import { amountUnits, mealSlots, portionKinds } from '$lib/nutrition/constants';
 import { sql } from 'drizzle-orm';
 import {
   check,
+  foreignKey,
   index,
   integer,
   sqliteTable,
@@ -170,6 +171,7 @@ export const foods = sqliteTable(
   (table) => [
     index('foods_user_active_name_idx').on(table.userId, table.deletedAt, table.name),
     index('foods_user_active_brand_idx').on(table.userId, table.deletedAt, table.brand),
+    uniqueIndex('foods_id_user_unique').on(table.id, table.userId),
     uniqueIndex('foods_user_active_barcode_unique')
       .on(table.userId, table.barcode)
       .where(sql`${table.barcode} is not null and ${table.deletedAt} is null`),
@@ -194,23 +196,30 @@ export const mealShortcuts = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    clientMutationId: text('client_mutation_id'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: deletedAt()
   },
-  (table) => [index('meal_shortcuts_user_active_name_idx').on(table.userId, table.deletedAt, table.name)]
+  (table) => [
+    index('meal_shortcuts_user_active_name_idx').on(table.userId, table.deletedAt, table.name),
+    uniqueIndex('meal_shortcuts_id_user_unique').on(table.id, table.userId),
+    uniqueIndex('meal_shortcuts_user_client_mutation_unique')
+      .on(table.userId, table.clientMutationId)
+      .where(sql`${table.clientMutationId} is not null`)
+  ]
 );
 
 export const mealShortcutItems = sqliteTable(
   'meal_shortcut_items',
   {
     id: id(),
-    shortcutId: text('shortcut_id')
+    userId: text('user_id')
       .notNull()
-      .references(() => mealShortcuts.id, { onDelete: 'cascade' }),
-    foodId: text('food_id')
-      .notNull()
-      .references(() => foods.id),
+      .references(() => users.id, { onDelete: 'cascade' }),
+    shortcutId: text('shortcut_id').notNull(),
+    foodId: text('food_id').notNull(),
+    amountUnit: text('amount_unit', { enum: amountUnits }).notNull(),
     position: integer('position').notNull(),
     defaultAmount: integer('default_amount').notNull(),
     defaultPortionKind: text('default_portion_kind', { enum: portionKinds }),
@@ -219,11 +228,20 @@ export const mealShortcutItems = sqliteTable(
     defaultPortionCountMilli: integer('default_portion_count_milli')
   },
   (table) => [
+    foreignKey({
+      columns: [table.shortcutId, table.userId],
+      foreignColumns: [mealShortcuts.id, mealShortcuts.userId]
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.foodId, table.userId],
+      foreignColumns: [foods.id, foods.userId]
+    }),
     uniqueIndex('meal_shortcut_items_shortcut_position_unique').on(
       table.shortcutId,
       table.position
     ),
     index('meal_shortcut_items_food_idx').on(table.foodId),
+    check('meal_shortcut_items_amount_unit_check', sql`${table.amountUnit} in (${sqlStringList(amountUnits)})`),
     check('meal_shortcut_items_position_non_negative_check', sql`${table.position} >= 0`),
     check('meal_shortcut_items_default_amount_positive_check', sql`${table.defaultAmount} > 0`),
     check(
@@ -233,6 +251,40 @@ export const mealShortcutItems = sqliteTable(
     check(
       'meal_shortcut_items_portion_snapshot_check',
       sql`(${table.defaultPortionKind} is null and ${table.defaultPortionLabel} is null and ${table.defaultPortionAmount} is null and ${table.defaultPortionCountMilli} is null) or (${table.defaultPortionKind} is not null and ${table.defaultPortionLabel} is not null and ${table.defaultPortionAmount} is not null and ${table.defaultPortionAmount} > 0 and ${table.defaultPortionCountMilli} is not null and ${table.defaultPortionCountMilli} > 0)`
+    )
+  ]
+);
+
+export const mealShortcutApplications = sqliteTable(
+  'meal_shortcut_applications',
+  {
+    id: id(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    shortcutId: text('shortcut_id')
+      .notNull()
+      .references(() => mealShortcuts.id),
+    shortcutName: text('shortcut_name').notNull(),
+    clientMutationId: text('client_mutation_id').notNull(),
+    diaryDate: text('diary_date').notNull(),
+    mealSlot: text('meal_slot', { enum: mealSlots }).notNull(),
+    createdAt: createdAt(),
+    undoneAt: integer('undone_at', { mode: 'timestamp_ms' })
+  },
+  (table) => [
+    uniqueIndex('meal_shortcut_applications_user_client_mutation_unique').on(
+      table.userId,
+      table.clientMutationId
+    ),
+    index('meal_shortcut_applications_user_created_idx').on(table.userId, table.createdAt),
+    check(
+      'meal_shortcut_applications_diary_date_check',
+      sql`length(${table.diaryDate}) = 10 and ${table.diaryDate} glob '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`
+    ),
+    check(
+      'meal_shortcut_applications_meal_slot_check',
+      sql`${table.mealSlot} in (${sqlStringList(mealSlots)})`
     )
   ]
 );
@@ -250,7 +302,9 @@ export const diaryLogs = sqliteTable(
     sourceShortcutId: text('source_shortcut_id').references(() => mealShortcuts.id, {
       onDelete: 'set null'
     }),
-    shortcutBatchId: text('shortcut_batch_id'),
+    shortcutBatchId: text('shortcut_batch_id').references(() => mealShortcutApplications.id, {
+      onDelete: 'set null'
+    }),
     clientMutationId: text('client_mutation_id'),
 
     foodName: text('food_name').notNull(),
@@ -337,5 +391,10 @@ export type Food = typeof foods.$inferSelect;
 export type NewFood = typeof foods.$inferInsert;
 export type DiaryLog = typeof diaryLogs.$inferSelect;
 export type NewDiaryLog = typeof diaryLogs.$inferInsert;
+export type MealShortcut = typeof mealShortcuts.$inferSelect;
+export type NewMealShortcut = typeof mealShortcuts.$inferInsert;
+export type MealShortcutItem = typeof mealShortcutItems.$inferSelect;
+export type NewMealShortcutItem = typeof mealShortcutItems.$inferInsert;
+export type MealShortcutApplication = typeof mealShortcutApplications.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;

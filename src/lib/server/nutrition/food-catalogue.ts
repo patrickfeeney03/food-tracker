@@ -20,6 +20,8 @@ const foodSelection = {
   brand: foods.brand,
   amountUnit: foods.amountUnit,
   basisAmount: foods.basisAmount,
+  servingAmount: foods.servingAmount,
+  containerAmount: foods.containerAmount,
   barcode: foods.barcode,
   energyMkcalPerBasis: foods.energyMkcalPerBasis
 };

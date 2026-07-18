@@ -1,4 +1,4 @@
-import type { PortionKind } from "$lib/nutrition/constants";
+import type { MealSlot, PortionKind } from "$lib/nutrition/constants";
 import { parsePortionCountToMilli, resolvePortionAmount, scaleNutritionValue, toSafeInteger } from "$lib/nutrition/math";
 import type { EditDiaryEntryInput, LogFoodInput } from "$lib/nutrition/portion-input";
 import type { AdditionalNutrition, DiaryLog, Food, NewDiaryLog } from "$lib/server/db/schema";
@@ -6,6 +6,19 @@ import type { AdditionalNutrition, DiaryLog, Food, NewDiaryLog } from "$lib/serv
 export interface PortionDefinition {
   label: string;
   amount: bigint;
+}
+
+export interface ExactDiaryLogInput {
+  diaryDate: string;
+  mealSlot: MealSlot;
+  resolvedAmount: number;
+  portionKind: PortionKind;
+  portionLabel: string;
+  portionAmount: number;
+  portionCountMilli: number;
+  sourceShortcutId: string;
+  shortcutBatchId: string;
+  loggedAt?: Date;
 }
 
 export function resolvePortionDefinition(
@@ -227,6 +240,76 @@ export function buildDiaryLogValues(
       resolvedAmount,
       food.basisAmount
     )
+  };
+}
+
+export function buildDiaryLogValuesForExactAmount(
+  food: Food,
+  input: ExactDiaryLogInput
+): NewDiaryLog {
+  if (food.deletedAt !== null) {
+    throw new RangeError('Cannot log an archived food');
+  }
+
+  const resolvedAmount = BigInt(input.resolvedAmount);
+  const portionAmount = BigInt(input.portionAmount);
+  const portionCountMilli = BigInt(input.portionCountMilli);
+
+  if (resolvedAmount <= 0n || portionAmount <= 0n || portionCountMilli <= 0n) {
+    throw new RangeError('Shortcut portions must resolve to a positive amount');
+  }
+
+  if (resolvePortionAmount(portionAmount, portionCountMilli) !== resolvedAmount) {
+    throw new RangeError('Shortcut portion does not match its exact amount');
+  }
+
+  return {
+    userId: food.userId,
+    foodId: food.id,
+    diaryDate: input.diaryDate,
+    mealSlot: input.mealSlot,
+    sourceShortcutId: input.sourceShortcutId,
+    shortcutBatchId: input.shortcutBatchId,
+    foodName: food.name,
+    foodBrand: food.brand,
+    amountUnit: food.amountUnit,
+    basisAmount: food.basisAmount,
+    energyMkcalPerBasis: food.energyMkcalPerBasis,
+    proteinMgPerBasis: food.proteinMgPerBasis,
+    carbsMgPerBasis: food.carbsMgPerBasis,
+    fatMgPerBasis: food.fatMgPerBasis,
+    additionalNutritionPerBasisJson: food.additionalNutritionJson,
+    portionKind: input.portionKind,
+    portionLabel: input.portionLabel,
+    portionAmount: input.portionAmount,
+    portionCountMilli: input.portionCountMilli,
+    resolvedAmount: input.resolvedAmount,
+    energyMkcal: scaleForStorage(
+      food.energyMkcalPerBasis,
+      resolvedAmount,
+      food.basisAmount
+    ),
+    proteinMg: scaleForStorage(
+      food.proteinMgPerBasis,
+      resolvedAmount,
+      food.basisAmount
+    ),
+    carbsMg: scaleForStorage(
+      food.carbsMgPerBasis,
+      resolvedAmount,
+      food.basisAmount
+    ),
+    fatMg: scaleForStorage(
+      food.fatMgPerBasis,
+      resolvedAmount,
+      food.basisAmount
+    ),
+    additionalNutritionTotalJson: scaleAdditionalNutrition(
+      food.additionalNutritionJson,
+      resolvedAmount,
+      food.basisAmount
+    ),
+    loggedAt: input.loggedAt
   };
 }
 

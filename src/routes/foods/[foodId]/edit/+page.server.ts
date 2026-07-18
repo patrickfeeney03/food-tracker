@@ -8,6 +8,7 @@ import { calendarDateString } from '$lib/nutrition/portion-input';
 import { db } from '$lib/server/db';
 import {
   archiveFood,
+  FoodAmountUnitConflictError,
   FoodBarcodeConflictError,
   FoodEditConflictError,
   FoodNotFoundError,
@@ -112,6 +113,13 @@ export const actions = {
           values,
           context: contextResult.data,
           errors: { barcode: [caught.message] }
+        });
+      }
+      if (caught instanceof FoodAmountUnitConflictError) {
+        return fail(400, {
+          values,
+          context: contextResult.data,
+          errors: { amountUnit: [caught.message] }
         });
       }
       if (caught instanceof FoodEditConflictError) {

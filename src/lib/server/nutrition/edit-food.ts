@@ -1,11 +1,12 @@
 import { editFoodSchema, type EditFoodFormInput } from '$lib/nutrition/food-input';
 import { formatStoredValue } from '$lib/nutrition/math';
 import type { DatabaseConnection } from '$lib/server/db/connection';
-import { foods, type Food } from '$lib/server/db/schema';
+import { foods, mealShortcutItems, type Food } from '$lib/server/db/schema';
 import { and, eq, isNull, ne } from 'drizzle-orm';
 import { mapFoodInput } from './food-mapper';
 
 type AppDatabase = DatabaseConnection['db'];
+type ReadDatabase = Pick<AppDatabase, 'select'>;
 
 export class FoodNotFoundError extends Error {
   constructor() {
@@ -28,8 +29,15 @@ export class FoodBarcodeConflictError extends Error {
   }
 }
 
+export class FoodAmountUnitConflictError extends Error {
+  constructor() {
+    super('The g/ml unit cannot change while this food is used by a meal shortcut.');
+    this.name = 'FoodAmountUnitConflictError';
+  }
+}
+
 export function getActiveFoodForEdit(
-  db: AppDatabase,
+  db: ReadDatabase,
   userId: string,
   foodId: string
 ): Food | undefined {
@@ -82,7 +90,7 @@ export function formatFoodForEdit(food: Food): EditFoodFormInput {
 }
 
 function barcodeBelongsToAnotherFood(
-  db: AppDatabase,
+  db: ReadDatabase,
   userId: string,
   foodId: string,
   barcode: string
@@ -124,31 +132,50 @@ export function updateFood(
     throw new FoodEditConflictError();
   }
 
-  if (barcodeBelongsToAnotherFood(db, userId, foodId, input.barcode)) {
-    throw new FoodBarcodeConflictError();
-  }
-
   const updatedAt = new Date(Math.max(Date.now(), expectedUpdatedAt + 1));
 
   try {
-    const updated = db
-      .update(foods)
-      .set({
-        ...mapFoodInput(input),
-        updatedAt
-      })
-      .where(
-        and(
-          eq(foods.id, foodId),
-          eq(foods.userId, userId),
-          isNull(foods.deletedAt),
-          eq(foods.updatedAt, new Date(expectedUpdatedAt))
-        )
-      )
-      .returning()
-      .get();
+    return db.transaction((transaction) => {
+      const currentFood = getActiveFoodForEdit(transaction, userId, foodId);
+      if (currentFood === undefined) throw new FoodNotFoundError();
 
-    if (updated !== undefined) return updated;
+      if (
+        input.amountUnit !== currentFood.amountUnit &&
+        transaction.select({ id: mealShortcutItems.id }).from(mealShortcutItems).where(and(
+          eq(mealShortcutItems.userId, userId),
+          eq(mealShortcutItems.foodId, foodId)
+        )).limit(1).get() !== undefined
+      ) {
+        throw new FoodAmountUnitConflictError();
+      }
+
+      if (barcodeBelongsToAnotherFood(transaction, userId, foodId, input.barcode)) {
+        throw new FoodBarcodeConflictError();
+      }
+
+      const updated = transaction
+        .update(foods)
+        .set({
+          ...mapFoodInput(input),
+          updatedAt
+        })
+        .where(
+          and(
+            eq(foods.id, foodId),
+            eq(foods.userId, userId),
+            isNull(foods.deletedAt),
+            eq(foods.updatedAt, new Date(expectedUpdatedAt))
+          )
+        )
+        .returning()
+        .get();
+
+      if (updated !== undefined) return updated;
+      if (getActiveFoodForEdit(transaction, userId, foodId) === undefined) {
+        throw new FoodNotFoundError();
+      }
+      throw new FoodEditConflictError();
+    });
   } catch (caught) {
     if (isUniqueConstraintError(caught)) {
       throw new FoodBarcodeConflictError();
@@ -156,11 +183,6 @@ export function updateFood(
     throw caught;
   }
 
-  if (getActiveFoodForEdit(db, userId, foodId) === undefined) {
-    throw new FoodNotFoundError();
-  }
-
-  throw new FoodEditConflictError();
 }
 
 export function archiveFood(

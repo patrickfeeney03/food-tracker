@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
+  import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
   import { shiftDate } from "$lib/date";
   import { withQuery } from "$lib/navigation";
   import { mealSlots, type MealSlot } from "$lib/nutrition/constants";
@@ -126,6 +127,42 @@
         </svg>
       </a>
     </nav>
+
+    {#if data.shortcutFeedback?.kind === "applied"}
+      {@const appliedFeedback = data.shortcutFeedback}
+      {#snippet undoShortcutAction()}
+        <form method="POST" action="?/undoShortcut">
+          <input
+            type="hidden"
+            name="applicationId"
+            value={appliedFeedback.applicationId}
+          />
+          <input type="hidden" name="diaryDate" value={data.diary.date} />
+          <button
+            type="submit"
+            class="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-bold
+              text-[var(--app-success-text)] underline underline-offset-2
+              focus-visible:outline-2 focus-visible:outline-offset-2
+              focus-visible:outline-[var(--app-success-text)]"
+          >Undo</button>
+        </form>
+      {/snippet}
+      <FeedbackBanner
+        class="mb-5"
+        message={`${appliedFeedback.shortcutName} added as ${appliedFeedback.entryCount} ${appliedFeedback.entryCount === 1 ? "entry" : "entries"}.`}
+        action={undoShortcutAction}
+      />
+    {:else if data.shortcutFeedback?.kind === "undone"}
+      <FeedbackBanner
+        class="mb-5"
+        message={`${data.shortcutFeedback.shortcutName} was removed from this diary.`}
+      />
+    {:else if data.shortcutFeedback?.kind === "saved"}
+      <FeedbackBanner
+        class="mb-5"
+        message={`${data.shortcutFeedback.shortcutName} shortcut saved.`}
+      />
+    {/if}
 
     <div
       class="contents lg:grid lg:grid-cols-[minmax(320px,360px)_minmax(0,1fr)]
@@ -366,6 +403,22 @@
                 >
                   <span aria-hidden="true">+</span> Add food
                 </a>
+                {#if data.shortcutEligibility[slot]}
+                  <a
+                    href={resolve(
+                      withQuery("/meal-shortcuts/new", {
+                        date: data.diary.date,
+                        mealSlot: slot,
+                      }),
+                    )}
+                    class="flex min-h-11 items-center gap-[7px] rounded-[13px] px-[15px]
+                      text-[12px] font-bold text-[var(--app-muted)] no-underline
+                      focus-visible:outline-3 focus-visible:outline-offset-2
+                      focus-visible:outline-[var(--app-accent)]/30"
+                  >
+                    Save as meal shortcut
+                  </a>
+                {/if}
               </div>
             {/if}
           </section>

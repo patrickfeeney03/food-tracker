@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from "$app/forms";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import BarcodeScanner from "$lib/components/BarcodeScanner.svelte";
@@ -7,10 +8,12 @@
   import { withQuery } from "$lib/navigation";
   import type { MealSlot } from "$lib/nutrition/constants";
   import { formatStoredValue } from "$lib/nutrition/math";
+  import type { SubmitFunction } from "@sveltejs/kit";
   import type { PageProps } from "./$types";
 
-  let { data }: PageProps = $props();
+  let { data, form }: PageProps = $props();
   let scannerOpen = $state(false);
+  let pendingShortcutId = $state<string | null>(null);
 
   const mealNames: Record<MealSlot, string> = {
     breakfast: "Breakfast",
@@ -49,6 +52,21 @@
         }),
       ),
     );
+  }
+
+  function enhanceShortcutApply(shortcutId: string): SubmitFunction {
+    return () => {
+      pendingShortcutId = shortcutId;
+
+      return async ({ update }) => {
+        await update();
+        pendingShortcutId = null;
+      };
+    };
+  }
+
+  function blockedShortcutMessage(count: number): string {
+    return `${count} archived or unavailable ${count === 1 ? "food" : "foods"}`;
   }
 </script>
 
@@ -95,9 +113,13 @@
       <span aria-hidden="true" class="size-11"></span>
     </header>
 
-    {#if data.query === "" && data.foods.length > 0}
+    {#if data.query === "" && data.tab === "foods" && data.foods.length > 0}
       <p class="sr-only" aria-live="polite">
         Showing {data.foods.length} foods
+      </p>
+    {:else if data.query === "" && data.tab === "shortcuts" && data.shortcuts.length > 0}
+      <p class="sr-only" aria-live="polite">
+        Showing {data.shortcuts.length} meal shortcuts
       </p>
     {/if}
 
@@ -114,10 +136,13 @@
           name="mealSlot"
           value={data.destination.mealSlot}
         />
+        <input type="hidden" name="tab" value={data.tab} />
 
         <div class="flex items-center gap-2">
           <div class="relative min-w-0 flex-1">
-            <label for="food-search" class="sr-only">Search foods</label>
+            <label for="catalogue-search" class="sr-only">
+              {data.tab === "shortcuts" ? "Search meal shortcuts" : "Search foods"}
+            </label>
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
@@ -131,11 +156,11 @@
               <path d="m20 20-3.5-3.5"></path>
             </svg>
             <input
-              id="food-search"
+              id="catalogue-search"
               name="q"
               type="search"
               value={data.query}
-              placeholder="Search foods"
+              placeholder={data.tab === "shortcuts" ? "Search shortcuts" : "Search foods"}
               maxlength="200"
               autocomplete="off"
               class="!min-h-12 !rounded-xl !border-[var(--app-border)] !bg-[var(--app-panel)] !pr-10 !pl-10 !text-sm !shadow-none placeholder:!text-[var(--app-muted)] focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
@@ -147,6 +172,7 @@
                   withQuery("/foods", {
                     date: data.destination.date,
                     mealSlot: data.destination.mealSlot,
+                    tab: data.tab,
                   }),
                 )}
                 aria-label="Clear search"
@@ -167,28 +193,30 @@
             {/if}
           </div>
 
-          <button
-            type="button"
-            onclick={() => (scannerOpen = true)}
-            aria-label="Scan a barcode"
-            title="Scan a barcode"
-            class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl
-              bg-[var(--app-action)] text-white shadow-sm transition
-              hover:bg-[var(--app-action-hover)] focus-visible:outline-2
-              focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              class="size-5"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.7"
-              stroke-linecap="round"
+          {#if data.tab === "foods"}
+            <button
+              type="button"
+              onclick={() => (scannerOpen = true)}
+              aria-label="Scan a barcode"
+              title="Scan a barcode"
+              class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl
+                bg-[var(--app-action)] text-white shadow-sm transition
+                hover:bg-[var(--app-action-hover)] focus-visible:outline-2
+                focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
             >
-              <path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14"></path>
-            </svg>
-          </button>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                class="size-5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+              >
+                <path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14"></path>
+              </svg>
+            </button>
+          {/if}
         </div>
 
         <button type="submit" class="sr-only">Search</button>
@@ -199,28 +227,52 @@
         role="tablist"
         aria-label="Add food type"
       >
-        <button
-          type="button"
+        <a
+          href={resolve(
+            withQuery("/foods", {
+              date: data.destination.date,
+              mealSlot: data.destination.mealSlot,
+              q: data.query || undefined,
+              tab: "foods",
+            }),
+          )}
           role="tab"
-          aria-selected="true"
-          class="rounded-full bg-[var(--app-accent)] px-4 text-sm font-semibold text-white shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-text)]"
+          aria-selected={data.tab === "foods"}
+          class={[
+            "flex items-center justify-center rounded-full px-4 text-sm font-semibold no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-text)]",
+            data.tab === "foods"
+              ? "bg-[var(--app-accent)] text-white shadow-sm"
+              : "text-[var(--app-muted)]",
+          ]}
         >
           Foods
-        </button>
-        <button
-          type="button"
-          disabled
+        </a>
+        <a
+          href={resolve(
+            withQuery("/foods", {
+              date: data.destination.date,
+              mealSlot: data.destination.mealSlot,
+              q: data.query || undefined,
+              tab: "shortcuts",
+            }),
+          )}
           role="tab"
-          aria-selected="false"
-          title="Meal shortcuts are not available yet"
-          class="rounded-full px-4 text-sm font-semibold text-[var(--app-muted)]"
+          aria-selected={data.tab === "shortcuts"}
+          class={[
+            "flex items-center justify-center rounded-full px-4 text-sm font-semibold no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-text)]",
+            data.tab === "shortcuts"
+              ? "bg-[var(--app-accent)] text-white shadow-sm"
+              : "text-[var(--app-muted)]",
+          ]}
         >
           Meal shortcuts
-        </button>
+        </a>
       </div>
     </div>
 
-    {#if data.added}
+    {#if form?.applyError}
+      <FeedbackBanner class="mt-4" message={form.applyError} tone="danger" />
+    {:else if data.added}
       <FeedbackBanner
         class="mt-4"
         message={`Food added to ${mealNames[data.destination.mealSlot].toLowerCase()}.`}
@@ -234,6 +286,11 @@
       <FeedbackBanner class="mt-4" message="Food changes saved." />
     {:else if data.archived}
       <FeedbackBanner class="mt-4" message="Food archived. Existing diary entries were kept." />
+    {:else if data.shortcutArchived}
+      <FeedbackBanner
+        class="mt-4"
+        message="Meal shortcut archived. Existing diary entries were kept."
+      />
     {/if}
 
     {#if data.scannedBarcode}
@@ -246,7 +303,115 @@
       </div>
     {/if}
 
-    <section aria-labelledby="food-results" class="mt-5 flex-1">
+    {#if data.tab === "shortcuts"}
+      <section aria-labelledby="shortcut-results" class="mt-5 flex-1">
+        <h2
+          id="shortcut-results"
+          class="mb-2 px-0.5 text-[10px] leading-4 font-bold tracking-[0.04em] text-[var(--app-muted)] uppercase"
+        >
+          {data.query ? "Search results" : "Meal shortcuts"}
+        </h2>
+
+        {#if data.shortcuts.length === 0}
+          <div
+            class="rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel)] px-5 py-8 text-center shadow-[0_1px_2px_rgba(23,32,51,0.03)]"
+          >
+            <h3 class="text-sm font-bold text-[var(--app-text)]">
+              {data.query ? "No matching shortcuts" : "No meal shortcuts yet"}
+            </h3>
+            <p class="mt-1 text-xs leading-5 text-[var(--app-muted)]">
+              {data.query
+                ? "Try another search or create a shortcut from this meal slot."
+                : "Save the foods in this meal slot as a reusable shortcut."}
+            </p>
+          </div>
+        {:else}
+          <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {#each data.shortcuts as shortcut (shortcut.id)}
+              <li>
+                <article
+                  class={[
+                    "flex min-h-[62px] items-center gap-3 rounded-xl border bg-[var(--app-panel)] py-2 pr-2 pl-3 shadow-[0_1px_2px_rgba(23,32,51,0.025)]",
+                    shortcut.blocked
+                      ? "border-[var(--app-danger-border)]"
+                      : "border-[var(--app-border)] transition hover:border-[var(--app-border-strong)] hover:shadow-sm",
+                  ]}
+                >
+                  <a
+                    href={resolve(
+                      withQuery(`/meal-shortcuts/${shortcut.id}/edit`, {
+                        date: data.destination.date,
+                        mealSlot: data.destination.mealSlot,
+                        q: data.query || undefined,
+                        tab: "shortcuts",
+                      }),
+                    )}
+                    class="min-w-0 flex-1 rounded-lg py-1 text-[var(--app-text)] no-underline
+                      focus-visible:outline-2 focus-visible:outline-offset-2
+                      focus-visible:outline-[var(--app-accent)]"
+                  >
+                    <h3 class="truncate text-sm leading-5 font-bold tracking-[-0.01em]">
+                      {shortcut.name}
+                    </h3>
+                    <p
+                      class={[
+                        "truncate text-[11px] leading-4 font-medium",
+                        shortcut.blocked
+                          ? "text-[var(--app-danger-text)]"
+                          : "text-[var(--app-muted)]",
+                      ]}
+                    >
+                      {#if shortcut.blocked}
+                        Blocked: {blockedShortcutMessage(shortcut.blockedItems.length)}
+                      {:else}
+                        {shortcut.itemCount} {shortcut.itemCount === 1 ? "ingredient" : "ingredients"}
+                        · {formatKcal(shortcut.totals?.energyMkcal ?? 0)} kcal
+                      {/if}
+                    </p>
+                  </a>
+
+                  {#if shortcut.blocked}
+                    <span class="shrink-0 px-2 text-xs font-bold text-[var(--app-danger-text)]">
+                      Fix →
+                    </span>
+                  {:else}
+                    <form
+                      method="POST"
+                      action="?/applyShortcut"
+                      use:enhance={enhanceShortcutApply(shortcut.id)}
+                      class="shrink-0"
+                    >
+                      <input type="hidden" name="shortcutId" value={shortcut.id} />
+                      <input type="hidden" name="clientMutationId" value={shortcut.clientMutationId} />
+                      <input type="hidden" name="diaryDate" value={data.destination.date} />
+                      <input type="hidden" name="mealSlot" value={data.destination.mealSlot} />
+                      <button
+                        type="submit"
+                        disabled={pendingShortcutId !== null}
+                        aria-label={`Add ${shortcut.name} to ${mealNames[data.destination.mealSlot].toLowerCase()}`}
+                        aria-busy={pendingShortcutId === shortcut.id}
+                        class="inline-flex size-11 items-center justify-center rounded-full text-[var(--app-accent)]
+                          focus-visible:outline-2 focus-visible:outline-offset-1
+                          focus-visible:outline-[var(--app-accent)] disabled:opacity-50"
+                      >
+                        <span
+                          aria-hidden="true"
+                          class="flex size-8 items-center justify-center rounded-full bg-[var(--app-accent-soft)] text-xl leading-none font-medium"
+                        >{pendingShortcutId === shortcut.id ? "…" : "+"}</span>
+                      </button>
+                    </form>
+                  {/if}
+                </article>
+              </li>
+            {/each}
+          </ul>
+          <p class="mt-4 px-0.5 text-[11px] leading-4 text-[var(--app-muted)]">
+            Adding a shortcut creates separate diary entries in this meal slot.
+          </p>
+        {/if}
+      </section>
+    {:else}
+      <section aria-labelledby="food-results" class="mt-5 flex-1">
       <h2
         id="food-results"
         class="mb-2 px-0.5 text-[10px] leading-4 font-bold tracking-[0.04em] text-[var(--app-muted)] uppercase"
@@ -365,22 +530,48 @@
         </p>
       {/if}
     </section>
+    {/if}
 
     <div
       class="sticky bottom-0 mt-8 bg-gradient-to-t from-[var(--app-surface)] via-[var(--app-surface)] via-80% to-transparent pt-5 sm:flex sm:justify-end"
     >
-      <a
-        href={resolve(
-          withQuery("/foods/new", {
-            date: data.destination.date,
-            mealSlot: data.destination.mealSlot,
-          }),
-        )}
-        class="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--app-action)] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--app-action-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)] sm:w-auto sm:min-w-[260px]"
-      >
-        <span aria-hidden="true" class="mr-1.5 text-base leading-none">+</span>
-        Create a custom food
-      </a>
+      {#if data.tab === "shortcuts" && !data.shortcutSourceAvailable}
+        <div class="w-full sm:w-auto">
+          <button
+            type="button"
+            disabled
+            class="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-xl bg-[var(--app-action)] px-5 text-sm font-bold text-white opacity-50 shadow-sm sm:min-w-[260px]"
+          >
+            <span aria-hidden="true" class="mr-1.5 text-base leading-none">+</span>
+            Create meal shortcut
+          </button>
+          <p class="mt-2 text-center text-xs text-[var(--app-muted)]">
+            Log a food in this meal first.
+          </p>
+        </div>
+      {:else}
+        <a
+          href={data.tab === "shortcuts"
+            ? resolve(
+                withQuery("/meal-shortcuts/new", {
+                  date: data.destination.date,
+                  mealSlot: data.destination.mealSlot,
+                  q: data.query || undefined,
+                  tab: "shortcuts",
+                }),
+              )
+            : resolve(
+                withQuery("/foods/new", {
+                  date: data.destination.date,
+                  mealSlot: data.destination.mealSlot,
+                }),
+              )}
+          class="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--app-action)] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--app-action-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)] sm:w-auto sm:min-w-[260px]"
+        >
+          <span aria-hidden="true" class="mr-1.5 text-base leading-none">+</span>
+          {data.tab === "shortcuts" ? "Create meal shortcut" : "Create a custom food"}
+        </a>
+      {/if}
     </div>
 </AppPageShell>
 

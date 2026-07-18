@@ -5,11 +5,19 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { createDatabase, type DatabaseConnection } from '$lib/server/db/connection';
-import { diaryLogs, foods, users, type Food } from '$lib/server/db/schema';
+import {
+  diaryLogs,
+  foods,
+  mealShortcutItems,
+  mealShortcuts,
+  users,
+  type Food
+} from '$lib/server/db/schema';
 import { createFoodAndLog } from './create-food-and-log';
 import {
   archiveFood,
   FoodBarcodeConflictError,
+  FoodAmountUnitConflictError,
   FoodEditConflictError,
   FoodNotFoundError,
   formatFoodForEdit,
@@ -188,6 +196,42 @@ describe('food editing', () => {
         additionalNutritionJson: null,
         notes: null
       });
+    });
+  });
+
+  it('prevents changing between g and ml while any meal shortcut references the food', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection, 'owner@example.com');
+      const food = insertFood(connection, userId);
+      const shortcut = connection.db.insert(mealShortcuts).values({
+        userId,
+        name: 'Referenced meal'
+      }).returning().get();
+      connection.db.insert(mealShortcutItems).values({
+        userId,
+        shortcutId: shortcut.id,
+        foodId: food.id,
+        amountUnit: food.amountUnit,
+        position: 0,
+        defaultAmount: 100_000,
+        defaultPortionKind: 'hundred',
+        defaultPortionLabel: '100 g',
+        defaultPortionAmount: 100_000,
+        defaultPortionCountMilli: 1_000
+      }).run();
+
+      expect(() => updateFood(connection.db, userId, food.id, {
+        ...formatFoodForEdit(food),
+        amountUnit: 'ul'
+      })).toThrow(FoodAmountUnitConflictError);
+
+      connection.db.update(mealShortcuts).set({ deletedAt: new Date() })
+        .where(eq(mealShortcuts.id, shortcut.id)).run();
+      expect(() => updateFood(connection.db, userId, food.id, {
+        ...formatFoodForEdit(food),
+        amountUnit: 'ul'
+      })).toThrow(FoodAmountUnitConflictError);
+      expect(getActiveFoodForEdit(connection.db, userId, food.id)?.amountUnit).toBe('mg');
     });
   });
 
