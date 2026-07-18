@@ -3,10 +3,11 @@ import { todayInDublin } from '$lib/date';
 import { withQuery } from '$lib/navigation';
 import { nutritionGoalInputSchema } from '$lib/nutrition/goal-input';
 import { formatStoredValue } from '$lib/nutrition/math';
+import { calendarDateString } from '$lib/nutrition/portion-input';
 import { db } from '$lib/server/db';
 import { nutritionGoals } from '$lib/server/db/schema';
 import { saveNutritionGoal } from '$lib/server/nutrition/save-nutrition-goal';
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
@@ -16,19 +17,29 @@ function readText(formData: FormData, name: string): string {
   return typeof value === 'string' ? value : '';
 }
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = ({ locals, url }) => {
   if (locals.user === null) {
     return redirect(303, '/sign-in');
   }
 
   const today = todayInDublin();
+  const rawSelectedDate = url.searchParams.get('date');
+  const selectedDateResult = rawSelectedDate === null
+    ? null
+    : calendarDateString.safeParse(rawSelectedDate);
+
+  if (selectedDateResult !== null && !selectedDateResult.success) {
+    return error(400, 'Invalid goal date');
+  }
+
+  const effectiveFrom = selectedDateResult?.data ?? today;
   const currentGoal = db
     .select()
     .from(nutritionGoals)
     .where(
       and(
         eq(nutritionGoals.userId, locals.user.id),
-        lte(nutritionGoals.effectiveFrom, today)
+        lte(nutritionGoals.effectiveFrom, effectiveFrom)
       )
     )
     .orderBy(desc(nutritionGoals.effectiveFrom))
@@ -36,8 +47,10 @@ export const load: PageServerLoad = ({ locals }) => {
     .get();
 
   return {
+    openedFromHistory: url.searchParams.get('from') === 'history',
+    selectedDate: selectedDateResult?.data ?? null,
     values: {
-      effectiveFrom: today,
+      effectiveFrom,
       targetEnergyKcal: currentGoal === undefined
         ? '2900'
         : formatStoredValue(BigInt(currentGoal.targetEnergyMkcal), 3),
@@ -55,7 +68,7 @@ export const load: PageServerLoad = ({ locals }) => {
 };
 
 export const actions = {
-  default: async ({ locals, request }) => {
+  default: async ({ locals, request, url }) => {
     if (locals.user === null) {
       return redirect(303, '/sign-in');
     }
@@ -90,9 +103,13 @@ export const actions = {
       throw caught;
     }
 
+    const openedFromHistory = url.searchParams.get('from') === 'history';
+
     return redirect(
       303,
-      resolve(withQuery('/settings', { targets: 'saved' }))
+      openedFromHistory
+        ? resolve(withQuery('/settings/goals/history', { saved: 1 }))
+        : resolve(withQuery('/settings', { targets: 'saved' }))
     );
   }
 } satisfies Actions;

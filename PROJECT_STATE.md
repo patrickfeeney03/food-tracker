@@ -238,7 +238,8 @@ Never commit `.env` or Google client secrets.
 - Current targets, signed-in identity, active-session count, Light/Dark/System preference, network state, app version, and current-session sign out are displayed.
 - Theme persistence is implemented.
 - Daily Targets opens an effective-dated editor, prefilled from the current applicable goal. Saving updates the selected date or starts a new historical target period and returns with announced feedback.
-- Goal history/current-target editing, account details, active-session revocation, and JSON/CSV export destination routes are not implemented; their current rows are visual placeholders and should not imply working navigation.
+- Goal History lists target periods newest-first, identifies current/upcoming/previous periods, and links each period to the shared editor. New future/effective-dated periods can also be added there.
+- Account details, active-session revocation, and JSON/CSV export destination routes are not implemented; their current rows are visual placeholders and should not imply working navigation.
 - Settings uses the same canvas, surface, panel, border, text, status, and action tokens as the other application screens.
 
 ## Shared UI and Navigation
@@ -274,7 +275,7 @@ resolve(
 - Search query, active tab, and scroll restoration across nested flows are not fully implemented.
 - Create Food currently uses a one-page create-and-log experience rather than the specified unsaved-draft wizard.
 - Meal shortcuts are schema-only.
-- Goal History, Active Sessions, Data Export, and PWA/update screens are absent.
+- Active Sessions, Data Export, and PWA/update screens are absent.
 - Core routes, shared food fields, and the scanner use one semantic palette for consistent light/dark behavior. Camera and brand surfaces retain intentional fixed colours.
 - Dashboard loading, stale-data, retry, and Undo states from the UI specification are not implemented comprehensively.
 - The diary-destination Zod schema is duplicated between `/foods` and `/foods/new`.
@@ -309,14 +310,13 @@ resolve(
 
 ### P2: settings, resilience, and visual completion
 
-1. Implement effective-dated Goal History plus add/edit target flows.
-2. Implement Active Sessions with individual revocation.
-3. Implement full JSON export and diary CSV export.
-4. Complete barcode checksum, archived-hit, restore/replace, and link-collision outcomes.
-5. Add PWA/offline/update handling that never discards unsaved input.
-6. Compare core screens against `CalorieTrackerProductDesign.png` at 390 × 844 and desktop widths, then verify 44 px targets, focus visibility, keyboard behavior, and screen-reader feedback.
-7. Extract the shared diary-destination schema, make date helpers deterministic, and add route-level and component interaction tests.
-8. Replace catalogue latest-use reduction with a one-row-per-food SQL query and correct/squash the legacy `ml` → `ul` migration before the database becomes persistent.
+1. Implement Active Sessions with individual revocation.
+2. Implement full JSON export and diary CSV export.
+3. Complete barcode checksum, archived-hit, restore/replace, and link-collision outcomes.
+4. Add PWA/offline/update handling that never discards unsaved input.
+5. Compare core screens against `CalorieTrackerProductDesign.png` at 390 × 844 and desktop widths, then verify 44 px targets, focus visibility, keyboard behavior, and screen-reader feedback.
+6. Extract the shared diary-destination schema, make date helpers deterministic, and add route-level and component interaction tests.
+7. Replace catalogue latest-use reduction with a one-row-per-food SQL query and correct/squash the legacy `ml` → `ul` migration before the database becomes persistent.
 
 ## Verification Commands
 

@@ -132,7 +132,13 @@
 
           <div class="mx-4 border-t border-[var(--app-border)]"></div>
 
-          <div class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3">
+          <a
+            href={resolve('/settings/goals/history')}
+            class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3 text-[var(--app-text)]
+              no-underline transition hover:bg-[var(--app-panel-hover)]
+              focus-visible:outline-2 focus-visible:outline-offset-[-2px]
+              focus-visible:outline-[var(--app-accent)]"
+          >
             <div class="min-w-0 flex-1">
               <p class="text-sm font-semibold text-[var(--app-text)]">Goal history</p>
               <p class="mt-0.5 text-xs text-[var(--app-muted)]">Effective-dated changes</p>
@@ -149,7 +155,7 @@
             >
               <path d="m9 18 6-6-6-6" />
             </svg>
-          </div>
+          </a>
         </div>
       </section>
 

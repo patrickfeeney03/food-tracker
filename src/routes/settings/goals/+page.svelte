@@ -8,6 +8,16 @@
   let { data, form }: PageProps = $props();
   let values = $derived(form?.values ?? data.values);
   let errors = $derived((form?.errors ?? {}) as NutritionGoalFormErrors);
+  let pageTitle = $derived(
+    data.openedFromHistory
+      ? data.selectedDate === null
+        ? "Add target period"
+        : "Edit target period"
+      : "Daily targets",
+  );
+  let backHref = $derived(
+    data.openedFromHistory ? resolve("/settings/goals/history") : resolve("/settings"),
+  );
 </script>
 
 <svelte:head>
@@ -23,8 +33,8 @@
   >
     <header class="mb-7 flex items-start gap-3">
       <a
-        href={resolve("/settings")}
-        aria-label="Back to settings"
+        href={backHref}
+        aria-label={data.openedFromHistory ? "Back to goal history" : "Back to settings"}
         class="-ml-1 inline-flex size-11 shrink-0 items-center justify-center rounded-full
           text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)]
           focus-visible:outline-2 focus-visible:outline-offset-2
@@ -36,7 +46,7 @@
       </a>
       <div class="pt-1">
         <h1 class="text-[21px] font-extrabold leading-tight tracking-[-0.025em]">
-          Daily targets
+          {pageTitle}
         </h1>
         <p class="mt-1 text-sm leading-5 text-[var(--app-muted)]">
           Changes apply from the selected date without rewriting earlier diary goals.
@@ -47,7 +57,9 @@
     <NutritionGoalForm
       {values}
       {errors}
-      submitLabel="Save targets"
+      submitLabel={data.openedFromHistory && data.selectedDate === null
+        ? "Add target period"
+        : "Save targets"}
       targetsLegend="Nutrition targets"
     />
   </main>
