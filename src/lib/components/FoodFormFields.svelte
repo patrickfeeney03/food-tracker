@@ -122,7 +122,8 @@
     >
       <label
         class="flex cursor-pointer items-center justify-center rounded-full !text-[13px]
-          !font-semibold transition"
+          !font-semibold transition focus-within:outline-2 focus-within:outline-offset-2
+          focus-within:outline-[var(--app-accent)]"
         class:bg-[#2865e8]={amountUnit === "mg"}
         class:text-white={amountUnit === "mg"}
         class:text-[#738096]={amountUnit !== "mg"}
@@ -132,7 +133,8 @@
       </label>
       <label
         class="flex cursor-pointer items-center justify-center rounded-full !text-[13px]
-          !font-semibold transition"
+          !font-semibold transition focus-within:outline-2 focus-within:outline-offset-2
+          focus-within:outline-[var(--app-accent)]"
         class:bg-[#2865e8]={amountUnit === "ul"}
         class:text-white={amountUnit === "ul"}
         class:text-[#738096]={amountUnit !== "ul"}

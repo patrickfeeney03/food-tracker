@@ -4,7 +4,10 @@ import z from "zod";
 import type { Actions, PageServerLoad } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
 import { createFoodSchema } from "$lib/nutrition/food-input";
-import { createFoodAndLog } from "$lib/server/nutrition/create-food-and-log";
+import {
+  createFoodAndLog,
+  FoodCreateBarcodeConflictError
+} from "$lib/server/nutrition/create-food-and-log";
 import { db } from "$lib/server/db";
 import { resolve } from "$app/paths";
 import { withQuery } from "$lib/navigation";
@@ -119,12 +122,37 @@ export const actions = {
       });
     }
 
-    createFoodAndLog(
-      db,
-      locals.user.id,
-      foodResult.data,
-      logResult.data
-    );
+    try {
+      createFoodAndLog(
+        db,
+        locals.user.id,
+        foodResult.data,
+        logResult.data
+      );
+    } catch (caught) {
+      if (caught instanceof FoodCreateBarcodeConflictError) {
+        return fail(400, {
+          values,
+          errors: {
+            barcode: [caught.message]
+          }
+        });
+      }
+
+      if (caught instanceof RangeError) {
+        const isUnavailablePortion =
+          caught.message.startsWith('Food does not define');
+
+        return fail(400, {
+          values,
+          errors: isUnavailablePortion
+            ? { portionKind: [caught.message] }
+            : { form: [caught.message] }
+        });
+      }
+
+      throw caught;
+    }
 
     return redirect(
       303,

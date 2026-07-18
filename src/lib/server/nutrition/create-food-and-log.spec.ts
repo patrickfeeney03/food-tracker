@@ -5,7 +5,10 @@ import { join } from "node:path";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { diaryLogs, foods, users } from "../db/schema";
 import { describe, expect, it } from 'vitest';
-import { createFoodAndLog } from "./create-food-and-log";
+import {
+  createFoodAndLog,
+  FoodCreateBarcodeConflictError
+} from "./create-food-and-log";
 import { eq } from "drizzle-orm";
 
 const clientMutationId = '550e8400-e29b-41d4-a716-446655440000';
@@ -220,6 +223,51 @@ describe('createFoodAndLog', () => {
           .where(eq(diaryLogs.userId, otherUserId))
           .all()
       ).toHaveLength(0);
+    });
+  });
+
+  it('rejects a duplicate active barcode without creating a diary entry', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+
+      connection.db.insert(foods).values({
+        userId,
+        name: 'Existing food',
+        barcode: '0012345678905',
+        amountUnit: 'mg',
+        basisAmount: 100_000,
+        energyMkcalPerBasis: 100_000,
+        proteinMgPerBasis: 1_000,
+        carbsMgPerBasis: 2_000,
+        fatMgPerBasis: 3_000
+      }).run();
+
+      expect(() =>
+        createFoodAndLog(
+          connection.db,
+          userId,
+          {
+            name: 'Duplicate barcode',
+            barcode: '0012345678905',
+            amountUnit: 'mg',
+            basisAmount: '100',
+            energyKcal: '200',
+            proteinG: '10',
+            carbsG: '20',
+            fatG: '5'
+          },
+          {
+            clientMutationId,
+            portionKind: 'hundred',
+            portionCount: '1',
+            diaryDate: '2026-07-12',
+            mealSlot: 'lunch'
+          }
+        )
+      ).toThrow(FoodCreateBarcodeConflictError);
+
+      expect(connection.db.select().from(foods).all()).toHaveLength(1);
+      expect(connection.db.select().from(diaryLogs).all()).toHaveLength(0);
     });
   });
 

@@ -1,12 +1,47 @@
 import { createFoodSchema } from "$lib/nutrition/food-input";
 import { logFoodInputSchema } from "$lib/nutrition/portion-input";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { DatabaseConnection } from "../db/connection";
 import { diaryLogs, foods } from "../db/schema";
 import { buildDiaryLogValues } from "./diary-entry";
 import { mapCreateFoodInput } from "./food-mapper";
 
 type AppDatabase = DatabaseConnection['db'];
+
+export class FoodCreateBarcodeConflictError extends Error {
+  constructor() {
+    super('This barcode is already assigned to another active food.');
+    this.name = 'FoodCreateBarcodeConflictError';
+  }
+}
+
+function barcodeAlreadyExists(
+  db: AppDatabase,
+  userId: string,
+  barcode: string
+): boolean {
+  if (barcode === '') return false;
+
+  return db
+    .select({ id: foods.id })
+    .from(foods)
+    .where(
+      and(
+        eq(foods.userId, userId),
+        eq(foods.barcode, barcode),
+        isNull(foods.deletedAt)
+      )
+    )
+    .get() !== undefined;
+}
+
+function isUniqueConstraintError(caught: unknown): boolean {
+  return (
+    caught instanceof Error &&
+    'code' in caught &&
+    String(caught.code) === 'SQLITE_CONSTRAINT_UNIQUE'
+  );
+}
 
 function findExistingMutation(
   db: AppDatabase,
@@ -73,6 +108,10 @@ export function createFoodAndLog(
     return existing;
   }
 
+  if (barcodeAlreadyExists(db, userId, foodInput.barcode)) {
+    throw new FoodCreateBarcodeConflictError();
+  }
+
   try {
     return db.transaction((transaction) => {
       const food = transaction
@@ -101,6 +140,10 @@ export function createFoodAndLog(
 
     if (replayed !== undefined) {
       return replayed;
+    }
+
+    if (isUniqueConstraintError(error)) {
+      throw new FoodCreateBarcodeConflictError();
     }
 
     throw error;

@@ -1,12 +1,20 @@
 # Calorie Tracker Project State
 
-Last updated: 2026-07-16
+Last updated: 2026-07-18
 
-This file records the current implementation state, important decisions, known compromises, and the recommended next steps. The detailed contracts remain in:
+This file records the current implementation state, durable decisions, known compromises, and the next implementation sequence.
 
-- `PLAN.md`
-- `UI_DESIGN_SPEC.md`
-- `NUTRITION_MATH.md`
+## Source Authority
+
+When project artifacts disagree, use this order:
+
+1. `NUTRITION_MATH.md` and the schema contract in `PLAN.md` for nutrition, storage, snapshot, and data-integrity behavior.
+2. `UI_DESIGN_SPEC.md` for navigation, interaction behavior, responsive requirements, and screen states.
+3. `CalorieTrackerProductDesign.png` for visual appearance such as colour, typography, spacing, and composition.
+
+`drawing.excalidraw` is a legacy low-fidelity exploration. It contains superseded ideas such as salt, per-100-only nutrition, and servings-per-container input, so it is not an implementation contract.
+
+The product image is also not authoritative for nutrition behavior. In particular, wording about normalizing nutrition per 100 g/ml conflicts with the fixed-point contract: foods preserve the arbitrary basis entered from the label.
 
 ## Working Style
 
@@ -17,14 +25,16 @@ This file records the current implementation state, important decisions, known c
 - Use the generated route types from `./$types`, such as `PageServerLoad`, `Actions`, and `PageProps`.
 - Use `z.flattenError()` rather than deprecated Zod error flattening methods.
 - Use Tailwind CSS utility classes as the default approach for UI styling. Reserve component-level CSS for effects or behavior that would be awkward or unclear to express with utilities.
+- Preserve unrelated work in the shared worktree and avoid broad cosmetic rewrites.
 
 ## Core Nutrition Decisions
 
 - Calories entered for a food are authoritative. Do not derive or enforce calories from protein, carbohydrate, and fat.
-- Food nutrition remains stored on the basis entered from the label.
+- Food nutrition remains stored on the basis entered from the label; it is not normalized to 100 g/ml.
 - Sodium is supported; salt is not.
 - Fibre is supported.
 - Food notes are plain reusable-food notes and do not affect calculations.
+- Existing diary logs are historical snapshots. Editing a reusable food affects future logs only.
 - The database is disposable during development.
 
 ### Fixed-point storage
@@ -39,13 +49,12 @@ This file records the current implementation state, important decisions, known c
 - Liquid amount storage unit: ul.
 - Both solid and liquid UI amounts support up to three decimal places.
 - Portion counts are stored in thousandths.
+- Decimal strings are parsed directly into integers.
 - Arithmetic uses `bigint`, half-up rounding, and checked conversion to safe JavaScript integers.
 
 ### Basis, serving, and container semantics
 
 All food amounts are exact physical amounts, not multipliers.
-
-Example:
 
 ```text
 basisAmount = 100
@@ -81,8 +90,6 @@ The supported portion kinds are:
 
 The portion count multiplies the selected portion amount.
 
-The following all resolve to 125 g:
-
 ```text
 125 × 1 g
 1.25 × 100 g
@@ -90,7 +97,7 @@ The following all resolve to 125 g:
 0.25 × Container (500 g)
 ```
 
-Nutrition is then scaled independently:
+These all resolve to 125 g. Nutrition is then scaled independently:
 
 ```text
 nutrition total = nutrition per basis × resolved amount / basis amount
@@ -109,28 +116,24 @@ The SQLite/Drizzle schema contains:
 - `meal_shortcut_items`
 - `diary_logs`
 
-Database connection setup verifies:
-
-- WAL mode
-- Foreign-key enforcement
-- Busy timeout
+Database initialization verifies WAL mode, foreign-key enforcement, and the busy timeout.
 
 Implemented nutrition services include:
 
-- Food input mapping
-- Portion resolution
-- Historical diary snapshots
-- Atomic food creation and first diary log
-- Idempotent mutation retry handling
-- Daily diary summary and goal selection
-- Nutrition goal mapping
-- Nutrition goal insert/update
+- Fixed-point input parsing, portion resolution, scaling, rounding, and display formatting.
+- Food input mapping, active-catalogue search, recent-use ordering, and barcode lookup.
+- Atomic food creation and first diary snapshot.
+- Historical diary snapshots and idempotent mutation retry handling.
+- Existing-food logging with owner/active checks, semantic retry validation, and immutable snapshots.
+- Daily diary summaries, applicable-goal selection, and goal insert/update.
+- Diary-entry snapshot updates.
+- Reusable-food edit, optimistic conflict detection, barcode-conflict handling, and archive.
+
+Meal-shortcut tables exist, but shortcut creation, editing, application, blocking, and batch Undo services are not implemented.
 
 ## Authentication
 
-Google OAuth is implemented and has been successfully tested manually.
-
-The flow is:
+Google OAuth is implemented and has been manually verified.
 
 ```text
 Google authorization
@@ -163,76 +166,89 @@ GOOGLE_ALLOWED_EMAIL=
 
 Never commit `.env` or Google client secrets.
 
-## Implemented Routes
+## Current Routes and UI
 
-### `/sign-in`
+### `/sign-in` and `/logout`
 
-- Redirects authenticated users to `/`.
-- Displays controlled OAuth failure messages.
-- Starts Google sign-in.
-
-### `/logout`
-
-- POST-only.
-- Revokes the current session.
-- Deletes the session cookie.
+- Authenticated users are redirected away from Sign In.
+- Controlled OAuth failure messages and the Google sign-in action are implemented.
+- Sign In uses the shared visual tokens and responsive product styling.
+- Logout is POST-only, revokes the current session, and removes the cookie.
 
 ### `/goals/setup`
 
-- Requires authentication.
-- Redirects away when the user already has a goal.
-- Prefills the current Dublin date and suggested targets.
-- Validates with Zod.
-- Preserves values and field errors on failure.
-- Saves the first effective-dated goal.
+- Authentication, no-existing-goal guard, Dublin-date defaults, suggested targets, Zod validation, preserved form values/errors, and first-goal persistence are implemented.
+- The route is functional but remains the clearest unstyled screen relative to the product design.
 
 ### `/`
 
-- Requires authentication.
-- Redirects users without a goal to `/goals/setup`.
-- Accepts a validated `date` query parameter.
-- Loads the applicable goal, meal entries, totals, and balances.
-- Displays a functional but unstyled diary dashboard.
-- Contains previous/next/today navigation.
-- Contains contextual Add Food links for all four meal slots.
+- Authentication and missing-goal redirects are implemented.
+- A validated `date` query selects the diary day and effective goal.
+- The dashboard shows the calorie equation, macro progress, meal subtotals, empty/populated slots, and contextual Add Food actions.
+- Previous, next, Today, Settings, desktop layout, dark-theme tokens, and diary-row links to Edit Entry are implemented.
+- Diary rows currently show resolved amount and calories, but not every richer detail requested by `UI_DESIGN_SPEC.md`, such as brand, original portion representation, and compact macro text.
 
 ### `/foods`
 
-- Requires authentication.
-- Requires a valid diary date and meal slot.
-- Lists only the current user's active foods.
-- Supports name/brand search.
-- Preserves the diary destination in navigation.
-- Empty search currently sorts the active catalogue alphabetically.
+- The route requires a valid diary date and meal slot and lists only the signed-in user's active foods.
+- Name, brand, and barcode search are implemented.
+- Empty-query results are ordered by most recent non-deleted use, then alphabetically; never-logged catalogue foods follow logged foods.
+- Latest resolved amount and calories are displayed when a previous use exists.
+- The destination is preserved across Search/Add, Create Food, and Edit Food navigation.
+- The Foods/Meal Shortcuts visual tab, barcode launcher, empty/results states, and `created=1` success feedback are styled.
+- Food editing is available from each row.
+- Food-name taps open the existing-food Amount Adjuster while Edit Food remains a separate action.
+- Successful existing-food logging returns to Search/Add with announced `added=1` feedback.
+- Quick Add remains disabled.
+- Food create, add, edit, and archive redirects render announced confirmation messages.
 
 ### `/foods/new`
 
-- Requires authentication.
-- Validates the diary destination.
-- Generates a retry-safe client mutation UUID.
-- Validates food input and diary input independently.
-- Calls `createFoodAndLog()` to insert the food and first diary snapshot atomically.
-- Returns validation errors and all entered values on failure.
-- Redirects back to Search/Add after success.
+- The route validates the diary destination, generates a retry-safe client mutation UUID, validates food and diary inputs separately, and calls `createFoodAndLog()` atomically.
+- The shared food fields include identity, barcode, solid/liquid type, arbitrary label basis, exact serving/container amounts, core nutrition, fibre, sugar, saturated fat, sodium, potassium, and notes.
+- The create-food merge artifact that duplicated most form fields and produced duplicate IDs has been removed in the current working change.
+- The misleading hardcoded 100 g/ml first-entry UX has been replaced in the current working change with unit, hundred, available Serving, and available Container choices.
+- The current working change also shows resolved amount and live calorie/macro previews, disables invalid submission, and reports unavailable serving/container choices from the server.
+- The route remains a one-page create-and-first-log flow. This differs from the two-step unsaved-draft wizard in `UI_DESIGN_SPEC.md`; either implement that wizard later or explicitly revise the behavior spec after a product decision.
+- Duplicate active barcodes are reported as a field-level error and covered by a service test.
+
+### `/foods/[foodId]/edit`
+
+- Reusable food fields can be edited for future logs without changing diary history.
+- Optimistic conflict detection and friendly barcode collision errors are implemented.
+- Food archival is implemented with confirmation and retains historical diary entries.
+- Styling is close to the product reference, but shared dark-theme tokens are not used consistently across all food-edit fields.
+
+### `/diary/[entryId]/edit`
+
+- Existing snapshot portion data is loaded without consulting mutable reusable-food nutrition.
+- Portion selection, live resolved amount, live nutrition preview, date change, and meal-slot change are implemented.
+- Saving recalculates and updates the snapshot atomically and returns to the destination diary date.
+- Delete Entry, Undo, and optimistic stale-edit protection are not implemented.
+
+### Barcode scanner overlay
+
+- Camera scanning, manual entry, torch control where available, permission/failure states, and preservation of the underlying Search/Add state are implemented.
+- An active barcode hit returns the matching catalogue food; a miss opens Create Food with the barcode populated.
+- Active hits can continue through the existing-food Amount Adjuster; archived-hit recovery remains unimplemented.
+- Archived-code restore/replace, checksum warning/override, and link-collision workflows are not implemented.
 
 ### `/settings`
 
-- Requires authentication.
-- Displays the current effective nutrition targets.
-- Displays the signed-in Google identity and active-session count.
-- Persists Light, Dark, or System appearance preference.
-- Reports browser network status and the application version.
-- Provides current-session sign out.
-- Goal history, account, active-session management, and data export destination screens are not yet implemented.
+- Current targets, signed-in identity, active-session count, Light/Dark/System preference, network state, app version, and current-session sign out are displayed.
+- Theme persistence is implemented.
+- Goal history/current-target editing, account details, active-session revocation, and JSON/CSV export destination routes are not implemented; their current rows are visual placeholders and should not imply working navigation.
+- Settings styling is close to the image but still uses a partly separate Slate colour vocabulary instead of the shared application tokens.
 
-## Shared UI/Navigation Utilities
+## Shared UI and Navigation
 
-- `src/lib/date.ts`
-  - Current Dublin calendar date.
-  - Calendar-date shifting without doing date mutation inside a Svelte component.
-- `src/lib/navigation.ts`
-  - `withQuery()` builds encoded query strings.
-  - Use it inside `resolve()`:
+- `src/routes/layout.css` defines light/dark application colours and common form defaults.
+- `src/lib/components/FoodFormFields.svelte` provides shared Create/Edit Food fields.
+- `src/lib/components/BarcodeScanner.svelte` provides the state-preserving scanner overlay.
+- `src/lib/date.ts` provides current Dublin date and calendar-date shifting.
+- `src/lib/navigation.ts` provides `withQuery()` for encoded navigation context.
+
+Use `withQuery()` inside `resolve()`:
 
 ```ts
 resolve(
@@ -243,98 +259,63 @@ resolve(
 )
 ```
 
-This avoids repeated manual `encodeURIComponent()` calls while retaining SvelteKit base-path and route handling.
+## Known Compromises and Risks
 
-## Current Known Compromises
+- Quick Add, success Undo, diary-entry deletion, and shortcut batch Undo are absent.
+- Existing-food logging rejects reuse of a mutation UUID with different semantic input. The older create-and-log service still accepts an exact UUID replay without comparing the retried payload, because no request fingerprint is stored.
+- The home-page goal guard checks whether any goal exists, while diary selection requires a goal effective on or before the diary date. A future-dated first goal can therefore bypass setup but leave the current diary without an applicable goal.
+- Diary-entry edits do not compare `updatedAt`, so concurrent tabs can overwrite one another.
+- Session refresh revalidates a session and then updates by ID alone. A concurrent revoke/expiry between those operations should be closed by repeating the active-session predicates in the update.
+- Decimal validation limits precision but not magnitude; extremely large values reach checked conversion later. Brand, barcode, and notes also need explicit service-boundary length limits.
+- Recent-use lookup currently loads every matching diary row for up to 50 foods and reduces them in JavaScript; replace it with a one-row-per-food query before diary history becomes large.
+- Migration `0001` does not transform legacy liquid `amount_unit='ml'` rows to `ul`. The database is disposable today, but migrations must be squashed or corrected before preserving real data.
+- Search query, active tab, and scroll restoration across nested flows are not fully implemented.
+- Create Food currently uses a one-page create-and-log experience rather than the specified unsaved-draft wizard.
+- Meal shortcuts are schema-only.
+- Goal History, Active Sessions, Data Export, and PWA/update screens are absent.
+- Dark mode and visual tokens are inconsistent on Edit Food, Goals Setup, and some shared form styling.
+- Dashboard loading, stale-data, retry, and Undo states from the UI specification are not implemented comprehensively.
+- The diary-destination Zod schema is duplicated between `/foods` and `/foods/new`.
+- `todayInDublin()` reads the clock directly and should accept an optional `Date` for deterministic tests.
+- Date helpers need focused tests around Dublin daylight-saving boundaries.
+- Core services have useful unit/integration coverage, but route loaders/actions, OAuth callback orchestration, and the main Svelte interactions need focused tests.
 
-### Create Food portion UX is misleading
+## Prioritized Roadmap
 
-The current Create Food form hardcodes:
+### P0: protect the completed core logging flow
 
-```text
-portionKind = hundred
-```
+1. Add route/component tests for Create Food and both Amount Adjusters, including validation preservation and unavailable Serving/Container rejection.
+2. Add browser-level coverage for food-row navigation, successful existing-food logging, idempotent retry, and cross-user/archived-food rejection.
+3. Manually verify:
+   - 100 g basis with a 125 g Serving.
+   - Arbitrary 125 g and 250 g bases.
+   - Fractional ml input and liquid Serving/Container choices.
+4. Decide whether to keep the current one-page Create Food flow or implement the specified two-step unsaved-draft wizard, then align `UI_DESIGN_SPEC.md`.
+5. Add a stored/request fingerprint or equivalent comparison so create-and-log retries reject a changed payload using the same mutation UUID.
 
-Therefore its first diary-entry count currently means multiples of 100 g/ml:
+### P1: complete repeated logging and close integrity gaps
 
-```text
-1 = 100 g/ml
-1.25 = 125 g/ml
-```
+1. Implement Quick Add from the most recent portion representation while calculating from the reusable food's current nutrition.
+2. Add idempotency, pending-button protection, success feedback, and Undo for normal add and Quick Add.
+3. Add Delete Entry with immediate diary recalculation and Undo.
+4. Add optimistic concurrency protection to diary-entry editing.
+5. Make first-goal/setup guards use the same effective-date rule as diary goal selection.
+6. Make session refresh atomically require a non-revoked, non-expired session and handle a zero-row update as unauthenticated.
+7. Add magnitude and text-length limits at food service boundaries with field-level failures.
+8. Preserve search query, active tab, destination, and scroll state through adjust/edit/back flows.
+9. Implement meal-shortcut create/edit/archive, blocked archived-food handling, atomic batch application, and batch Undo.
 
-This is not a business rule. It was a temporary vertical-slice implementation and caused understandable confusion when basis or serving amounts differed from 100.
+### P2: settings, resilience, and visual completion
 
-This should be corrected before further feature work or styling.
-
-The Create Food form should provide:
-
-- A portion selector for 1 g/ml.
-- A portion selector for 100 g/ml.
-- Serving when `servingAmount` is populated.
-- Container when `containerAmount` is populated.
-- A number-of-portions input.
-- An explicit resolved g/ml preview.
-
-Server validation must also reject `serving` or `container` when the corresponding amount is absent. Do not rely solely on disabled or hidden UI options.
-
-### Styling has started on the diary
-
-The home diary screen now follows the supplied product design:
-
-- Mobile-first 390 px-style shell.
-- Compact date navigation.
-- Daily energy equation card.
-- Colored macro progress indicators.
-- Empty and populated meal cards.
-- Responsive centered presentation on wider screens.
-
-The other routes remain mostly unstyled. Continue the design foundation with:
-
-- Colour, typography, spacing, radius, border, and shadow tokens.
-- Global page shell.
-- Reusable button, input, field, card, and alert styles.
-- Mobile-first layout based on the Figma reference.
-- Diary dashboard first, followed by Sign In, Goals, Search/Add, and Create Food.
-
-### Search/Add is incomplete
-
-- Empty query should eventually show Recently Logged rather than alphabetical foods.
-- Food rows are not yet clickable.
-- Existing foods cannot yet be logged.
-- Quick-add is not implemented.
-- `created=1` is added after creating a food but is not yet shown as a success message.
-- Undo is not implemented.
-
-### Create Food is incomplete
-
-- The server accepts optional nutrition fields, but the current page exposes only core nutrition and notes.
-- Fibre, sugar, saturated fat, sodium, and potassium fields still need UI controls.
-- Duplicate active barcode failures are not yet converted into friendly form errors.
-- Serving/container first-log choices are not implemented.
-- Resolved amount and nutrition preview are not implemented.
-
-### Technical cleanup
-
-- The diary-destination Zod schema is duplicated between `/foods` and `/foods/new`; extract it when editing these routes next.
-- `todayInDublin()` directly reads the clock and should accept an optional `Date` for deterministic tests.
-- Date helpers need focused tests around Dublin summer-time boundaries.
-- Route loaders/actions and OAuth callback orchestration do not yet have route-level tests. Core services have integration tests.
-- Some formatting is inconsistent because files were typed incrementally; avoid cosmetic rewrites until touching the relevant file.
-
-## Recommended Next Steps
-
-1. Correct the Create Food portion selector and resolved-amount behavior.
-2. Add server-side validation for unavailable serving/container portions.
-3. Manually verify creation with:
-   - A 100 g basis and 125 g serving.
-   - A 125 g basis.
-   - A liquid food with fractional ml.
-4. Begin the shared styling/design foundation.
-5. Style the diary dashboard against the Figma reference.
-6. Implement logging an existing food through an Amount Adjuster.
-7. Add Recently Logged ordering and quick-add.
-8. Add success feedback and Undo.
-9. Continue with editing entries, editing foods, meal shortcuts, barcode scanning, goal history, sessions, and export.
+1. Implement effective-dated Goal History plus add/edit target flows.
+2. Implement Active Sessions with individual revocation.
+3. Implement full JSON export and diary CSV export.
+4. Complete barcode checksum, archived-hit, restore/replace, and link-collision outcomes.
+5. Add PWA/offline/update handling that never discards unsaved input.
+6. Style Goals Setup and reconcile Edit Food, Settings, scanner, and shared fields with the common light/dark tokens.
+7. Compare core screens against `CalorieTrackerProductDesign.png` at 390 × 844 and desktop widths, then verify 44 px targets, focus visibility, keyboard behavior, and screen-reader feedback.
+8. Extract the shared diary-destination schema, make date helpers deterministic, and add route-level and component interaction tests.
+9. Replace catalogue latest-use reduction with a one-row-per-food SQL query and correct/squash the legacy `ml` → `ul` migration before the database becomes persistent.
 
 ## Verification Commands
 

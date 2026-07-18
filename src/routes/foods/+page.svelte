@@ -215,7 +215,14 @@
       </div>
     </div>
 
-    {#if data.created}
+    {#if data.added}
+      <div
+        role="status"
+        class="mt-4 rounded-xl border border-[var(--app-success-border)] bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium text-[var(--app-success-text)]"
+      >
+        Food added to {mealNames[data.destination.mealSlot].toLowerCase()}.
+      </div>
+    {:else if data.created}
       <div
         role="status"
         class="mt-4 rounded-xl border border-[var(--app-success-border)] bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium text-[var(--app-success-text)]"
@@ -223,6 +230,20 @@
         Food created and added to {mealNames[
           data.destination.mealSlot
         ].toLowerCase()}.
+      </div>
+    {:else if data.saved}
+      <div
+        role="status"
+        class="mt-4 rounded-xl border border-[var(--app-success-border)] bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium text-[var(--app-success-text)]"
+      >
+        Food changes saved.
+      </div>
+    {:else if data.archived}
+      <div
+        role="status"
+        class="mt-4 rounded-xl border border-[var(--app-success-border)] bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium text-[var(--app-success-text)]"
+      >
+        Food archived. Existing diary entries were kept.
       </div>
     {/if}
 
@@ -279,7 +300,19 @@
               <article
                 class="flex min-h-[62px] items-center gap-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-panel)] py-2 pr-2 pl-3 shadow-[0_1px_2px_rgba(23,32,51,0.025)] transition hover:border-[var(--app-border-strong)] hover:shadow-sm"
               >
-                <div class="min-w-0 flex-1">
+                <a
+                  href={resolve(
+                    withQuery(`/foods/${food.id}/log`, {
+                      date: data.destination.date,
+                      mealSlot: data.destination.mealSlot,
+                      q: data.query || undefined,
+                    }),
+                  )}
+                  class="min-w-0 flex-1 rounded-lg py-1 text-[var(--app-text)] no-underline
+                    focus-visible:outline-2 focus-visible:outline-offset-2
+                    focus-visible:outline-[var(--app-accent)]"
+                  aria-label={`Add ${food.name} to ${mealNames[data.destination.mealSlot].toLowerCase()}`}
+                >
                   <h3
                     class="truncate text-sm leading-5 font-bold tracking-[-0.01em] text-[var(--app-text)]"
                   >
@@ -301,7 +334,7 @@
                       {formatAmount(food.basisAmount, food.amountUnit)}
                     {/if}
                   </p>
-                </div>
+                </a>
 
                 <div class="flex shrink-0 items-center gap-1">
                   <a

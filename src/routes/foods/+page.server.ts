@@ -80,6 +80,7 @@ export const load: PageServerLoad = ({
 
     return {
       destination: destinationResult.data,
+      added: false,
       created: false,
       isToday: destinationResult.data.date === todayInDublin(),
       query: scannedBarcode,
@@ -96,6 +97,7 @@ export const load: PageServerLoad = ({
 
   return {
     destination: destinationResult.data,
+    added: url.searchParams.get('added') === '1',
     created: url.searchParams.get('created') === '1',
     saved: url.searchParams.get('saved') === '1',
     archived: url.searchParams.get('archived') === '1',
