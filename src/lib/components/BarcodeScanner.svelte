@@ -184,7 +184,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div
-  class="fixed inset-0 z-50 flex min-h-dvh items-end justify-center bg-[#08101f]/75 p-0 backdrop-blur-[2px] sm:items-center sm:p-5"
+  class="fixed inset-0 z-50 flex min-h-dvh items-end justify-center bg-black/75 p-0 backdrop-blur-[2px] sm:items-center sm:p-5"
   role="presentation"
 >
   <div
@@ -192,14 +192,18 @@
     aria-modal="true"
     aria-labelledby="scanner-title"
     aria-describedby="scanner-help"
-    class="flex max-h-dvh min-h-[78dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[26px] bg-[#f6f7f9] text-[#172033] shadow-2xl sm:min-h-0 sm:rounded-[26px]"
+    class="flex max-h-dvh min-h-[78dvh] w-full max-w-lg flex-col overflow-hidden
+      rounded-t-[26px] bg-[var(--app-surface)] text-[var(--app-text)] shadow-2xl
+      sm:min-h-0 sm:rounded-[26px]"
   >
     <header class="grid grid-cols-[44px_1fr_44px] items-center px-3 pt-3 sm:px-5 sm:pt-5">
       <button
         type="button"
         onclick={onclose}
         aria-label="Close barcode scanner"
-        class="inline-flex size-11 items-center justify-center rounded-xl text-[#172033] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2867eb]"
+        class="inline-flex size-11 items-center justify-center rounded-xl text-[var(--app-text)]
+          transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2
+          focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="m7 7 10 10M17 7 7 17"></path>
@@ -216,10 +220,10 @@
           onclick={toggleTorch}
           aria-label={torchOn ? "Turn flash off" : "Turn flash on"}
           aria-pressed={torchOn}
-          class="inline-flex size-11 items-center justify-center rounded-xl transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2867eb]"
-          class:bg-[#172033]={torchOn}
+          class="inline-flex size-11 items-center justify-center rounded-xl transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
+          class:bg-[var(--app-action)]={torchOn}
           class:text-white={torchOn}
-          class:text-[#172033]={!torchOn}
+          class:text-[var(--app-text)]={!torchOn}
         >
           <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M13 2 5.5 13h6L11 22l7.5-12h-6L13 2Z"></path>
@@ -233,7 +237,7 @@
     {#if manualMode}
       <form onsubmit={submitManualBarcode} class="flex flex-1 flex-col px-5 pb-5 pt-10 sm:px-7 sm:pb-7">
         <div>
-          <label for="manual-barcode" class="!text-[11px] !font-bold !uppercase !tracking-[0.04em] !text-[#748096]">
+          <label for="manual-barcode" class="!text-[11px] !font-bold !uppercase !tracking-[0.04em] !text-[var(--app-muted)]">
             Barcode number
           </label>
           <input
@@ -248,21 +252,23 @@
             inputmode="numeric"
             aria-invalid={manualError ? "true" : undefined}
             placeholder="e.g. 0012345678905"
-            class="mt-2 !min-h-14 !rounded-xl !border-[#dce1e8] !bg-white !px-4 !text-base !font-semibold !shadow-none focus:!border-[#2867eb] focus:!ring-[#2867eb]/15"
+            class="mt-2 !min-h-14 !rounded-xl !border-[var(--app-border)]
+              !bg-[var(--app-panel)] !px-4 !text-base !font-semibold !text-[var(--app-text)]
+              !shadow-none focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
           />
           {#if manualError}
-            <p role="alert" class="mt-2 !text-sm !font-medium !text-[#c73535]">{manualError}</p>
+            <p role="alert" class="mt-2 !text-sm !font-medium !text-[var(--app-danger-text)]">{manualError}</p>
           {/if}
-          <p id="scanner-help" class="mt-3 text-sm leading-5 text-[#748096]">
+          <p id="scanner-help" class="mt-3 text-sm leading-5 text-[var(--app-muted)]">
             Enter the full code exactly as printed, including any leading zeroes.
           </p>
         </div>
 
         <div class="mt-auto grid gap-3 pt-8">
-          <button type="submit" class="min-h-12 rounded-xl bg-[#2867eb] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#1f58cf] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#172033]">
+          <button type="submit" class="min-h-12 rounded-xl bg-[var(--app-accent)] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--app-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-text)]">
             Use code
           </button>
-          <button type="button" onclick={showCamera} class="min-h-12 rounded-xl bg-white px-5 text-sm font-bold text-[#172033] shadow-sm ring-1 ring-[#dce1e8] transition hover:bg-[#f0f2f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2867eb]">
+          <button type="button" onclick={showCamera} class="min-h-12 rounded-xl bg-[var(--app-panel)] px-5 text-sm font-bold text-[var(--app-text)] shadow-sm ring-1 ring-[var(--app-border)] transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]">
             Back to camera
           </button>
         </div>
@@ -309,14 +315,14 @@
           {/if}
         </div>
 
-        <p id="scanner-help" class="mt-4 text-center text-sm leading-5 font-medium text-[#748096]">
+        <p id="scanner-help" class="mt-4 text-center text-sm leading-5 font-medium text-[var(--app-muted)]">
           Place the retail barcode inside the frame.
         </p>
         <p class="sr-only" aria-live="polite">
           {status === "scanning" ? "Camera ready. Looking for a barcode." : errorMessage}
         </p>
 
-        <button type="button" onclick={showManualEntry} class="mt-4 min-h-12 rounded-xl bg-white px-5 text-sm font-bold text-[#172033] shadow-sm ring-1 ring-[#dce1e8] transition hover:bg-[#f0f2f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2867eb]">
+        <button type="button" onclick={showManualEntry} class="mt-4 min-h-12 rounded-xl bg-[var(--app-panel)] px-5 text-sm font-bold text-[var(--app-text)] shadow-sm ring-1 ring-[var(--app-border)] transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]">
           Enter barcode manually
         </button>
       </div>

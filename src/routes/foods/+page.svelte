@@ -170,7 +170,10 @@
             onclick={() => (scannerOpen = true)}
             aria-label="Scan a barcode"
             title="Scan a barcode"
-            class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#172033] text-white shadow-sm transition hover:bg-[#222d42] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2867eb]"
+            class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl
+              bg-[var(--app-action)] text-white shadow-sm transition
+              hover:bg-[var(--app-action-hover)] focus-visible:outline-2
+              focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
           >
             <svg
               aria-hidden="true"
@@ -250,7 +253,8 @@
     {#if data.scannedBarcode}
       <div
         role="status"
-        class="mt-4 rounded-xl border border-[#cddafb] bg-[#edf3ff] px-3 py-2.5 text-sm font-medium text-[#1f58cf]"
+        class="mt-4 rounded-xl border border-[var(--app-border)] bg-[var(--app-accent-soft)]
+          px-3 py-2.5 text-sm font-medium text-[var(--app-accent)]"
       >
         Barcode {data.scannedBarcode} matched a food in your catalogue.
       </div>
@@ -345,9 +349,10 @@
                     }))}
                     aria-label={`Edit ${food.name}`}
                     class="inline-flex min-h-11 items-center justify-center rounded-lg px-2
-                      text-xs font-bold text-[#536176] transition hover:bg-[#f2f4f7]
-                      hover:text-[#172033] focus-visible:outline-2 focus-visible:outline-offset-1
-                      focus-visible:outline-[#2867eb]"
+                      text-xs font-bold text-[var(--app-muted)] transition
+                      hover:bg-[var(--app-panel-hover)] hover:text-[var(--app-text)]
+                      focus-visible:outline-2 focus-visible:outline-offset-1
+                      focus-visible:outline-[var(--app-accent)]"
                   >Edit</a>
 
                   <button
@@ -355,11 +360,11 @@
                     disabled
                     aria-label={`Add ${food.name}`}
                     title="Quick add is not available yet"
-                    class="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-[#2867eb]"
+                    class="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--app-accent)]"
                   >
                     <span
                       aria-hidden="true"
-                      class="flex size-8 items-center justify-center rounded-full bg-[#edf3ff] text-xl leading-none font-medium"
+                      class="flex size-8 items-center justify-center rounded-full bg-[var(--app-accent-soft)] text-xl leading-none font-medium"
                       >+</span
                     >
                   </button>

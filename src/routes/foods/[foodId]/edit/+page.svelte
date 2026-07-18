@@ -28,18 +28,19 @@
   <title>Edit food | Calorie Tracker</title>
 </svelte:head>
 
-<div class="min-h-dvh bg-[#e7e7e7] sm:px-4 sm:py-6">
+<div class="min-h-dvh bg-[var(--app-canvas)] sm:px-4 sm:py-6">
   <main
-    class="mx-auto flex min-h-dvh w-full flex-col overflow-hidden bg-[#f6f7f9]
-      text-[#182230] sm:min-h-[calc(100dvh-3rem)] sm:max-w-3xl sm:rounded-[26px]
-      sm:border sm:border-white/70 sm:shadow-[0_24px_60px_rgba(23,32,51,0.12)]
+    class="mx-auto flex min-h-dvh w-full flex-col overflow-hidden bg-[var(--app-surface)]
+      text-[var(--app-text)] sm:min-h-[calc(100dvh-3rem)] sm:max-w-3xl sm:rounded-[26px]
+      sm:border sm:border-[var(--app-border)]/70 sm:shadow-[0_24px_60px_rgba(23,32,51,0.12)]
       lg:max-w-5xl"
   >
     <header class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pb-6 sm:pt-8">
       <a
         class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-xl text-2xl
-          leading-none text-[#182230] transition hover:bg-white focus-visible:outline-2
-          focus-visible:outline-offset-2 focus-visible:outline-[#2865e8]"
+          leading-none text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)]
+          focus-visible:outline-2 focus-visible:outline-offset-2
+          focus-visible:outline-[var(--app-accent)]"
         href={resolve(withQuery("/foods", {
           date: context.date,
           mealSlot: context.mealSlot,
@@ -49,7 +50,7 @@
       ><span aria-hidden="true">‹</span></a>
       <div class="pt-1">
         <h1 class="text-[18px] font-bold leading-6 tracking-[-0.02em]">Edit food</h1>
-        <p class="mt-0.5 text-[11px] leading-4 text-[#738096]">
+        <p class="mt-0.5 text-[11px] leading-4 text-[var(--app-muted)]">
           Changes apply to future diary entries only
         </p>
       </div>
@@ -68,7 +69,9 @@
       {#if errors.form}
         <div
           role="alert"
-          class="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700"
+          class="mb-4 rounded-xl border border-[var(--app-danger-border)]
+            bg-[var(--app-danger-bg)] px-3 py-2.5 text-sm font-medium
+            text-[var(--app-danger-text)]"
         >
           {errors.form[0]}
         </div>
@@ -79,26 +82,26 @@
       <button
         type="submit"
         class="mx-auto mt-7 flex min-h-[52px] w-full items-center justify-center rounded-[12px]
-          bg-[#2865e8] px-4 text-[14px] font-bold text-white shadow-sm transition
-          hover:bg-[#1f56cf] focus-visible:outline-2 focus-visible:outline-offset-2
-          focus-visible:outline-[#2865e8] active:translate-y-px sm:w-56"
+          bg-[var(--app-accent)] px-4 text-[14px] font-bold text-white shadow-sm transition
+          hover:bg-[var(--app-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2
+          focus-visible:outline-[var(--app-accent)] active:translate-y-px sm:w-56"
       >Save food</button>
     </form>
 
     <section
       aria-labelledby="destructive-actions"
-      class="mx-3 mb-[calc(1rem+env(safe-area-inset-bottom))] mt-5 border-t border-[#d9dee6]
+      class="mx-3 mb-[calc(1rem+env(safe-area-inset-bottom))] mt-5 border-t border-[var(--app-border)]
         pt-6 sm:mx-8 sm:mb-8"
     >
-      <h2 id="destructive-actions" class="text-sm font-bold text-[#9f2430]">
+      <h2 id="destructive-actions" class="text-sm font-bold text-[var(--app-danger-strong)]">
         Destructive actions
       </h2>
-      <p class="mt-1 text-xs leading-5 text-[#738096]">
+      <p class="mt-1 text-xs leading-5 text-[var(--app-muted)]">
         Archiving hides this food from the catalogue. Existing diary entries stay unchanged.
       </p>
 
       {#if form?.archiveError}
-        <p class="mt-3 text-sm font-medium text-red-700" role="alert">
+        <p class="mt-3 text-sm font-medium text-[var(--app-danger-text)]" role="alert">
           {form.archiveError}
         </p>
       {/if}
@@ -111,9 +114,10 @@
         <button
           type="submit"
           class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border
-            border-red-300 bg-white px-4 text-sm font-bold text-[#a51d2d] transition
-            hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2
-            focus-visible:outline-red-600 sm:w-auto"
+            border-[var(--app-danger-border)] bg-[var(--app-panel)] px-4 text-sm font-bold
+            text-[var(--app-danger-text)] transition hover:bg-[var(--app-danger-bg)]
+            focus-visible:outline-2 focus-visible:outline-offset-2
+            focus-visible:outline-[var(--app-danger-text)] sm:w-auto"
         >Archive food</button>
       </form>
     </section>

@@ -178,7 +178,7 @@ Never commit `.env` or Google client secrets.
 ### `/goals/setup`
 
 - Authentication, no-existing-goal guard, Dublin-date defaults, suggested targets, Zod validation, preserved form values/errors, and first-goal persistence are implemented.
-- The route is functional but remains the clearest unstyled screen relative to the product design.
+- The route uses the same mobile shell, semantic colour tokens, form styling, and dark-mode behavior as the rest of the application.
 
 ### `/`
 
@@ -217,7 +217,7 @@ Never commit `.env` or Google client secrets.
 - Reusable food fields can be edited for future logs without changing diary history.
 - Optimistic conflict detection and friendly barcode collision errors are implemented.
 - Food archival is implemented with confirmation and retains historical diary entries.
-- Styling is close to the product reference, but shared dark-theme tokens are not used consistently across all food-edit fields.
+- Styling and shared food fields use the common semantic light/dark tokens.
 
 ### `/diary/[entryId]/edit`
 
@@ -238,7 +238,7 @@ Never commit `.env` or Google client secrets.
 - Current targets, signed-in identity, active-session count, Light/Dark/System preference, network state, app version, and current-session sign out are displayed.
 - Theme persistence is implemented.
 - Goal history/current-target editing, account details, active-session revocation, and JSON/CSV export destination routes are not implemented; their current rows are visual placeholders and should not imply working navigation.
-- Settings styling is close to the image but still uses a partly separate Slate colour vocabulary instead of the shared application tokens.
+- Settings uses the same canvas, surface, panel, border, text, status, and action tokens as the other application screens.
 
 ## Shared UI and Navigation
 
@@ -273,7 +273,7 @@ resolve(
 - Create Food currently uses a one-page create-and-log experience rather than the specified unsaved-draft wizard.
 - Meal shortcuts are schema-only.
 - Goal History, Active Sessions, Data Export, and PWA/update screens are absent.
-- Dark mode and visual tokens are inconsistent on Edit Food, Goals Setup, and some shared form styling.
+- Core routes, shared food fields, and the scanner use one semantic palette for consistent light/dark behavior. Camera and brand surfaces retain intentional fixed colours.
 - Dashboard loading, stale-data, retry, and Undo states from the UI specification are not implemented comprehensively.
 - The diary-destination Zod schema is duplicated between `/foods` and `/foods/new`.
 - `todayInDublin()` reads the clock directly and should accept an optional `Date` for deterministic tests.
@@ -312,10 +312,9 @@ resolve(
 3. Implement full JSON export and diary CSV export.
 4. Complete barcode checksum, archived-hit, restore/replace, and link-collision outcomes.
 5. Add PWA/offline/update handling that never discards unsaved input.
-6. Style Goals Setup and reconcile Edit Food, Settings, scanner, and shared fields with the common light/dark tokens.
-7. Compare core screens against `CalorieTrackerProductDesign.png` at 390 × 844 and desktop widths, then verify 44 px targets, focus visibility, keyboard behavior, and screen-reader feedback.
-8. Extract the shared diary-destination schema, make date helpers deterministic, and add route-level and component interaction tests.
-9. Replace catalogue latest-use reduction with a one-row-per-food SQL query and correct/squash the legacy `ml` → `ul` migration before the database becomes persistent.
+6. Compare core screens against `CalorieTrackerProductDesign.png` at 390 × 844 and desktop widths, then verify 44 px targets, focus visibility, keyboard behavior, and screen-reader feedback.
+7. Extract the shared diary-destination schema, make date helpers deterministic, and add route-level and component interaction tests.
+8. Replace catalogue latest-use reduction with a one-row-per-food SQL query and correct/squash the legacy `ml` → `ul` migration before the database becomes persistent.
 
 ## Verification Commands
 

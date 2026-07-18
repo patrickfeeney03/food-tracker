@@ -173,7 +173,7 @@
             {/each}
           </div>
           {#if errors?.portionKind}
-            <p class="mt-2 text-[12px] text-red-600 dark:text-red-400" role="alert">
+            <p class="mt-2 text-[12px] text-[var(--app-danger-text)]" role="alert">
               {errors.portionKind[0]}
             </p>
           {/if}
@@ -209,7 +209,7 @@
             </span>
           </div>
           {#if errors?.portionCount}
-            <p class="text-[12px] text-red-600 dark:text-red-400" role="alert">
+            <p class="text-[12px] text-[var(--app-danger-text)]" role="alert">
               {errors.portionCount[0]}
             </p>
           {/if}
@@ -289,7 +289,7 @@
         </div>
 
         {#if errors?.diaryDate || errors?.mealSlot}
-          <div class="mt-3 text-[12px] text-red-600 dark:text-red-400" role="alert">
+          <div class="mt-3 text-[12px] text-[var(--app-danger-text)]" role="alert">
             {errors?.diaryDate?.[0] ?? errors?.mealSlot?.[0]}
           </div>
         {/if}
