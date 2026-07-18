@@ -335,9 +335,14 @@
             {:else}
               <div class="grid gap-[9px]">
                 {#each data.diary.meals[slot].entries as entry (entry.id)}
-                  <article
-                    class="rounded-[13px] border border-[#d9dee6] bg-white px-[15px]
-                      py-[13px]"
+                  <a
+                    href={resolve("/diary/[entryId]/edit", {
+                      entryId: entry.id,
+                    })}
+                    class="block rounded-[13px] border border-[#d9dee6] bg-white
+                      px-[15px] py-[13px] text-[#18212f] no-underline transition
+                      hover:border-[#bfc9d8] hover:shadow-sm focus-visible:outline-3
+                      focus-visible:outline-offset-2 focus-visible:outline-[#2865e8]/30"
                   >
                     <h3 class="m-0 text-[15px] font-bold leading-tight">
                       {entry.foodName}
@@ -346,7 +351,7 @@
                       {formatAmount(entry.resolvedAmount, entry.amountUnit)}
                       · {formatKcal(entry.energyMkcal)} kcal
                     </p>
-                  </article>
+                  </a>
                 {/each}
 
                 <a
