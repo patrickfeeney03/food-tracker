@@ -322,6 +322,8 @@ resolve(
 5. Compare core screens against `CalorieTrackerProductDesign.png` at 390 × 844 and desktop widths, then verify 44 px targets, focus visibility, keyboard behavior, and screen-reader feedback.
 6. Extract the shared diary-destination schema, make date helpers deterministic, and add route-level and component interaction tests.
 7. Replace catalogue latest-use reduction with a one-row-per-food SQL query and correct/squash the legacy `ml` → `ul` migration before the database becomes persistent.
+8. Add a reusable Button component with primary, secondary, ghost, and danger variants, then migrate repeated inline button styles incrementally.
+9. Refactor the repeated `readText` FormData helper into a shared function where the behavior is consistent.
 
 ## Verification Commands
 
