@@ -14,6 +14,7 @@ const destinationSchema = z.object({
   date: calendarDateString,
   mealSlot: z.enum(mealSlots)
 });
+const barcodeSchema = z.string().trim().max(200);
 
 export const load: PageServerLoad = ({
   locals,
@@ -33,6 +34,14 @@ export const load: PageServerLoad = ({
     return error(400, 'Invalid diary destination');
   }
 
+  const barcodeResult = barcodeSchema.safeParse(
+    url.searchParams.get('barcode') ?? ''
+  );
+
+  if (!barcodeResult.success) {
+    return error(400, 'Invalid barcode');
+  }
+
   return {
     destination: destinationResult.data,
     values: {
@@ -40,7 +49,7 @@ export const load: PageServerLoad = ({
 
       name: '',
       brand: '',
-      barcode: '',
+      barcode: barcodeResult.data,
 
       amountUnit: 'mg' as const,
       basisAmount: '100',

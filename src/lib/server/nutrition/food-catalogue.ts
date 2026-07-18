@@ -20,8 +20,52 @@ const foodSelection = {
   brand: foods.brand,
   amountUnit: foods.amountUnit,
   basisAmount: foods.basisAmount,
+  barcode: foods.barcode,
   energyMkcalPerBasis: foods.energyMkcalPerBasis
 };
+
+export function findActiveFoodByBarcode(
+  db: AppDatabase,
+  userId: string,
+  barcode: string
+) {
+  const food = db
+    .select(foodSelection)
+    .from(foods)
+    .where(
+      and(
+        eq(foods.userId, userId),
+        isNull(foods.deletedAt),
+        eq(foods.barcode, barcode)
+      )
+    )
+    .get();
+
+  if (food === undefined) return null;
+
+  const latestUse = db
+    .select({
+      resolvedAmount: diaryLogs.resolvedAmount,
+      amountUnit: diaryLogs.amountUnit,
+      energyMkcal: diaryLogs.energyMkcal
+    })
+    .from(diaryLogs)
+    .where(
+      and(
+        eq(diaryLogs.userId, userId),
+        eq(diaryLogs.foodId, food.id),
+        isNull(diaryLogs.deletedAt)
+      )
+    )
+    .orderBy(desc(diaryLogs.loggedAt), desc(diaryLogs.id))
+    .limit(1)
+    .get();
+
+  return {
+    ...food,
+    latestUse: latestUse ?? null
+  };
+}
 
 export function listActiveFoods(
   db: AppDatabase,
@@ -63,7 +107,8 @@ export function listActiveFoods(
               ownerAndActive,
               or(
                 like(foods.name, `%${query}%`),
-                like(foods.brand, `%${query}%`)
+                like(foods.brand, `%${query}%`),
+                eq(foods.barcode, query)
               )
             )
           )

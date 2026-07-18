@@ -15,7 +15,10 @@ import {
   type Food
 } from '$lib/server/db/schema';
 import { buildDiaryLogValues } from './diary-entry';
-import { listActiveFoods } from './food-catalogue';
+import {
+  findActiveFoodByBarcode,
+  listActiveFoods
+} from './food-catalogue';
 
 function withMigratedDatabase(
   run: (connection: DatabaseConnection) => void
@@ -57,13 +60,15 @@ function insertUser(
 function insertFood(
   connection: DatabaseConnection,
   userId: string,
-  name: string
+  name: string,
+  barcode?: string
 ): Food {
   return connection.db
     .insert(foods)
     .values({
       userId,
       name,
+      barcode,
       amountUnit: 'mg',
       basisAmount: 100_000,
       energyMkcalPerBasis: 100_000,
@@ -76,6 +81,44 @@ function insertFood(
 }
 
 describe('listActiveFoods', () => {
+  it('finds an exact barcode only in the active user catalogue', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const otherUserId = connection.db
+        .insert(users)
+        .values({
+          name: 'Another user',
+          email: 'other@example.com'
+        })
+        .returning({ id: users.id })
+        .get().id;
+
+      const matchingFood = insertFood(
+        connection,
+        userId,
+        'Own barcode match',
+        '0012345678905'
+      );
+      insertFood(
+        connection,
+        otherUserId,
+        'Other user barcode match',
+        '0012345678905'
+      );
+
+      const result = findActiveFoodByBarcode(
+        connection.db,
+        userId,
+        '0012345678905'
+      );
+
+      expect(result).toMatchObject({
+        id: matchingFood.id,
+        barcode: '0012345678905'
+      });
+    });
+  });
+
   it('orders by latest use before applying the result limit', () => {
     withMigratedDatabase((connection) => {
       const userId = insertUser(connection);
