@@ -114,6 +114,7 @@ The SQLite/Drizzle schema contains:
 - `foods`
 - `meal_shortcuts`
 - `meal_shortcut_items`
+- `meal_shortcut_applications`
 - `diary_logs`
 
 Database initialization verifies WAL mode, foreign-key enforcement, and the busy timeout.
@@ -128,8 +129,9 @@ Implemented nutrition services include:
 - Daily diary summaries, applicable-goal selection, and goal insert/update.
 - Diary-entry snapshot updates.
 - Reusable-food edit, optimistic conflict detection, barcode-conflict handling, and archive.
-
-Meal-shortcut tables exist, but shortcut creation, editing, application, blocking, and batch Undo services are not implemented.
+- Meal-shortcut draft creation from populated diary slots, exact-amount create/edit/reorder/archive, optimistic conflict detection, owner-scoped catalogue search, blocked-food handling, idempotent atomic batch application, and whole-batch Undo.
+- Shortcut applications keep their own owner-scoped mutation identity and immutable shortcut-name snapshot. Applied diary rows retain both shortcut provenance and the application batch ID.
+- Foods referenced by active or archived shortcuts may still be edited, but their physical amount unit cannot change between g and ml.
 
 ## Authentication
 
@@ -249,6 +251,7 @@ Never commit `.env` or Google client secrets.
 - `src/lib/components/FoodFormFields.svelte` provides shared Create/Edit Food fields.
 - `src/lib/components/NutritionGoalForm.svelte` provides the shared onboarding and Settings target form.
 - `src/lib/components/amount-adjuster/` provides shared portion selection, portion quantity, nutrition preview, and diary destination controls for Create Food, Add Food, and Edit Entry.
+- `src/lib/components/meal-shortcuts/` provides the shared shortcut editor and active-food replacement picker for Create/Edit Shortcut.
 - `src/lib/components/settings/` provides the repeated Settings section and row structures.
 - `src/lib/components/BarcodeScanner.svelte` provides the state-preserving scanner overlay.
 - `src/lib/date.ts` provides current Dublin date and calendar-date shifting.
@@ -267,7 +270,7 @@ resolve(
 
 ## Known Compromises and Risks
 
-- Quick Add, success Undo, diary-entry deletion, and shortcut batch Undo are absent.
+- Quick Add, normal add success Undo, and diary-entry deletion are absent. Meal-shortcut application Undo is implemented for the whole application batch.
 - Existing-food logging rejects reuse of a mutation UUID with different semantic input. The older create-and-log service still accepts an exact UUID replay without comparing the retried payload, because no request fingerprint is stored.
 - The home-page goal guard checks whether any goal exists, while diary selection requires a goal effective on or before the diary date. A future-dated first goal can therefore bypass setup but leave the current diary without an applicable goal.
 - Diary-entry edits do not compare `updatedAt`, so concurrent tabs can overwrite one another.
@@ -277,7 +280,7 @@ resolve(
 - Migration `0001` does not transform legacy liquid `amount_unit='ml'` rows to `ul`. The database is disposable today, but migrations must be squashed or corrected before preserving real data.
 - Search query, active tab, and scroll restoration across nested flows are not fully implemented.
 - Create Food currently uses a one-page create-and-log experience rather than the specified unsaved-draft wizard.
-- Meal shortcuts are schema-only.
+- Meal shortcuts can only be created from a populated diary meal. A mixed meal containing unavailable food opens as a repairable draft; blocked rows must be replaced or removed before saving.
 - Active Sessions, Data Export, and PWA/update screens are absent.
 - Core routes, shared food fields, and the scanner use one semantic palette for consistent light/dark behavior. Camera and brand surfaces retain intentional fixed colours.
 - Dashboard loading, stale-data, retry, and Undo states from the UI specification are not implemented comprehensively.
@@ -309,7 +312,6 @@ resolve(
 6. Make session refresh atomically require a non-revoked, non-expired session and handle a zero-row update as unauthenticated.
 7. Add magnitude and text-length limits at food service boundaries with field-level failures.
 8. Preserve search query, active tab, destination, and scroll state through adjust/edit/back flows.
-9. Implement meal-shortcut create/edit/archive, blocked archived-food handling, atomic batch application, and batch Undo.
 
 ### P2: settings, resilience, and visual completion
 
