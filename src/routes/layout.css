@@ -2,9 +2,68 @@
 @plugin '@tailwindcss/typography';
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --app-canvas: #e7e7e7;
+  --app-auth-canvas: #f1f3f6;
+  --app-surface: #f6f7f9;
+  --app-diary-surface: #f5f7fa;
+  --app-panel: #ffffff;
+  --app-panel-hover: #f2f4f7;
+  --app-text: #182230;
+  --app-muted: #738096;
+  --app-border: #d9dee6;
+  --app-border-strong: #bfc9d8;
+  --app-track: #e6eaf0;
+  --app-accent: #2865e8;
+  --app-accent-hover: #2058d4;
+  --app-accent-soft: #edf3ff;
+  --app-action: #172033;
+  --app-action-hover: #222d42;
+  --app-purple: #775eea;
+  --app-orange: #ee8b0b;
+  --app-green: #159c6a;
+  --app-success-bg: #ecfaf4;
+  --app-success-border: #bfe8d7;
+  --app-success-text: #087651;
+  --app-danger-bg: #fff5f5;
+  --app-danger-border: #f4c7c7;
+  --app-danger-text: #b33c3c;
+  --app-danger-strong: #8f2f2f;
+}
+
+html.dark {
+  color-scheme: dark;
+  --app-canvas: #070b14;
+  --app-auth-canvas: #080d18;
+  --app-surface: #0f172a;
+  --app-diary-surface: #111827;
+  --app-panel: #172033;
+  --app-panel-hover: #1e293b;
+  --app-text: #e8eef7;
+  --app-muted: #9aa8bc;
+  --app-border: #334155;
+  --app-border-strong: #526179;
+  --app-track: #334155;
+  --app-accent: #60a5fa;
+  --app-accent-hover: #3b82f6;
+  --app-accent-soft: #172f52;
+  --app-action: #334155;
+  --app-action-hover: #475569;
+  --app-purple: #a78bfa;
+  --app-orange: #fbbf24;
+  --app-green: #34d399;
+  --app-success-bg: #0d2b24;
+  --app-success-border: #16634d;
+  --app-success-text: #6ee7b7;
+  --app-danger-bg: #32171b;
+  --app-danger-border: #7f3540;
+  --app-danger-text: #fda4af;
+  --app-danger-strong: #fecdd3;
+}
+
 @layer base {
   html {
-    @apply bg-stone-100 text-slate-950;
+    @apply bg-stone-100 text-slate-950 dark:bg-slate-950 dark:text-slate-50;
   }
 
   body {
@@ -21,13 +80,13 @@
 
 @layer components {
   form label {
-    @apply block text-sm font-medium text-slate-700;
+    @apply block text-sm font-medium text-slate-700 dark:text-slate-300;
   }
 
   form input:not([type="hidden"]),
   form select,
   form textarea {
-    @apply min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-950 shadow-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20;
+    @apply min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-950 shadow-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/30;
   }
 
   form textarea {
@@ -39,6 +98,6 @@
   }
 
   form [role="alert"] {
-    @apply text-sm font-medium text-red-700;
+    @apply text-sm font-medium text-red-700 dark:text-red-400;
   }
 }

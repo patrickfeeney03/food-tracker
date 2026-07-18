@@ -14,18 +14,18 @@
 </svelte:head>
 
 <main
-  class="relative isolate flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#f1f3f6] px-4 py-7 text-[#172130] sm:px-5 sm:py-10"
+  class="relative isolate flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[var(--app-auth-canvas)] px-4 py-7 text-[var(--app-text)] sm:px-5 sm:py-10"
 >
   <div
-    class="pointer-events-none absolute inset-0 -z-20 bg-[linear-gradient(rgba(23,33,48,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(23,33,48,0.025)_1px,transparent_1px)] bg-[size:36px_36px]"
+    class="pointer-events-none absolute inset-0 -z-20 bg-[linear-gradient(rgba(23,33,48,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(23,33,48,0.025)_1px,transparent_1px)] bg-[size:36px_36px] dark:bg-[linear-gradient(rgba(148,163,184,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.04)_1px,transparent_1px)]"
     aria-hidden="true"
   ></div>
   <div
-    class="pointer-events-none absolute -top-44 -right-36 -z-10 size-[440px] rounded-full bg-[#2e69eb]/9 blur-[2px]"
+    class="pointer-events-none absolute -top-44 -right-36 -z-10 size-[440px] rounded-full bg-[var(--app-accent)]/9 blur-[2px]"
     aria-hidden="true"
   ></div>
   <div
-    class="pointer-events-none absolute -bottom-60 -left-44 -z-10 size-[480px] rounded-full bg-[#20a36f]/7 blur-[2px]"
+    class="pointer-events-none absolute -bottom-60 -left-44 -z-10 size-[480px] rounded-full bg-[var(--app-green)]/7 blur-[2px]"
     aria-hidden="true"
   ></div>
 
@@ -34,7 +34,7 @@
     aria-labelledby="sign-in-heading"
   >
     <div
-      class="mx-auto mb-[17px] grid size-14 place-items-center rounded-[18px] border border-white/80 bg-white/75 text-[#2e69eb] shadow-[0_10px_30px_rgba(23,33,48,0.08)] backdrop-blur-[10px] sm:mb-[22px]"
+      class="mx-auto mb-[17px] grid size-14 place-items-center rounded-[18px] border border-[var(--app-border)]/80 bg-[var(--app-panel)]/75 text-[var(--app-accent)] shadow-[0_10px_30px_rgba(23,33,48,0.08)] backdrop-blur-[10px] sm:mb-[22px]"
       aria-hidden="true"
     >
       <svg class="size-[38px]" viewBox="0 0 48 48" role="img">
@@ -48,16 +48,16 @@
         <path
           d="M24 7.5a16.5 16.5 0 0 1 14.3 8.25"
           fill="none"
-          stroke="#20a36f"
+          stroke="var(--app-green)"
           stroke-width="6"
           stroke-linecap="round"
         />
-        <circle cx="24" cy="24" r="3.5" fill="#172130" />
+        <circle cx="24" cy="24" r="3.5" fill="var(--app-text)" />
       </svg>
     </div>
 
     <p
-      class="mb-2.5 text-[0.78rem] font-extrabold tracking-[0.13em] text-[#2e69eb] uppercase"
+      class="mb-2.5 text-[0.78rem] font-extrabold tracking-[0.13em] text-[var(--app-accent)] uppercase"
     >
       Calorie Tracker
     </p>
@@ -67,7 +67,7 @@
     >
       Your nutrition,<br />made simple.
     </h1>
-    <p class="mx-auto max-w-[350px] text-base leading-relaxed text-[#727e91]">
+    <p class="mx-auto max-w-[350px] text-base leading-relaxed text-[var(--app-muted)]">
       Log meals, follow your macros, and see what is left for the day.
     </p>
 
@@ -76,68 +76,68 @@
       aria-label="Track calories, protein, carbohydrates and fat"
     >
       <div
-        class="relative min-w-0 overflow-hidden rounded-[15px] border border-[#dce2ea]/90 bg-white/70 px-3 pt-[13px] pb-3 text-left text-[#2e69eb] backdrop-blur-[10px] after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:bg-current after:content-['']"
+        class="relative min-w-0 overflow-hidden rounded-[15px] border border-[var(--app-border)]/90 bg-[var(--app-panel)]/70 px-3 pt-[13px] pb-3 text-left text-[var(--app-accent)] backdrop-blur-[10px] after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:bg-current after:content-['']"
       >
         <span
-          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[#727e91]"
+          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[var(--app-muted)]"
           >Calories</span
         >
         <strong
-          class="my-1 block text-[1.1rem] leading-none font-bold tracking-[-0.03em] text-[#172130]"
+          class="my-1 block text-[1.1rem] leading-none font-bold tracking-[-0.03em] text-[var(--app-text)]"
           >2,900</strong
         >
         <span
-          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[#727e91]"
+          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[var(--app-muted)]"
           >daily goal</span
         >
       </div>
       <div
-        class="relative min-w-0 overflow-hidden rounded-[15px] border border-[#dce2ea]/90 bg-white/70 px-3 pt-[13px] pb-3 text-left text-[#7658dd] backdrop-blur-[10px] after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:bg-current after:content-['']"
+        class="relative min-w-0 overflow-hidden rounded-[15px] border border-[var(--app-border)]/90 bg-[var(--app-panel)]/70 px-3 pt-[13px] pb-3 text-left text-[var(--app-purple)] backdrop-blur-[10px] after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:bg-current after:content-['']"
       >
         <span
-          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[#727e91]"
+          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[var(--app-muted)]"
           >Protein</span
         >
         <strong
-          class="my-1 block text-[1.1rem] leading-none font-bold tracking-[-0.03em] text-[#172130]"
+          class="my-1 block text-[1.1rem] leading-none font-bold tracking-[-0.03em] text-[var(--app-text)]"
         >
-          200<span class="text-[0.72rem] font-semibold text-[#727e91]">g</span>
+          200<span class="text-[0.72rem] font-semibold text-[var(--app-muted)]">g</span>
         </strong>
         <span
-          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[#727e91]"
+          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[var(--app-muted)]"
           >daily goal</span
         >
       </div>
       <div
-        class="relative min-w-0 overflow-hidden rounded-[15px] border border-[#dce2ea]/90 bg-white/70 px-3 pt-[13px] pb-3 text-left text-[#e69018] backdrop-blur-[10px] after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:bg-current after:content-['']"
+        class="relative min-w-0 overflow-hidden rounded-[15px] border border-[var(--app-border)]/90 bg-[var(--app-panel)]/70 px-3 pt-[13px] pb-3 text-left text-[var(--app-orange)] backdrop-blur-[10px] after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:bg-current after:content-['']"
       >
         <span
-          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[#727e91]"
+          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[var(--app-muted)]"
           >Carbs</span
         >
         <strong
-          class="my-1 block text-[1.1rem] leading-none font-bold tracking-[-0.03em] text-[#172130]"
+          class="my-1 block text-[1.1rem] leading-none font-bold tracking-[-0.03em] text-[var(--app-text)]"
         >
-          300<span class="text-[0.72rem] font-semibold text-[#727e91]">g</span>
+          300<span class="text-[0.72rem] font-semibold text-[var(--app-muted)]">g</span>
         </strong>
         <span
-          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[#727e91]"
+          class="block overflow-hidden text-[0.67rem] leading-[1.3] font-semibold text-ellipsis whitespace-nowrap text-[var(--app-muted)]"
           >daily goal</span
         >
       </div>
     </div>
 
     <div
-      class="rounded-[22px] border border-[#dce2ea]/95 bg-white/95 px-5 py-6 shadow-[0_24px_60px_rgba(23,33,48,0.09),0_2px_8px_rgba(23,33,48,0.035)] backdrop-blur-2xl sm:rounded-3xl sm:p-7"
+      class="rounded-[22px] border border-[var(--app-border)]/95 bg-[var(--app-panel)]/95 px-5 py-6 shadow-[0_24px_60px_rgba(23,33,48,0.09),0_2px_8px_rgba(23,33,48,0.035)] backdrop-blur-2xl sm:rounded-3xl sm:p-7"
     >
       <div class="mb-[22px]">
         <h2 class="mb-1 text-xl font-extrabold tracking-[-0.025em]">Welcome</h2>
-        <p class="text-sm text-[#727e91]">Sign in to open your food diary.</p>
+        <p class="text-sm text-[var(--app-muted)]">Sign in to open your food diary.</p>
       </div>
 
       {#if data.errorMessage}
         <div
-          class="mb-4 flex gap-[11px] rounded-[13px] border border-[#f4c7c7] bg-[#fff5f5] p-3 text-left text-[#b33c3c]"
+          class="mb-4 flex gap-[11px] rounded-[13px] border border-[var(--app-danger-border)] bg-[var(--app-danger-bg)] p-3 text-left text-[var(--app-danger-text)]"
           role="alert"
         >
           <svg
@@ -154,7 +154,7 @@
             />
           </svg>
           <div>
-            <strong class="mb-0.5 block text-[0.78rem] text-[#8f2f2f]">
+            <strong class="mb-0.5 block text-[0.78rem] text-[var(--app-danger-strong)]">
               We couldn't sign you in
             </strong>
             <span class="block text-[0.78rem] leading-[1.45]">
@@ -165,7 +165,7 @@
       {/if}
 
       <a
-        class="flex min-h-[54px] w-full items-center justify-center gap-3 rounded-[14px] bg-[#2e69eb] text-[0.94rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(46,105,235,0.2)] transition duration-150 ease-out hover:-translate-y-px hover:bg-[#245fdc] hover:shadow-[0_10px_24px_rgba(46,105,235,0.26)] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#2e69eb]/30 active:translate-y-0 active:shadow-[0_5px_14px_rgba(46,105,235,0.2)] motion-reduce:transition-none"
+        class="flex min-h-[54px] w-full items-center justify-center gap-3 rounded-[14px] bg-[var(--app-accent)] text-[0.94rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(46,105,235,0.2)] transition duration-150 ease-out hover:-translate-y-px hover:bg-[var(--app-accent-hover)] hover:shadow-[0_10px_24px_rgba(46,105,235,0.26)] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[var(--app-accent)]/30 active:translate-y-0 active:shadow-[0_5px_14px_rgba(46,105,235,0.2)] motion-reduce:transition-none"
         href={resolve("/auth/google")}
       >
         <svg
@@ -198,7 +198,7 @@
       </a>
 
       <p
-        class="mt-4 mb-0 flex items-center justify-center gap-1.5 text-[0.72rem] leading-[1.4] text-[#727e91]"
+        class="mt-4 mb-0 flex items-center justify-center gap-1.5 text-[0.72rem] leading-[1.4] text-[var(--app-muted)]"
       >
         <svg class="size-[15px]" viewBox="0 0 20 20" aria-hidden="true">
           <path
@@ -215,7 +215,7 @@
   </section>
 
   <p
-    class="relative z-10 mt-6 mb-0 text-[0.72rem] font-semibold tracking-[0.03em] text-[#8993a3]"
+    class="relative z-10 mt-6 mb-0 text-[0.72rem] font-semibold tracking-[0.03em] text-[var(--app-muted)]"
   >
     A calmer way to stay on track.
   </p>
