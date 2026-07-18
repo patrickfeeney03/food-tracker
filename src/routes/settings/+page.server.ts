@@ -16,7 +16,7 @@ import {
 import packageJson from '../../../package.json';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = ({ locals, url }) => {
   if (locals.user === null) {
     return redirect(303, '/sign-in');
   }
@@ -58,6 +58,7 @@ export const load: PageServerLoad = ({ locals }) => {
       email: locals.user.email
     },
     currentGoal: currentGoal ?? null,
+    targetsSaved: url.searchParams.get('targets') === 'saved',
     activeSessionCount,
     theme: locals.theme,
     version: packageJson.version

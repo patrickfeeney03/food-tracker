@@ -1,0 +1,98 @@
+import { resolve } from '$app/paths';
+import { todayInDublin } from '$lib/date';
+import { withQuery } from '$lib/navigation';
+import { nutritionGoalInputSchema } from '$lib/nutrition/goal-input';
+import { formatStoredValue } from '$lib/nutrition/math';
+import { db } from '$lib/server/db';
+import { nutritionGoals } from '$lib/server/db/schema';
+import { saveNutritionGoal } from '$lib/server/nutrition/save-nutrition-goal';
+import { fail, redirect } from '@sveltejs/kit';
+import { and, desc, eq, lte } from 'drizzle-orm';
+import { z } from 'zod';
+import type { Actions, PageServerLoad } from './$types';
+
+function readText(formData: FormData, name: string): string {
+  const value = formData.get(name);
+  return typeof value === 'string' ? value : '';
+}
+
+export const load: PageServerLoad = ({ locals }) => {
+  if (locals.user === null) {
+    return redirect(303, '/sign-in');
+  }
+
+  const today = todayInDublin();
+  const currentGoal = db
+    .select()
+    .from(nutritionGoals)
+    .where(
+      and(
+        eq(nutritionGoals.userId, locals.user.id),
+        lte(nutritionGoals.effectiveFrom, today)
+      )
+    )
+    .orderBy(desc(nutritionGoals.effectiveFrom))
+    .limit(1)
+    .get();
+
+  return {
+    values: {
+      effectiveFrom: today,
+      targetEnergyKcal: currentGoal === undefined
+        ? '2900'
+        : formatStoredValue(BigInt(currentGoal.targetEnergyMkcal), 3),
+      targetProteinG: currentGoal === undefined
+        ? '200'
+        : formatStoredValue(BigInt(currentGoal.targetProteinMg), 3),
+      targetCarbsG: currentGoal === undefined
+        ? '300'
+        : formatStoredValue(BigInt(currentGoal.targetCarbsMg), 3),
+      targetFatG: currentGoal === undefined
+        ? '90'
+        : formatStoredValue(BigInt(currentGoal.targetFatMg), 3)
+    }
+  };
+};
+
+export const actions = {
+  default: async ({ locals, request }) => {
+    if (locals.user === null) {
+      return redirect(303, '/sign-in');
+    }
+
+    const formData = await request.formData();
+    const values = {
+      effectiveFrom: readText(formData, 'effectiveFrom'),
+      targetEnergyKcal: readText(formData, 'targetEnergyKcal'),
+      targetProteinG: readText(formData, 'targetProteinG'),
+      targetCarbsG: readText(formData, 'targetCarbsG'),
+      targetFatG: readText(formData, 'targetFatG')
+    };
+    const result = nutritionGoalInputSchema.safeParse(values);
+
+    if (!result.success) {
+      return fail(400, {
+        values,
+        errors: z.flattenError(result.error).fieldErrors
+      });
+    }
+
+    try {
+      saveNutritionGoal(db, locals.user.id, result.data);
+    } catch (caught) {
+      if (caught instanceof RangeError) {
+        return fail(400, {
+          values,
+          errors: { form: [caught.message] }
+        });
+      }
+
+      throw caught;
+    }
+
+    return redirect(
+      303,
+      resolve(withQuery('/settings', { targets: 'saved' }))
+    );
+  }
+} satisfies Actions;

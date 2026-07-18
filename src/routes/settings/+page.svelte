@@ -86,6 +86,15 @@
       <h1 class="text-xl font-bold tracking-tight">Settings</h1>
     </header>
 
+    {#if data.targetsSaved}
+      <div
+        role="status"
+        class="mb-5 rounded-xl border border-[var(--app-success-border)]
+          bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium
+          text-[var(--app-success-text)]"
+      >Daily targets saved.</div>
+    {/if}
+
     <div class="space-y-7">
       <section aria-labelledby="goals-heading">
         <h2
@@ -96,7 +105,13 @@
         </h2>
 
         <div class="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-panel)] shadow-sm">
-          <div class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3">
+          <a
+            href={resolve('/settings/goals')}
+            class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3 text-[var(--app-text)]
+              no-underline transition hover:bg-[var(--app-panel-hover)]
+              focus-visible:outline-2 focus-visible:outline-offset-[-2px]
+              focus-visible:outline-[var(--app-accent)]"
+          >
             <div class="min-w-0 flex-1">
               <p class="text-sm font-semibold text-[var(--app-text)]">Daily targets</p>
               <p class="mt-0.5 truncate text-xs text-[var(--app-muted)]">{goalSummary}</p>
@@ -113,7 +128,7 @@
             >
               <path d="m9 18 6-6-6-6" />
             </svg>
-          </div>
+          </a>
 
           <div class="mx-4 border-t border-[var(--app-border)]"></div>
 

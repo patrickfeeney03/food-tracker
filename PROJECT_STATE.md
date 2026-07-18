@@ -237,6 +237,7 @@ Never commit `.env` or Google client secrets.
 
 - Current targets, signed-in identity, active-session count, Light/Dark/System preference, network state, app version, and current-session sign out are displayed.
 - Theme persistence is implemented.
+- Daily Targets opens an effective-dated editor, prefilled from the current applicable goal. Saving updates the selected date or starts a new historical target period and returns with announced feedback.
 - Goal history/current-target editing, account details, active-session revocation, and JSON/CSV export destination routes are not implemented; their current rows are visual placeholders and should not imply working navigation.
 - Settings uses the same canvas, surface, panel, border, text, status, and action tokens as the other application screens.
 
@@ -244,6 +245,7 @@ Never commit `.env` or Google client secrets.
 
 - `src/routes/layout.css` defines light/dark application colours and common form defaults.
 - `src/lib/components/FoodFormFields.svelte` provides shared Create/Edit Food fields.
+- `src/lib/components/NutritionGoalForm.svelte` provides the shared onboarding and Settings target form.
 - `src/lib/components/BarcodeScanner.svelte` provides the state-preserving scanner overlay.
 - `src/lib/date.ts` provides current Dublin date and calendar-date shifting.
 - `src/lib/navigation.ts` provides `withQuery()` for encoded navigation context.

@@ -125,6 +125,54 @@ describe('saveNutritionGoal', () => {
     });
   });
 
+  it('starts a new effective-dated target period without changing the earlier goal', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(
+        connection,
+        'patrick@example.com'
+      );
+      const earlier = saveNutritionGoal(
+        connection.db,
+        userId,
+        goalInput({ effectiveFrom: '2026-07-01' })
+      );
+
+      const current = saveNutritionGoal(
+        connection.db,
+        userId,
+        goalInput({
+          effectiveFrom: '2026-07-18',
+          targetEnergyKcal: '2500',
+          targetProteinG: '180'
+        })
+      );
+
+      const storedGoals = connection.db
+        .select()
+        .from(nutritionGoals)
+        .where(eq(nutritionGoals.userId, userId))
+        .all();
+
+      expect(current.id).not.toBe(earlier.id);
+      expect(storedGoals).toHaveLength(2);
+      expect(storedGoals).toContainEqual(
+        expect.objectContaining({
+          id: earlier.id,
+          effectiveFrom: '2026-07-01',
+          targetEnergyMkcal: 2_900_000
+        })
+      );
+      expect(storedGoals).toContainEqual(
+        expect.objectContaining({
+          id: current.id,
+          effectiveFrom: '2026-07-18',
+          targetEnergyMkcal: 2_500_000,
+          targetProteinMg: 180_000
+        })
+      );
+    });
+  });
+
   it('allows different users to have a goal on the same date', () => {
     withMigratedDatabase((connection) => {
       const firstUserId = insertUser(
