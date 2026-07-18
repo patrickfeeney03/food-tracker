@@ -1,11 +1,14 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
+  import BarcodeScanner from "$lib/components/BarcodeScanner.svelte";
   import { withQuery } from "$lib/navigation";
   import type { MealSlot } from "$lib/nutrition/constants";
   import { formatStoredValue } from "$lib/nutrition/math";
   import type { PageProps } from "./$types";
 
   let { data }: PageProps = $props();
+  let scannerOpen = $state(false);
 
   const mealNames: Record<MealSlot, string> = {
     breakfast: "Breakfast",
@@ -31,6 +34,19 @@
       day: "numeric",
       month: "short",
     }).format(new Date(Date.UTC(year, month - 1, day)));
+  }
+
+  function handleBarcode(barcode: string) {
+    scannerOpen = false;
+    void goto(
+      resolve(
+        withQuery("/foods", {
+          date: data.destination.date,
+          mealSlot: data.destination.mealSlot,
+          barcode,
+        }),
+      ),
+    );
   }
 </script>
 
@@ -151,10 +167,10 @@
 
           <button
             type="button"
-            disabled
+            onclick={() => (scannerOpen = true)}
             aria-label="Scan a barcode"
-            title="Barcode scanning is not available yet"
-            class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#172033] text-white shadow-sm"
+            title="Scan a barcode"
+            class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#172033] text-white shadow-sm transition hover:bg-[#222d42] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2867eb]"
           >
             <svg
               aria-hidden="true"
@@ -207,6 +223,15 @@
         Food created and added to {mealNames[
           data.destination.mealSlot
         ].toLowerCase()}.
+      </div>
+    {/if}
+
+    {#if data.scannedBarcode}
+      <div
+        role="status"
+        class="mt-4 rounded-xl border border-[#cddafb] bg-[#edf3ff] px-3 py-2.5 text-sm font-medium text-[#1f58cf]"
+      >
+        Barcode {data.scannedBarcode} matched a food in your catalogue.
       </div>
     {/if}
 
@@ -320,3 +345,10 @@
     </div>
   </main>
 </div>
+
+{#if scannerOpen}
+  <BarcodeScanner
+    onscan={handleBarcode}
+    onclose={() => (scannerOpen = false)}
+  />
+{/if}

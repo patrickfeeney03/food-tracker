@@ -66,7 +66,9 @@
       <input type="hidden" name="diaryDate" value={values.diaryDate} />
       <input type="hidden" name="mealSlot" value={values.mealSlot} />
       <input type="hidden" name="portionKind" value={values.portionKind} />
-      <input type="hidden" name="barcode" value={values.barcode} />
+      {#if !values.barcode}
+        <input type="hidden" name="barcode" value="" />
+      {/if}
 
       <div
         class="space-y-3 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:gap-y-5 sm:space-y-0"
@@ -111,6 +113,55 @@
             !font-semibold !shadow-none focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
           />
         </div>
+
+        {#if values.barcode}
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between gap-3">
+              <label
+                for="barcode"
+                class="text-[10px] font-bold uppercase tracking-[0.02em] text-[#738096]"
+              >
+                Barcode
+              </label>
+              <a
+                href={resolve(
+                  withQuery("/foods/new", {
+                    date: data.destination.date,
+                    mealSlot: data.destination.mealSlot,
+                  }),
+                )}
+                class="text-[11px] font-bold text-[#2865e8] hover:underline"
+              >
+                Clear
+              </a>
+            </div>
+            <div class="relative">
+              <input
+                id="barcode"
+                name="barcode"
+                value={values.barcode}
+                readonly
+                aria-describedby="barcode-help"
+                class="!min-h-12 !rounded-[12px] !border-[#d9dee6] !bg-[#f0f3f7] !px-3.5 !pr-10 !text-[14px] !font-semibold !shadow-none"
+              />
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                class="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-[#159b70]"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m5 12 4 4L19 6"></path>
+              </svg>
+            </div>
+            <p id="barcode-help" class="text-[11px] leading-4 text-[#738096]">
+              Scanned code linked to this new food.
+            </p>
+          </div>
+        {/if}
 
         <fieldset class="space-y-1.5">
           <legend
