@@ -9,6 +9,10 @@ import {
   type Theme
 } from '$lib/server/db/schema';
 import { todayInDublin } from '$lib/date';
+import {
+  THEME_COOKIE_NAME,
+  THEME_COOKIE_OPTIONS
+} from '$lib/server/theme';
 import packageJson from '../../../package.json';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -55,7 +59,7 @@ export const load: PageServerLoad = ({ locals }) => {
     },
     currentGoal: currentGoal ?? null,
     activeSessionCount,
-    theme: locals.user.settingsJson.theme ?? 'system',
+    theme: locals.theme,
     version: packageJson.version
   };
 };
@@ -65,7 +69,7 @@ function isTheme(value: FormDataEntryValue | null): value is Theme {
 }
 
 export const actions: Actions = {
-  theme: async ({ locals, request }) => {
+  theme: async ({ cookies, locals, request }) => {
     if (locals.user === null) {
       return redirect(303, '/sign-in');
     }
@@ -94,6 +98,8 @@ export const actions: Actions = {
       ...locals.user.settingsJson,
       theme
     };
+    locals.theme = theme;
+    cookies.set(THEME_COOKIE_NAME, theme, THEME_COOKIE_OPTIONS);
 
     return {
       themeSaved: true

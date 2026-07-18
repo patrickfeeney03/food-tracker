@@ -50,9 +50,9 @@
   <title>{dateLabel} | Calorie Tracker</title>
 </svelte:head>
 
-<main class="min-h-dvh bg-[#e7e7e7] text-[#18212f] sm:py-5 lg:p-7">
+<main class="min-h-dvh bg-[var(--app-canvas)] text-[var(--app-text)] sm:py-5 lg:p-7">
   <div
-    class="mx-auto min-h-dvh w-full max-w-[430px] bg-[#f5f7fa] px-4 pb-12
+    class="mx-auto min-h-dvh w-full max-w-[430px] bg-[var(--app-diary-surface)] px-4 pb-12
       pt-[18px] sm:min-h-[calc(100dvh-40px)] sm:rounded-[26px]
       sm:shadow-[0_18px_55px_rgba(24,33,47,0.1)]
       lg:min-h-[calc(100dvh-56px)] lg:max-w-[1180px] lg:rounded-[28px]
@@ -66,9 +66,9 @@
       <a
         href={resolve(withQuery("/", { date: previousDate }))}
         aria-label="Previous day"
-        class="inline-flex size-11 items-center justify-center rounded-full text-[#18212f]
-          transition hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-2
-          focus-visible:outline-[#2865e8]/30"
+        class="inline-flex size-11 items-center justify-center rounded-full text-[var(--app-text)]
+          transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-3 focus-visible:outline-offset-2
+          focus-visible:outline-[var(--app-accent)]/30"
       >
         <svg
           viewBox="0 0 24 24"
@@ -82,10 +82,10 @@
 
       <a
         href={resolve("/")}
-        class="min-w-[116px] justify-self-center rounded-full bg-white px-6 py-[9px]
-          text-center text-[14px] font-bold leading-none text-[#18212f] no-underline
+        class="min-w-[116px] justify-self-center rounded-full bg-[var(--app-panel)] px-6 py-[9px]
+          text-center text-[14px] font-bold leading-none text-[var(--app-text)] no-underline
           focus-visible:outline-3 focus-visible:outline-offset-2
-          focus-visible:outline-[#2865e8]/30 lg:min-w-[150px]"
+          focus-visible:outline-[var(--app-accent)]/30 lg:min-w-[150px]"
       >
         {dateLabel}
       </a>
@@ -93,8 +93,8 @@
       <a
         href={resolve("/settings")}
         class="inline-flex size-11 items-center justify-center rounded-full
-          text-[#18212f] transition hover:bg-white focus-visible:outline-3
-          focus-visible:outline-offset-2 focus-visible:outline-[#2865e8]/30"
+          text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-3
+          focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]/30"
         aria-label="Open settings"
         title="Settings"
       >
@@ -112,9 +112,9 @@
       <a
         href={resolve(withQuery("/", { date: nextDate }))}
         aria-label="Next day"
-        class="inline-flex size-11 items-center justify-center rounded-full text-[#18212f]
-          transition hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-2
-          focus-visible:outline-[#2865e8]/30"
+        class="inline-flex size-11 items-center justify-center rounded-full text-[var(--app-text)]
+          transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-3 focus-visible:outline-offset-2
+          focus-visible:outline-[var(--app-accent)]/30"
       >
         <svg
           viewBox="0 0 24 24"
@@ -135,11 +135,11 @@
         {#if data.diary.balances}
           <section
             aria-labelledby="daily-energy"
-            class="rounded-[14px] border border-[#d9dee6] bg-white px-4 pb-5 pt-[18px]"
+            class="rounded-[14px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 pb-5 pt-[18px]"
           >
             <h1
               id="daily-energy"
-              class="m-0 text-[11px] font-bold uppercase tracking-[0.02em] text-[#707c91]"
+              class="m-0 text-[11px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
             >
               Daily energy
             </h1>
@@ -155,10 +155,10 @@
                 >
                   {formatKcal(data.diary.balances.energyMkcal.target)}
                 </strong>
-                <span class="mt-1.5 block text-[11px] text-[#7b8799]">goal</span>
+                <span class="mt-1.5 block text-[11px] text-[var(--app-muted)]">goal</span>
               </div>
 
-              <b aria-hidden="true" class="text-[16px] font-semibold text-[#7b8799]">
+              <b aria-hidden="true" class="text-[16px] font-semibold text-[var(--app-muted)]">
                 −
               </b>
 
@@ -169,19 +169,19 @@
                 >
                   {formatKcal(data.diary.balances.energyMkcal.consumed)}
                 </strong>
-                <span class="mt-1.5 block text-[11px] text-[#7b8799]">
+                <span class="mt-1.5 block text-[11px] text-[var(--app-muted)]">
                   consumed
                 </span>
               </div>
 
-              <b aria-hidden="true" class="text-[16px] font-semibold text-[#7b8799]">
+              <b aria-hidden="true" class="text-[16px] font-semibold text-[var(--app-muted)]">
                 =
               </b>
 
               <div
                 class={data.diary.balances.energyMkcal.over > 0
-                  ? "min-w-0 text-[#ee8b0b]"
-                  : "min-w-0 text-[#159c6a]"}
+                  ? "min-w-0 text-[var(--app-orange)]"
+                  : "min-w-0 text-[var(--app-green)]"}
               >
                 <strong
                   class="block text-[clamp(22px,7vw,28px)] font-extrabold leading-none
@@ -193,7 +193,7 @@
                       : data.diary.balances.energyMkcal.remaining,
                   )}
                 </strong>
-                <span class="mt-1.5 block text-[11px] text-[#7b8799]">
+                <span class="mt-1.5 block text-[11px] text-[var(--app-muted)]">
                   {data.diary.balances.energyMkcal.over > 0
                     ? "over"
                     : "remaining"}
@@ -206,19 +206,19 @@
             class="my-[21px] grid grid-cols-3 gap-5 lg:mb-0 lg:gap-4 lg:px-1 lg:pt-5"
           >
             <div class="min-w-0">
-              <dt class="text-[11px] font-medium text-[#6f7b8f]">Protein</dt>
+              <dt class="text-[11px] font-medium text-[var(--app-muted)]">Protein</dt>
               <dd
                 class="my-1 mb-2 overflow-hidden text-ellipsis whitespace-nowrap
-                  text-[12px] font-bold text-[#202a38]"
+                  text-[12px] font-bold text-[var(--app-text)]"
               >
                 {formatGrams(data.diary.balances.proteinMg.consumed)} /
                 {formatGrams(data.diary.balances.proteinMg.target)} g
               </dd>
               <span
-                class="block h-[5px] overflow-hidden rounded-full bg-[#e6eaf0]"
+                class="block h-[5px] overflow-hidden rounded-full bg-[var(--app-track)]"
               >
                 <span
-                  class="block h-full rounded-full bg-[#7c55e8]"
+                  class="block h-full rounded-full bg-[var(--app-purple)]"
                   style:width={`${progress(
                     data.diary.balances.proteinMg.consumed,
                     data.diary.balances.proteinMg.target,
@@ -228,19 +228,19 @@
             </div>
 
             <div class="min-w-0">
-              <dt class="text-[11px] font-medium text-[#6f7b8f]">Carbs</dt>
+              <dt class="text-[11px] font-medium text-[var(--app-muted)]">Carbs</dt>
               <dd
                 class="my-1 mb-2 overflow-hidden text-ellipsis whitespace-nowrap
-                  text-[12px] font-bold text-[#202a38]"
+                  text-[12px] font-bold text-[var(--app-text)]"
               >
                 {formatGrams(data.diary.balances.carbsMg.consumed)} /
                 {formatGrams(data.diary.balances.carbsMg.target)} g
               </dd>
               <span
-                class="block h-[5px] overflow-hidden rounded-full bg-[#e6eaf0]"
+                class="block h-[5px] overflow-hidden rounded-full bg-[var(--app-track)]"
               >
                 <span
-                  class="block h-full rounded-full bg-[#ed8b0c]"
+                  class="block h-full rounded-full bg-[var(--app-orange)]"
                   style:width={`${progress(
                     data.diary.balances.carbsMg.consumed,
                     data.diary.balances.carbsMg.target,
@@ -250,19 +250,19 @@
             </div>
 
             <div class="min-w-0">
-              <dt class="text-[11px] font-medium text-[#6f7b8f]">Fat</dt>
+              <dt class="text-[11px] font-medium text-[var(--app-muted)]">Fat</dt>
               <dd
                 class="my-1 mb-2 overflow-hidden text-ellipsis whitespace-nowrap
-                  text-[12px] font-bold text-[#202a38]"
+                  text-[12px] font-bold text-[var(--app-text)]"
               >
                 {formatGrams(data.diary.balances.fatMg.consumed)} /
                 {formatGrams(data.diary.balances.fatMg.target)} g
               </dd>
               <span
-                class="block h-[5px] overflow-hidden rounded-full bg-[#e6eaf0]"
+                class="block h-[5px] overflow-hidden rounded-full bg-[var(--app-track)]"
               >
                 <span
-                  class="block h-full rounded-full bg-[#159c6a]"
+                  class="block h-full rounded-full bg-[var(--app-green)]"
                   style:width={`${progress(
                     data.diary.balances.fatMg.consumed,
                     data.diary.balances.fatMg.target,
@@ -273,8 +273,8 @@
           </dl>
         {:else}
           <div
-            class="mb-6 rounded-[14px] border border-[#d9dee6] bg-white p-4
-              text-[14px] text-[#6f7b8f]"
+            class="mb-6 rounded-[14px] border border-[var(--app-border)] bg-[var(--app-panel)] p-4
+              text-[14px] text-[var(--app-muted)]"
             role="status"
           >
             No nutrition goal applies to this date.
@@ -296,12 +296,12 @@
               <h2
                 id={`${slot}-heading`}
                 class="m-0 text-[11px] font-bold uppercase tracking-[0.02em]
-                  text-[#707c91]"
+                  text-[var(--app-muted)]"
               >
                 {mealNames[slot]}
               </h2>
               {#if data.diary.meals[slot].entries.length > 0}
-                <span class="text-[11px] font-bold text-[#707c91]">
+                <span class="text-[11px] font-bold text-[var(--app-muted)]">
                   {formatKcal(data.diary.meals[slot].totals.energyMkcal)} kcal
                 </span>
               {/if}
@@ -309,10 +309,10 @@
 
             {#if data.diary.meals[slot].entries.length === 0}
               <div
-                class="rounded-[13px] border border-[#d9dee6] bg-white px-[15px]
+                class="rounded-[13px] border border-[var(--app-border)] bg-[var(--app-panel)] px-[15px]
                   py-3.5 lg:min-h-[88px]"
               >
-                <p class="mb-2 mt-0 text-[13px] text-[#7b8799]">
+                <p class="mb-2 mt-0 text-[13px] text-[var(--app-muted)]">
                   Nothing logged yet
                 </p>
                 <a
@@ -323,9 +323,9 @@
                     }),
                   )}
                   class="inline-flex min-h-[26px] items-center gap-1.5 text-[13px]
-                    font-bold text-[#2865ee] no-underline
+                    font-bold text-[var(--app-accent)] no-underline
                     focus-visible:outline-3 focus-visible:outline-offset-2
-                    focus-visible:outline-[#2865e8]/30"
+                    focus-visible:outline-[var(--app-accent)]/30"
                 >
                   <span aria-hidden="true">+</span> Add food
                 </a>
@@ -337,15 +337,15 @@
                     href={resolve("/diary/[entryId]/edit", {
                       entryId: entry.id,
                     })}
-                    class="block rounded-[13px] border border-[#d9dee6] bg-white
-                      px-[15px] py-[13px] text-[#18212f] no-underline transition
-                      hover:border-[#bfc9d8] hover:shadow-sm focus-visible:outline-3
-                      focus-visible:outline-offset-2 focus-visible:outline-[#2865e8]/30"
+                    class="block rounded-[13px] border border-[var(--app-border)] bg-[var(--app-panel)]
+                      px-[15px] py-[13px] text-[var(--app-text)] no-underline transition
+                      hover:border-[var(--app-border-strong)] hover:shadow-sm focus-visible:outline-3
+                      focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]/30"
                   >
                     <h3 class="m-0 text-[15px] font-bold leading-tight">
                       {entry.foodName}
                     </h3>
-                    <p class="mb-0 mt-1 text-[12px] text-[#7b8799]">
+                    <p class="mb-0 mt-1 text-[12px] text-[var(--app-muted)]">
                       {formatAmount(entry.resolvedAmount, entry.amountUnit)}
                       · {formatKcal(entry.energyMkcal)} kcal
                     </p>
@@ -360,9 +360,9 @@
                     }),
                   )}
                   class="flex min-h-12 items-center gap-[7px] rounded-[13px] border
-                    border-[#d9dee6] bg-white px-[15px] text-[13px] font-bold
-                    text-[#2865ee] no-underline focus-visible:outline-3
-                    focus-visible:outline-offset-2 focus-visible:outline-[#2865e8]/30"
+                    border-[var(--app-border)] bg-[var(--app-panel)] px-[15px] text-[13px] font-bold
+                    text-[var(--app-accent)] no-underline focus-visible:outline-3
+                    focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]/30"
                 >
                   <span aria-hidden="true">+</span> Add food
                 </a>

@@ -4,12 +4,12 @@ import {
 } from '$lib/server/auth/cookie';
 import { validateSessionToken } from '$lib/server/auth/session';
 import { db } from '$lib/server/db';
-import type { Theme } from '$lib/server/db/schema';
+import {
+  parseTheme,
+  THEME_COOKIE_NAME,
+  THEME_COOKIE_OPTIONS
+} from '$lib/server/theme';
 import type { Handle } from '@sveltejs/kit';
-
-function getThemePreference(theme: Theme | undefined): Theme {
-  return theme === 'light' || theme === 'dark' ? theme : 'system';
-}
 
 export const handle: Handle = async ({
   event,
@@ -44,7 +44,18 @@ export const handle: Handle = async ({
     }
 
   }
-  const theme = getThemePreference(event.locals.user?.settingsJson.theme);
+  const cookieTheme = parseTheme(event.cookies.get(THEME_COOKIE_NAME));
+  const theme =
+    event.locals.user === null
+      ? cookieTheme
+      : parseTheme(event.locals.user.settingsJson.theme);
+
+  event.locals.theme = theme;
+
+  if (event.locals.user !== null && cookieTheme !== theme) {
+    event.cookies.set(THEME_COOKIE_NAME, theme, THEME_COOKIE_OPTIONS);
+  }
+
   const themeAttributes =
     theme === 'dark' ? 'data-theme="dark" class="dark"' : `data-theme="${theme}"`;
 

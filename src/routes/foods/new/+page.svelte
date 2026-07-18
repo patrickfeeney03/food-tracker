@@ -19,11 +19,11 @@
   <title>Create food | Calorie Tracker</title>
 </svelte:head>
 
-<div class="min-h-dvh bg-[#e7e7e7] sm:px-4 sm:py-6">
+<div class="min-h-dvh bg-[var(--app-canvas)] sm:px-4 sm:py-6">
   <main
-    class="mx-auto flex min-h-dvh w-full flex-col overflow-hidden bg-[#f6f7f9]
-    text-[#182230] sm:min-h-[calc(100dvh-3rem)] sm:max-w-3xl sm:rounded-[26px]
-    sm:border sm:border-white/70 sm:shadow-[0_24px_60px_rgba(23,32,51,0.12)]
+    class="mx-auto flex min-h-dvh w-full flex-col overflow-hidden bg-[var(--app-surface)]
+    text-[var(--app-text)] sm:min-h-[calc(100dvh-3rem)] sm:max-w-3xl sm:rounded-[26px]
+    sm:border sm:border-[var(--app-border)]/70 sm:shadow-[0_24px_60px_rgba(23,32,51,0.12)]
     lg:max-w-5xl"
   >
     <header
@@ -31,8 +31,8 @@
     >
       <a
         class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-xl text-2xl
-        leading-none text-[#182230] transition hover:bg-white focus-visible:outline-2
-        focus-visible:outline-offset-2 focus-visible:outline-[#2865e8]"
+        leading-none text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2
+        focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
         href={resolve(
           withQuery("/foods", {
             date: data.destination.date,
@@ -48,7 +48,7 @@
         <h1 class="text-[18px] font-bold leading-6 tracking-[-0.02em]">
           Create food
         </h1>
-        <p class="mt-0.5 text-[11px] leading-4 text-[#738096]">
+        <p class="mt-0.5 text-[11px] leading-4 text-[var(--app-muted)]">
           Enter nutrition values for the stated label basis
         </p>
       </div>
@@ -74,7 +74,7 @@
         <div class="space-y-1.5">
           <label
             for="name"
-            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[#738096]"
+            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
           >
             Food name
           </label>
@@ -86,8 +86,8 @@
             required
             autocomplete="off"
             aria-invalid={errors?.name ? "true" : undefined}
-            class="!min-h-12 !rounded-[12px] !border-[#d9dee6] !px-3.5 !text-[14px]
-            !font-semibold !shadow-none focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+            class="!min-h-12 !rounded-[12px] !border-[var(--app-border)] !px-3.5 !text-[14px]
+            !font-semibold !shadow-none focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
           />
           {#if errors?.name}
             <p role="alert">{errors.name[0]}</p>
@@ -97,7 +97,7 @@
         <div class="space-y-1.5">
           <label
             for="brand"
-            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[#738096]"
+            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
           >
             Brand
           </label>
@@ -107,27 +107,28 @@
             value={values.brand}
             maxlength="200"
             autocomplete="organization"
-            class="!min-h-12 !rounded-[12px] !border-[#d9dee6] !px-3.5 !text-[14px]
-            !font-semibold !shadow-none focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+            class="!min-h-12 !rounded-[12px] !border-[var(--app-border)] !px-3.5 !text-[14px]
+            !font-semibold !shadow-none focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
           />
         </div>
 
         <fieldset class="space-y-1.5">
           <legend
-            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[#738096]"
+            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
           >
             Type
           </legend>
 
           <div
-            class="grid min-h-12 grid-cols-2 rounded-full border border-[#d9dee6] bg-white p-0.5"
+            class="grid min-h-12 grid-cols-2 rounded-full border border-[var(--app-border)] bg-[var(--app-panel)] p-0.5"
           >
             <label
-              class="flex cursor-pointer items-center justify-center rounded-full !text-[13px]
-              !font-semibold transition"
-              class:bg-[#2865e8]={amountUnit === "mg"}
-              class:text-white={amountUnit === "mg"}
-              class:text-[#738096]={amountUnit !== "mg"}
+              class={[
+                "flex cursor-pointer items-center justify-center rounded-full !text-[13px] !font-semibold transition",
+                amountUnit === "mg"
+                  ? "bg-[var(--app-accent)] text-white"
+                  : "text-[var(--app-muted)]",
+              ]}
             >
               <input
                 class="sr-only"
@@ -140,11 +141,12 @@
             </label>
 
             <label
-              class="flex cursor-pointer items-center justify-center rounded-full !text-[13px]
-              !font-semibold transition"
-              class:bg-[#2865e8]={amountUnit === "ul"}
-              class:text-white={amountUnit === "ul"}
-              class:text-[#738096]={amountUnit !== "ul"}
+              class={[
+                "flex cursor-pointer items-center justify-center rounded-full !text-[13px] !font-semibold transition",
+                amountUnit === "ul"
+                  ? "bg-[var(--app-accent)] text-white"
+                  : "text-[var(--app-muted)]",
+              ]}
             >
               <input
                 class="sr-only"
@@ -164,7 +166,7 @@
         <div class="space-y-1.5">
           <label
             for="basisAmount"
-            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[#738096]"
+            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
           >
             Nutrition label basis
           </label>
@@ -179,13 +181,13 @@
               value={values.basisAmount}
               required
               aria-invalid={errors?.basisAmount ? "true" : undefined}
-              class="!min-h-12 !rounded-[12px] !border-[#d9dee6] !px-3.5 !pr-12
-              !text-[14px] !font-semibold !shadow-none focus:!border-[#2865e8]
-              focus:!ring-[#2865e8]/15"
+              class="!min-h-12 !rounded-[12px] !border-[var(--app-border)] !px-3.5 !pr-12
+              !text-[14px] !font-semibold !shadow-none focus:!border-[var(--app-accent)]
+              focus:!ring-[var(--app-accent)]/15"
             />
             <span
               class="pointer-events-none absolute inset-y-0 right-3.5 flex items-center
-              text-[12px] font-semibold text-[#738096]"
+              text-[12px] font-semibold text-[var(--app-muted)]"
             >
               {displayUnit}
             </span>
@@ -197,7 +199,7 @@
 
         <fieldset class="space-y-1.5">
           <legend
-            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[#738096]"
+            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
           >
             Optional portions
           </legend>
@@ -207,7 +209,7 @@
               <label
                 for="servingAmount"
                 class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px]
-                !font-medium text-[#738096]"
+                !font-medium text-[var(--app-muted)]"
               >
                 Serving
               </label>
@@ -221,13 +223,13 @@
                 value={values.servingAmount}
                 placeholder="—"
                 aria-invalid={errors?.servingAmount ? "true" : undefined}
-                class="!min-h-[54px] !rounded-[12px] !border-[#d9dee6] !pb-1.5 !pl-3
+                class="!min-h-[54px] !rounded-[12px] !border-[var(--app-border)] !pb-1.5 !pl-3
                 !pr-8 !pt-5 !text-[13px] !font-semibold !shadow-none
-                focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+                focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
               />
               <span
                 class="pointer-events-none absolute bottom-2 right-3 text-[11px]
-                font-semibold text-[#738096]"
+                font-semibold text-[var(--app-muted)]"
               >
                 {displayUnit}
               </span>
@@ -237,7 +239,7 @@
               <label
                 for="containerAmount"
                 class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px]
-                !font-medium text-[#738096]"
+                !font-medium text-[var(--app-muted)]"
               >
                 Container
               </label>
@@ -251,13 +253,13 @@
                 value={values.containerAmount}
                 placeholder="—"
                 aria-invalid={errors?.containerAmount ? "true" : undefined}
-                class="!min-h-[54px] !rounded-[12px] !border-[#d9dee6] !pb-1.5 !pl-3
+                class="!min-h-[54px] !rounded-[12px] !border-[var(--app-border)] !pb-1.5 !pl-3
                 !pr-8 !pt-5 !text-[13px] !font-semibold !shadow-none
-                focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+                focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
               />
               <span
                 class="pointer-events-none absolute bottom-2 right-3 text-[11px]
-                font-semibold text-[#738096]"
+                font-semibold text-[var(--app-muted)]"
               >
                 {displayUnit}
               </span>
@@ -273,7 +275,7 @@
 
         <fieldset class="space-y-1.5">
           <legend
-            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[#738096]"
+            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
           >
             Required nutrition
           </legend>
@@ -283,7 +285,7 @@
               <label
                 for="energyKcal"
                 class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px]
-                !font-medium text-[#738096]"
+                !font-medium text-[var(--app-muted)]"
               >
                 Calories
               </label>
@@ -297,13 +299,13 @@
                 value={values.energyKcal}
                 required
                 aria-invalid={errors?.energyKcal ? "true" : undefined}
-                class="!min-h-[58px] !rounded-[12px] !border-[#d9dee6] !pb-1.5 !pl-3
+                class="!min-h-[58px] !rounded-[12px] !border-[var(--app-border)] !pb-1.5 !pl-3
                 !pr-11 !pt-5 !text-[14px] !font-bold !shadow-none
-                focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+                focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
               />
               <span
                 class="pointer-events-none absolute bottom-2 right-3 text-[11px]
-                font-semibold text-[#738096]"
+                font-semibold text-[var(--app-muted)]"
               >
                 kcal
               </span>
@@ -313,7 +315,7 @@
               <label
                 for="proteinG"
                 class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px]
-                !font-medium text-[#738096]"
+                !font-medium text-[var(--app-muted)]"
               >
                 Protein
               </label>
@@ -327,13 +329,13 @@
                 value={values.proteinG}
                 required
                 aria-invalid={errors?.proteinG ? "true" : undefined}
-                class="!min-h-[58px] !rounded-[12px] !border-[#d9dee6] !pb-1.5 !pl-3
+                class="!min-h-[58px] !rounded-[12px] !border-[var(--app-border)] !pb-1.5 !pl-3
                 !pr-7 !pt-5 !text-[14px] !font-bold !shadow-none
-                focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+                focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
               />
               <span
                 class="pointer-events-none absolute bottom-2 right-3 text-[11px]
-                font-semibold text-[#738096]"
+                font-semibold text-[var(--app-muted)]"
               >
                 g
               </span>
@@ -343,7 +345,7 @@
               <label
                 for="carbsG"
                 class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px]
-                !font-medium text-[#738096]"
+                !font-medium text-[var(--app-muted)]"
               >
                 Carbs
               </label>
@@ -357,13 +359,13 @@
                 value={values.carbsG}
                 required
                 aria-invalid={errors?.carbsG ? "true" : undefined}
-                class="!min-h-[58px] !rounded-[12px] !border-[#d9dee6] !pb-1.5 !pl-3
+                class="!min-h-[58px] !rounded-[12px] !border-[var(--app-border)] !pb-1.5 !pl-3
                 !pr-7 !pt-5 !text-[14px] !font-bold !shadow-none
-                focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+                focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
               />
               <span
                 class="pointer-events-none absolute bottom-2 right-3 text-[11px]
-                font-semibold text-[#738096]"
+                font-semibold text-[var(--app-muted)]"
               >
                 g
               </span>
@@ -373,7 +375,7 @@
               <label
                 for="fatG"
                 class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px]
-                !font-medium text-[#738096]"
+                !font-medium text-[var(--app-muted)]"
               >
                 Fat
               </label>
@@ -387,13 +389,13 @@
                 value={values.fatG}
                 required
                 aria-invalid={errors?.fatG ? "true" : undefined}
-                class="!min-h-[58px] !rounded-[12px] !border-[#d9dee6] !pb-1.5 !pl-3
+                class="!min-h-[58px] !rounded-[12px] !border-[var(--app-border)] !pb-1.5 !pl-3
                 !pr-7 !pt-5 !text-[14px] !font-bold !shadow-none
-                focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+                focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
               />
               <span
                 class="pointer-events-none absolute bottom-2 right-3 text-[11px]
-                font-semibold text-[#738096]"
+                font-semibold text-[var(--app-muted)]"
               >
                 g
               </span>
@@ -426,9 +428,9 @@
         >
           <summary
             class="flex min-h-11 cursor-pointer list-none items-center justify-between
-            rounded-lg text-[13px] font-semibold text-[#2865e8]
+            rounded-lg text-[13px] font-semibold text-[var(--app-accent)]
             focus-visible:outline-2 focus-visible:outline-offset-2
-            focus-visible:outline-[#2865e8]"
+            focus-visible:outline-[var(--app-accent)]"
           >
             Additional nutrition
             <span
@@ -443,7 +445,7 @@
                 <label
                   for={nutrient.id}
                   class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px]
-                  !font-medium text-[#738096]"
+                  !font-medium text-[var(--app-muted)]"
                 >
                   {nutrient.label}
                 </label>
@@ -456,13 +458,13 @@
                   inputmode="decimal"
                   value={nutrient.value}
                   aria-invalid={nutrient.error ? "true" : undefined}
-                  class="!min-h-[58px] !rounded-[12px] !border-[#d9dee6] !pb-1.5
+                  class="!min-h-[58px] !rounded-[12px] !border-[var(--app-border)] !pb-1.5
                   !pl-3 !pr-9 !pt-5 !text-[14px] !font-bold !shadow-none
-                  focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+                  focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
                 />
                 <span
                   class="pointer-events-none absolute bottom-2 right-3 text-[11px]
-                  font-semibold text-[#738096]"
+                  font-semibold text-[var(--app-muted)]"
                 >
                   {nutrient.unit}
                 </span>
@@ -477,13 +479,13 @@
         <details class="group">
           <summary
             class="flex min-h-11 cursor-pointer list-none items-center justify-between
-            rounded-lg text-[13px] font-semibold text-[#2865e8]
+            rounded-lg text-[13px] font-semibold text-[var(--app-accent)]
             focus-visible:outline-2 focus-visible:outline-offset-2
-            focus-visible:outline-[#2865e8]"
+            focus-visible:outline-[var(--app-accent)]"
           >
             <span class="flex flex-1 items-center justify-between">
               <span>Notes</span>
-              <span class="mr-2 text-[11px] font-medium text-[#738096]"
+              <span class="mr-2 text-[11px] font-medium text-[var(--app-muted)]"
                 >Optional</span
               >
             </span>
@@ -499,20 +501,20 @@
             name="notes"
             rows="5"
             placeholder="Add anything useful about this food or its values."
-            class="!rounded-[12px] !border-[#d9dee6] !text-[14px] !leading-6
-            !shadow-none focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+            class="!rounded-[12px] !border-[var(--app-border)] !text-[14px] !leading-6
+            !shadow-none focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
             >{values.notes}</textarea
           >
         </details>
 
         <fieldset class="space-y-1.5">
           <legend
-            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[#738096]"
+            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
           >
             First diary entry
           </legend>
 
-          <p class="text-[11px] leading-4 text-[#738096]">
+          <p class="text-[11px] leading-4 text-[var(--app-muted)]">
             Enter the number of 100 {displayUnit} portions consumed.
           </p>
 
@@ -530,13 +532,13 @@
               value={values.portionCount}
               required
               aria-invalid={errors?.portionCount ? "true" : undefined}
-              class="!min-h-[58px] !rounded-[12px] !border-[#d9dee6] !px-3.5
+              class="!min-h-[58px] !rounded-[12px] !border-[var(--app-border)] !px-3.5
               !pr-24 !text-[18px] !font-bold !shadow-none
-              focus:!border-[#2865e8] focus:!ring-[#2865e8]/15"
+              focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
             />
             <span
               class="pointer-events-none absolute inset-y-0 right-3.5 flex items-center
-              text-[12px] font-semibold text-[#738096]"
+              text-[12px] font-semibold text-[var(--app-muted)]"
             >
               × 100 {displayUnit}
             </span>
@@ -559,9 +561,9 @@
         <button
           type="submit"
           class="flex min-h-[52px] w-full items-center justify-center rounded-[12px]
-          bg-[#2865e8] px-4 text-[14px] font-bold text-white shadow-sm transition
-          hover:bg-[#1f56cf] focus-visible:outline-2 focus-visible:outline-offset-2
-          focus-visible:outline-[#2865e8] active:translate-y-px sm:w-56"
+          bg-[var(--app-accent)] px-4 text-[14px] font-bold text-white shadow-sm transition
+          hover:bg-[var(--app-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2
+          focus-visible:outline-[var(--app-accent)] active:translate-y-px sm:w-56"
         >
           Save food
         </button>
