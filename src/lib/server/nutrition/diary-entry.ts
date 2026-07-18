@@ -1,7 +1,7 @@
 import type { PortionKind } from "$lib/nutrition/constants";
 import { parsePortionCountToMilli, resolvePortionAmount, scaleNutritionValue, toSafeInteger } from "$lib/nutrition/math";
-import type { LogFoodInput } from "$lib/nutrition/portion-input";
-import type { AdditionalNutrition, Food, NewDiaryLog } from "$lib/server/db/schema";
+import type { EditDiaryEntryInput, LogFoodInput } from "$lib/nutrition/portion-input";
+import type { AdditionalNutrition, DiaryLog, Food, NewDiaryLog } from "$lib/server/db/schema";
 
 export interface PortionDefinition {
   label: string;
@@ -51,6 +51,38 @@ export function resolvePortionDefinition(
         amount: BigInt(food.containerAmount)
       };
   }
+}
+
+export function resolveDiaryEntryPortionDefinition(
+  entry: DiaryLog,
+  portionKind: PortionKind
+): PortionDefinition {
+  const displayUnit = entry.amountUnit === 'mg' ? 'g' : 'ml';
+
+  if (portionKind === 'unit') {
+    return {
+      label: `1 ${displayUnit}`,
+      amount: 1_000n
+    };
+  }
+
+  if (portionKind === 'hundred') {
+    return {
+      label: `100 ${displayUnit}`,
+      amount: 100_000n
+    };
+  }
+
+  if (portionKind !== entry.portionKind) {
+    throw new RangeError(
+      `Diary entry does not contain a ${portionKind} portion snapshot`
+    );
+  }
+
+  return {
+    label: entry.portionLabel,
+    amount: BigInt(entry.portionAmount)
+  };
 }
 
 function scaleForStorage(
@@ -195,5 +227,60 @@ export function buildDiaryLogValues(
       resolvedAmount,
       food.basisAmount
     )
+  };
+}
+
+export function buildDiaryLogUpdateValues(
+  entry: DiaryLog,
+  input: EditDiaryEntryInput,
+  updatedAt = new Date()
+): Partial<NewDiaryLog> {
+  if (entry.deletedAt !== null) {
+    throw new RangeError(
+      'Cannot edit a deleted diary entry'
+    );
+  }
+
+  const portion = resolveDiaryEntryPortionDefinition(
+    entry,
+    input.portionKind
+  );
+  const portionCountMilli = parsePortionCountToMilli(input.portionCount);
+  const resolvedAmount = resolvePortionAmount(portion.amount, portionCountMilli);
+
+  return {
+    diaryDate: input.diaryDate,
+    mealSlot: input.mealSlot,
+    portionKind: input.portionKind,
+    portionLabel: portion.label,
+    portionAmount: toSafeInteger(portion.amount),
+    portionCountMilli: toSafeInteger(portionCountMilli),
+    resolvedAmount: toSafeInteger(resolvedAmount),
+    energyMkcal: scaleForStorage(
+      entry.energyMkcalPerBasis,
+      resolvedAmount,
+      entry.basisAmount
+    ),
+    proteinMg: scaleForStorage(
+      entry.proteinMgPerBasis,
+      resolvedAmount,
+      entry.basisAmount
+    ),
+    carbsMg: scaleForStorage(
+      entry.carbsMgPerBasis,
+      resolvedAmount,
+      entry.basisAmount
+    ),
+    fatMg: scaleForStorage(
+      entry.fatMgPerBasis,
+      resolvedAmount,
+      entry.basisAmount
+    ),
+    additionalNutritionTotalJson: scaleAdditionalNutrition(
+      entry.additionalNutritionPerBasisJson,
+      resolvedAmount,
+      entry.basisAmount
+    ),
+    updatedAt
   };
 }

@@ -68,5 +68,9 @@ export const logFoodInputSchema = z.object({
   mealSlot: z.enum(mealSlots)
 });
 
+export const editDiaryEntryInputSchema = logFoodInputSchema.omit({
+  clientMutationId: true
+});
 
 export type LogFoodInput = z.infer<typeof logFoodInputSchema>;
+export type EditDiaryEntryInput = z.infer<typeof editDiaryEntryInputSchema>;
