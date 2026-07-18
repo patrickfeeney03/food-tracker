@@ -8,19 +8,12 @@ import { createFoodAndLog } from "$lib/server/nutrition/create-food-and-log";
 import { db } from "$lib/server/db";
 import { resolve } from "$app/paths";
 import { withQuery } from "$lib/navigation";
+import { readFoodFormValues, readText } from "$lib/nutrition/food-form";
 
 const destinationSchema = z.object({
   date: calendarDateString,
   mealSlot: z.enum(mealSlots)
 });
-
-function readText(
-  formData: FormData,
-  name: string
-): string {
-  const value = formData.get(name);
-  return typeof value === 'string' ? value : '';
-}
 
 export const load: PageServerLoad = ({
   locals,
@@ -85,59 +78,15 @@ export const actions = {
     const formData = await request.formData();
 
     const values = {
+      ...readFoodFormValues(formData),
       clientMutationId: readText(formData, 'clientMutationId'),
-
-      name: readText(formData, 'name'),
-      brand: readText(formData, 'brand'),
-      barcode: readText(formData, 'barcode'),
-
-      amountUnit: readText(formData, 'amountUnit'),
-      basisAmount: readText(formData, 'basisAmount'),
-      servingAmount: readText(formData, 'servingAmount'),
-      containerAmount: readText(formData, 'containerAmount'),
-
-      energyKcal: readText(formData, 'energyKcal'),
-      proteinG: readText(formData, 'proteinG'),
-      carbsG: readText(formData, 'carbsG'),
-      fatG: readText(formData, 'fatG'),
-
-      fibreG: readText(formData, 'fibreG'),
-      sugarG: readText(formData, 'sugarG'),
-      saturatedFatG: readText(formData, 'saturatedFatG'),
-      sodiumMg: readText(formData, 'sodiumMg'),
-      potassiumMg: readText(formData, 'potassiumMg'),
-
-      notes: readText(formData, 'notes'),
-
       portionKind: readText(formData, 'portionKind'),
       portionCount: readText(formData, 'portionCount'),
       diaryDate: readText(formData, 'diaryDate'),
       mealSlot: readText(formData, 'mealSlot')
     }
 
-    const foodResult = createFoodSchema.safeParse({
-      name: values.name,
-      brand: values.brand,
-      barcode: values.barcode,
-
-      amountUnit: values.amountUnit,
-      basisAmount: values.basisAmount,
-      servingAmount: values.servingAmount,
-      containerAmount: values.containerAmount,
-
-      energyKcal: values.energyKcal,
-      proteinG: values.proteinG,
-      carbsG: values.carbsG,
-      fatG: values.fatG,
-
-      fibreG: values.fibreG,
-      sugarG: values.sugarG,
-      saturatedFatG: values.saturatedFatG,
-      sodiumMg: values.sodiumMg,
-      potassiumMg: values.potassiumMg,
-
-      notes: values.notes
-    });
+    const foodResult = createFoodSchema.safeParse(values);
 
     const logResult = logFoodInputSchema.safeParse({
       clientMutationId: values.clientMutationId,

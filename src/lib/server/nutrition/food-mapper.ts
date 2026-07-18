@@ -21,10 +21,26 @@ function parseOptionalForStorage(
     : parseForStorage(value, parser);
 }
 
-export function mapCreateFoodInput(
-  input: CreateFoodFormInput,
-  userId: string
-): NewFood {
+export type MutableFoodValues = Pick<
+  NewFood,
+  | 'name'
+  | 'brand'
+  | 'barcode'
+  | 'amountUnit'
+  | 'basisAmount'
+  | 'servingAmount'
+  | 'containerAmount'
+  | 'energyMkcalPerBasis'
+  | 'proteinMgPerBasis'
+  | 'carbsMgPerBasis'
+  | 'fatMgPerBasis'
+  | 'additionalNutritionJson'
+  | 'notes'
+>;
+
+export function mapFoodInput(
+  input: CreateFoodFormInput
+): MutableFoodValues {
   const parseAmount =
     input.amountUnit === 'mg'
       ? parseGramsToMg
@@ -65,7 +81,6 @@ export function mapCreateFoodInput(
   const hasAdditionalNutrition = Object.keys(additionalNutrition).length > 0;
 
   return {
-    userId,
     name: input.name,
     brand: input.brand === '' ? null : input.brand,
     barcode: input.barcode === '' ? null : input.barcode,
@@ -108,3 +123,12 @@ export function mapCreateFoodInput(
   };
 }
 
+export function mapCreateFoodInput(
+  input: CreateFoodFormInput,
+  userId: string
+): NewFood {
+  return {
+    userId,
+    ...mapFoodInput(input)
+  };
+}

@@ -210,6 +210,24 @@
       </div>
     {/if}
 
+    {#if data.saved}
+      <div
+        role="status"
+        class="mt-4 rounded-xl border border-[#bfe8d7] bg-[#ecfaf4] px-3 py-2.5 text-sm font-medium text-[#087651]"
+      >
+        Food changes saved. Future diary entries will use the updated values.
+      </div>
+    {/if}
+
+    {#if data.archived}
+      <div
+        role="status"
+        class="mt-4 rounded-xl border border-[#d5dbe5] bg-white px-3 py-2.5 text-sm font-medium text-[#263044]"
+      >
+        Food archived and removed from the active catalogue.
+      </div>
+    {/if}
+
     <section aria-labelledby="food-results" class="mt-5 flex-1">
       <h2
         id="food-results"
@@ -278,19 +296,34 @@
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  disabled
-                  aria-label={`Add ${food.name}`}
-                  title="Quick add is not available yet"
-                  class="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-[#2867eb]"
-                >
-                  <span
-                    aria-hidden="true"
-                    class="flex size-8 items-center justify-center rounded-full bg-[#edf3ff] text-xl leading-none font-medium"
-                    >+</span
+                <div class="flex shrink-0 items-center gap-1">
+                  <a
+                    href={resolve(withQuery(`/foods/${food.id}/edit`, {
+                      date: data.destination.date,
+                      mealSlot: data.destination.mealSlot,
+                      q: data.query || undefined,
+                    }))}
+                    aria-label={`Edit ${food.name}`}
+                    class="inline-flex min-h-11 items-center justify-center rounded-lg px-2
+                      text-xs font-bold text-[#536176] transition hover:bg-[#f2f4f7]
+                      hover:text-[#172033] focus-visible:outline-2 focus-visible:outline-offset-1
+                      focus-visible:outline-[#2867eb]"
+                  >Edit</a>
+
+                  <button
+                    type="button"
+                    disabled
+                    aria-label={`Add ${food.name}`}
+                    title="Quick add is not available yet"
+                    class="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-[#2867eb]"
                   >
-                </button>
+                    <span
+                      aria-hidden="true"
+                      class="flex size-8 items-center justify-center rounded-full bg-[#edf3ff] text-xl leading-none font-medium"
+                      >+</span
+                    >
+                  </button>
+                </div>
               </article>
             </li>
           {/each}

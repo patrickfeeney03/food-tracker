@@ -45,6 +45,8 @@ export const load: PageServerLoad = ({
   return {
     destination: destinationResult.data,
     created: url.searchParams.get('created') === '1',
+    saved: url.searchParams.get('saved') === '1',
+    archived: url.searchParams.get('archived') === '1',
     isToday: destinationResult.data.date === todayInDublin(),
     query,
     foods: listActiveFoods(
