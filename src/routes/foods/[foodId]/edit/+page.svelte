@@ -3,6 +3,8 @@
   import FoodFormFields, {
     type FoodFieldErrors,
   } from "$lib/components/FoodFormFields.svelte";
+  import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
+  import AppPageShell from "$lib/components/AppPageShell.svelte";
   import { withQuery } from "$lib/navigation";
   import { untrack } from "svelte";
   import type { PageProps } from "./$types";
@@ -28,13 +30,7 @@
   <title>Edit food | Calorie Tracker</title>
 </svelte:head>
 
-<div class="min-h-dvh bg-[var(--app-canvas)] sm:px-4 sm:py-6">
-  <main
-    class="mx-auto flex min-h-dvh w-full flex-col overflow-hidden bg-[var(--app-surface)]
-      text-[var(--app-text)] sm:min-h-[calc(100dvh-3rem)] sm:max-w-3xl sm:rounded-[26px]
-      sm:border sm:border-[var(--app-border)]/70 sm:shadow-[0_24px_60px_rgba(23,32,51,0.12)]
-      lg:max-w-5xl"
-  >
+<AppPageShell class="flex flex-col overflow-hidden" size="wide">
     <header class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pb-6 sm:pt-8">
       <a
         class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-xl text-2xl
@@ -67,14 +63,7 @@
       <input type="hidden" name="q" value={context.q} />
 
       {#if errors.form}
-        <div
-          role="alert"
-          class="mb-4 rounded-xl border border-[var(--app-danger-border)]
-            bg-[var(--app-danger-bg)] px-3 py-2.5 text-sm font-medium
-            text-[var(--app-danger-text)]"
-        >
-          {errors.form[0]}
-        </div>
+        <FeedbackBanner class="mb-4" message={errors.form[0]} tone="danger" />
       {/if}
 
       <FoodFormFields {values} {errors} bind:amountUnit />
@@ -121,5 +110,4 @@
         >Archive food</button>
       </form>
     </section>
-  </main>
-</div>
+</AppPageShell>

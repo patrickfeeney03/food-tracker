@@ -1,4 +1,6 @@
 <script lang="ts">
+  import FeedbackBanner from "./FeedbackBanner.svelte";
+
   export type NutritionGoalFieldName =
     | "effectiveFrom"
     | "targetEnergyKcal"
@@ -33,12 +35,7 @@
 
 <form method="POST" class="flex flex-1 flex-col">
   {#if errors.form}
-    <div
-      role="alert"
-      class="mb-5 rounded-xl border border-[var(--app-danger-border)]
-        bg-[var(--app-danger-bg)] px-3 py-2.5 text-sm font-medium
-        text-[var(--app-danger-text)]"
-    >{errors.form[0]}</div>
+    <FeedbackBanner class="mb-5" message={errors.form[0]} tone="danger" />
   {/if}
 
   <div class="space-y-5">

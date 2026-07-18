@@ -1,5 +1,11 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
+  import NutritionPreview from "$lib/components/amount-adjuster/NutritionPreview.svelte";
+  import PortionBasisSelector from "$lib/components/amount-adjuster/PortionBasisSelector.svelte";
+  import PortionQuantityField from "$lib/components/amount-adjuster/PortionQuantityField.svelte";
+  import BottomSubmitBar from "$lib/components/BottomSubmitBar.svelte";
+  import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
+  import AppPageShell from "$lib/components/AppPageShell.svelte";
   import FoodFormFields, {
     type FoodFieldErrors,
   } from "$lib/components/FoodFormFields.svelte";
@@ -180,13 +186,7 @@
   <title>Create food | Calorie Tracker</title>
 </svelte:head>
 
-<div class="min-h-dvh bg-[var(--app-canvas)] sm:px-4 sm:py-6">
-  <main
-    class="mx-auto flex min-h-dvh w-full flex-col overflow-hidden bg-[var(--app-surface)]
-      text-[var(--app-text)] sm:min-h-[calc(100dvh-3rem)] sm:max-w-3xl sm:rounded-[26px]
-      sm:border sm:border-[var(--app-border)]/70 sm:shadow-[0_24px_60px_rgba(23,32,51,0.12)]
-      lg:max-w-5xl"
-  >
+<AppPageShell class="flex flex-col overflow-hidden" size="wide">
     <header class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pb-6 sm:pt-8">
       <a
         class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-xl text-2xl
@@ -217,143 +217,39 @@
       <input type="hidden" name="mealSlot" value={values.mealSlot} />
 
       {#if errors.form}
-        <div
-          class="mb-4 rounded-xl border border-[var(--app-danger-border)]
-            bg-[var(--app-danger-bg)] px-3 py-2.5 text-sm font-medium
-            text-[var(--app-danger-text)]"
-          role="alert"
-        >
-          {errors.form[0]}
-        </div>
+        <FeedbackBanner class="mb-4" message={errors.form[0]} tone="danger" />
       {/if}
 
       <FoodFormFields {values} {errors} bind:amountUnit />
 
-      <fieldset class="mt-6 space-y-3 sm:col-span-2">
-        <legend
-          class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
-        >
-          First diary entry
-        </legend>
+      <div class="mt-6 space-y-3 sm:col-span-2">
+        <PortionBasisSelector
+          options={portionOptions}
+          bind:portionKind
+          error={errors.portionKind?.[0]}
+          legend="First diary entry"
+          wrapOnMobile
+        />
 
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {#each portionOptions as option (option.kind)}
-            <label
-              class={[
-                "flex min-h-11 cursor-pointer items-center justify-center rounded-full border px-2 text-center text-[12px] font-bold transition focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--app-accent)]",
-                portionKind === option.kind
-                  ? "border-[var(--app-accent)] bg-[var(--app-accent)] text-white"
-                  : "border-[var(--app-border)] bg-[var(--app-panel)] text-[var(--app-muted)]",
-              ]}
-            >
-              <input
-                class="sr-only"
-                type="radio"
-                name="portionKind"
-                value={option.kind}
-                bind:group={portionKind}
-              />
-              {option.label}
-            </label>
-          {/each}
-        </div>
-        {#if errors.portionKind}
-          <p role="alert">{errors.portionKind[0]}</p>
-        {/if}
+        <PortionQuantityField
+          bind:portionCount
+          portionLabel={selectedPortion?.label}
+          fallbackLabel="portion"
+          resolvedAmount={preview
+            ? `${formatStoredValue(preview.resolvedAmount, 3)} ${displayUnit}`
+            : "—"}
+          error={errors.portionCount?.[0]}
+          wideSuffix
+        />
 
-        <div class="space-y-1.5">
-          <label
-            for="portionCount"
-            class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
-          >
-            Number of portions
-          </label>
-          <div class="relative">
-            <input
-              id="portionCount"
-              name="portionCount"
-              type="number"
-              min="0.001"
-              step="0.001"
-              inputmode="decimal"
-              bind:value={portionCount}
-              required
-              autocomplete="off"
-              aria-invalid={errors.portionCount ? "true" : undefined}
-              class="!min-h-[58px] !rounded-[13px] !border-[var(--app-border)] !px-3.5
-                !pr-32 !text-[20px] !font-bold !shadow-none
-                focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
-            />
-            <span
-              class="pointer-events-none absolute inset-y-0 right-3.5 flex items-center
-                text-[12px] font-semibold text-[var(--app-muted)]"
-            >
-              × {selectedPortion?.label ?? "portion"}
-            </span>
-          </div>
-          {#if errors.portionCount}
-            <p role="alert">{errors.portionCount[0]}</p>
-          {/if}
-        </div>
-
-        <div class="flex items-center justify-between gap-5 px-0.5">
-          <span class="text-[12px] text-[var(--app-muted)]">Resolved amount</span>
-          <strong class="text-[15px]">
-            {preview
-              ? `${formatStoredValue(preview.resolvedAmount, 3)} ${displayUnit}`
-              : "—"}
-          </strong>
-        </div>
-
-        <section
-          aria-label="First entry nutrition preview"
-          aria-live="polite"
-          class="rounded-[14px] border border-[var(--app-border)] bg-[var(--app-panel)] p-4"
-        >
-          <strong class="block text-[28px] font-extrabold leading-none">
-            {preview ? formatStoredValue(preview.energyMkcal, 1) : "—"}
-          </strong>
-          <span class="mt-1 block text-[10px] text-[var(--app-muted)]">kcal</span>
-
-          <dl class="mt-5 grid grid-cols-3 gap-4">
-            <div>
-              <dt class="text-[10px] text-[var(--app-muted)]">Protein</dt>
-              <dd class="mt-1 text-[13px] font-bold text-[var(--app-purple)]">
-                {preview ? formatStoredValue(preview.proteinMg, 1) : "—"} g
-              </dd>
-            </div>
-            <div>
-              <dt class="text-[10px] text-[var(--app-muted)]">Carbs</dt>
-              <dd class="mt-1 text-[13px] font-bold text-[var(--app-orange)]">
-                {preview ? formatStoredValue(preview.carbsMg, 1) : "—"} g
-              </dd>
-            </div>
-            <div>
-              <dt class="text-[10px] text-[var(--app-muted)]">Fat</dt>
-              <dd class="mt-1 text-[13px] font-bold text-[var(--app-green)]">
-                {preview ? formatStoredValue(preview.fatMg, 1) : "—"} g
-              </dd>
-            </div>
-          </dl>
-        </section>
-      </fieldset>
-
-      <div
-        class="fixed inset-x-0 bottom-0 z-30 mx-auto flex w-full bg-[var(--app-surface)]
-          px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3
-          sm:bottom-6 sm:max-w-3xl sm:justify-center sm:rounded-b-[26px]
-          sm:px-8 sm:pb-4 sm:pt-4 lg:max-w-5xl"
-      >
-        <button
-          type="submit"
-          disabled={preview === null}
-          class="flex min-h-[52px] w-full items-center justify-center rounded-[12px]
-            bg-[var(--app-accent)] px-4 text-[14px] font-bold text-white shadow-sm transition
-            hover:bg-[var(--app-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50
-            focus-visible:outline-2 focus-visible:outline-offset-2
-            focus-visible:outline-[var(--app-accent)] active:translate-y-px sm:w-56"
-        >Save food</button>
+        <NutritionPreview
+          {preview}
+          label="First entry nutrition preview"
+          energyFractionalDigits={1}
+          compact
+        />
       </div>
+
+      <BottomSubmitBar label="Save food" disabled={preview === null} layout="floating" />
     </form>
-  </main>
-</div>
+</AppPageShell>

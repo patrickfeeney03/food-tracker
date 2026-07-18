@@ -2,6 +2,9 @@
   import { resolve } from "$app/paths";
   import { withQuery } from "$lib/navigation";
   import { formatStoredValue } from "$lib/nutrition/math";
+  import AppPageShell from "$lib/components/AppPageShell.svelte";
+  import BackPageHeader from "$lib/components/BackPageHeader.svelte";
+  import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
   import type { PageProps } from "./$types";
 
   let { data }: PageProps = $props();
@@ -28,43 +31,17 @@
   <title>Goal history | Calorie Tracker</title>
 </svelte:head>
 
-<div class="min-h-dvh bg-[var(--app-canvas)] sm:px-4 sm:py-6">
-  <main
-    class="mx-auto min-h-dvh w-full max-w-[430px] bg-[var(--app-surface)] px-4 pb-8 pt-4
-      text-[var(--app-text)] sm:min-h-[calc(100dvh-3rem)] sm:rounded-[26px]
-      sm:border sm:border-[var(--app-border)]/70 sm:px-7 sm:py-8
-      sm:shadow-[0_24px_60px_rgba(23,32,51,0.12)]"
-  >
-    <header class="mb-7 flex items-start gap-3">
-      <a
-        href={resolve("/settings")}
-        aria-label="Back to settings"
-        class="-ml-1 inline-flex size-11 shrink-0 items-center justify-center rounded-full
-          text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)]
-          focus-visible:outline-2 focus-visible:outline-offset-2
-          focus-visible:outline-[var(--app-accent)]"
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="m15 18-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"></path>
-        </svg>
-      </a>
-      <div class="min-w-0 flex-1 pt-1">
-        <h1 class="text-[21px] font-extrabold leading-tight tracking-[-0.025em]">
-          Goal history
-        </h1>
-        <p class="mt-1 text-sm leading-5 text-[var(--app-muted)]">
-          Each period controls diary targets from its effective date onward.
-        </p>
-      </div>
-    </header>
+<AppPageShell class="px-4 pb-8 pt-4 sm:px-7 sm:py-8">
+    <BackPageHeader
+      href={resolve("/settings")}
+      backLabel="Back to settings"
+      title="Goal history"
+      description="Each period controls diary targets from its effective date onward."
+      contentClass="min-w-0 flex-1"
+    />
 
     {#if data.saved}
-      <div
-        role="status"
-        class="mb-5 rounded-xl border border-[var(--app-success-border)]
-          bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium
-          text-[var(--app-success-text)]"
-      >Target period saved.</div>
+      <FeedbackBanner class="mb-5" message="Target period saved." />
     {/if}
 
     <a
@@ -130,5 +107,4 @@
         {/each}
       </ol>
     {/if}
-  </main>
-</div>
+</AppPageShell>

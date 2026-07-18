@@ -1,5 +1,9 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
+  import AppPageShell from '$lib/components/AppPageShell.svelte';
+  import FeedbackBanner from '$lib/components/FeedbackBanner.svelte';
+  import SettingsRow from '$lib/components/settings/SettingsRow.svelte';
+  import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
   import { formatStoredValue } from '$lib/nutrition/math';
   import type { PageProps } from './$types';
 
@@ -53,13 +57,7 @@
   />
 </svelte:head>
 
-<div class="min-h-dvh bg-[var(--app-canvas)] sm:px-4 sm:py-6">
-<main
-  class="mx-auto min-h-dvh w-full max-w-[430px] bg-[var(--app-surface)] px-3 py-4
-    text-[var(--app-text)] sm:min-h-[calc(100dvh-3rem)] sm:rounded-[26px]
-    sm:border sm:border-[var(--app-border)]/70 sm:px-6 sm:py-8
-    sm:shadow-[0_24px_60px_rgba(23,32,51,0.12)]"
->
+<AppPageShell class="px-3 py-4 sm:px-6 sm:py-8">
   <div class="w-full">
     <header class="mb-8 flex min-h-11 items-center gap-3">
       <a
@@ -87,154 +85,37 @@
     </header>
 
     {#if data.targetsSaved}
-      <div
-        role="status"
-        class="mb-5 rounded-xl border border-[var(--app-success-border)]
-          bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium
-          text-[var(--app-success-text)]"
-      >Daily targets saved.</div>
+      <FeedbackBanner class="mb-5" message="Daily targets saved." />
     {/if}
 
     <div class="space-y-7">
-      <section aria-labelledby="goals-heading">
-        <h2
-          id="goals-heading"
-          class="mb-2 px-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-[var(--app-muted)]"
-        >
-          Goals
-        </h2>
+      <SettingsSection headingId="goals-heading" title="Goals">
+        <SettingsRow
+          label="Daily targets"
+          value={goalSummary}
+          route="/settings/goals"
+        />
+        <SettingsRow
+          label="Goal history"
+          description="Effective-dated changes"
+          route="/settings/goals/history"
+          separatorBefore
+        />
+      </SettingsSection>
 
-        <div class="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-panel)] shadow-sm">
-          <a
-            href={resolve('/settings/goals')}
-            class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3 text-[var(--app-text)]
-              no-underline transition hover:bg-[var(--app-panel-hover)]
-              focus-visible:outline-2 focus-visible:outline-offset-[-2px]
-              focus-visible:outline-[var(--app-accent)]"
-          >
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-[var(--app-text)]">Daily targets</p>
-              <p class="mt-0.5 truncate text-xs text-[var(--app-muted)]">{goalSummary}</p>
-            </div>
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              class="size-4 shrink-0 text-[var(--app-muted)]"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </a>
-
-          <div class="mx-4 border-t border-[var(--app-border)]"></div>
-
-          <a
-            href={resolve('/settings/goals/history')}
-            class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3 text-[var(--app-text)]
-              no-underline transition hover:bg-[var(--app-panel-hover)]
-              focus-visible:outline-2 focus-visible:outline-offset-[-2px]
-              focus-visible:outline-[var(--app-accent)]"
-          >
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-[var(--app-text)]">Goal history</p>
-              <p class="mt-0.5 text-xs text-[var(--app-muted)]">Effective-dated changes</p>
-            </div>
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              class="size-4 shrink-0 text-[var(--app-muted)]"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </a>
-        </div>
-      </section>
-
-      <section aria-labelledby="account-heading">
-        <h2
-          id="account-heading"
-          class="mb-2 px-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-[var(--app-muted)]"
-        >
-          Account &amp; data
-        </h2>
-
-        <div class="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-panel)] shadow-sm">
-          <div class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3">
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-[var(--app-text)]">Account</p>
-              <p class="mt-0.5 truncate text-xs text-[var(--app-muted)]">
-                {data.user.name} · {data.user.email}
-              </p>
-            </div>
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              class="size-4 shrink-0 text-[var(--app-muted)]"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </div>
-
-          <div class="mx-4 border-t border-[var(--app-border)]"></div>
-
-          <div class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3">
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-[var(--app-text)]">Active sessions</p>
-              <p class="mt-0.5 text-xs text-[var(--app-muted)]">
-                {data.activeSessionCount}
-                {data.activeSessionCount === 1 ? 'session' : 'sessions'}
-              </p>
-            </div>
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              class="size-4 shrink-0 text-[var(--app-muted)]"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </div>
-
-          <div class="mx-4 border-t border-[var(--app-border)]"></div>
-
-          <div class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3">
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-[var(--app-text)]">Export data</p>
-              <p class="mt-0.5 text-xs text-[var(--app-muted)]">Download JSON or CSV</p>
-            </div>
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              class="size-4 shrink-0 text-[var(--app-muted)]"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </div>
-        </div>
-      </section>
+      <SettingsSection headingId="account-heading" title="Account & data">
+        <SettingsRow label="Account" value={`${data.user.name} · ${data.user.email}`} />
+        <SettingsRow
+          label="Active sessions"
+          description={`${data.activeSessionCount} ${data.activeSessionCount === 1 ? 'session' : 'sessions'}`}
+          separatorBefore
+        />
+        <SettingsRow
+          label="Export data"
+          description="Download JSON or CSV"
+          separatorBefore
+        />
+      </SettingsSection>
 
       <section aria-labelledby="appearance-heading">
         <h2
@@ -358,5 +239,4 @@
       </form>
     </footer>
   </div>
-</main>
-</div>
+</AppPageShell>

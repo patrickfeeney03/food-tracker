@@ -2,6 +2,7 @@
   import NutritionGoalForm, {
     type NutritionGoalFormErrors,
   } from "$lib/components/NutritionGoalForm.svelte";
+  import AppPageShell from "$lib/components/AppPageShell.svelte";
   import type { PageProps } from "./$types";
 
   let { data, form }: PageProps = $props();
@@ -13,13 +14,7 @@
   <title>Set your goals | Calorie Tracker</title>
 </svelte:head>
 
-<div class="min-h-dvh bg-[var(--app-canvas)] sm:px-4 sm:py-6">
-  <main
-    class="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-[var(--app-surface)]
-      px-4 pb-8 pt-7 text-[var(--app-text)] sm:min-h-[calc(100dvh-3rem)]
-      sm:rounded-[26px] sm:border sm:border-[var(--app-border)]/70 sm:px-7 sm:py-9
-      sm:shadow-[0_24px_60px_rgba(23,32,51,0.12)]"
-  >
+<AppPageShell class="flex flex-col px-4 pb-8 pt-7 sm:px-7 sm:py-9">
     <header class="mb-7">
       <span
         class="mb-5 grid size-12 place-items-center rounded-[15px] bg-[var(--app-accent-soft)]
@@ -39,5 +34,4 @@
     </header>
 
     <NutritionGoalForm {values} {errors} submitLabel="Confirm goals" />
-  </main>
-</div>
+</AppPageShell>

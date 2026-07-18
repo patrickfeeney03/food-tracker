@@ -2,6 +2,8 @@
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import BarcodeScanner from "$lib/components/BarcodeScanner.svelte";
+  import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
+  import AppPageShell from "$lib/components/AppPageShell.svelte";
   import { withQuery } from "$lib/navigation";
   import type { MealSlot } from "$lib/nutrition/constants";
   import { formatStoredValue } from "$lib/nutrition/math";
@@ -54,10 +56,10 @@
   <title>Add food | Calorie Tracker</title>
 </svelte:head>
 
-<div class="min-h-dvh bg-[var(--app-canvas)] sm:px-4 sm:py-6">
-  <main
-    class="mx-auto flex min-h-dvh w-full flex-col overflow-hidden bg-[var(--app-surface)] px-4 pb-4 text-[var(--app-text)] sm:min-h-[calc(100dvh-3rem)] sm:max-w-3xl sm:rounded-[26px] sm:border sm:border-[var(--app-border)]/70 sm:px-8 sm:pb-8 sm:shadow-[0_24px_60px_rgba(23,32,51,0.12)] lg:max-w-5xl lg:px-10"
-  >
+<AppPageShell
+  class="flex flex-col overflow-hidden px-4 pb-4 sm:px-8 sm:pb-8 lg:px-10"
+  size="wide"
+>
     <header
       class="grid grid-cols-[44px_1fr_44px] items-start pt-4 sm:pt-7 lg:pt-8"
     >
@@ -219,35 +221,19 @@
     </div>
 
     {#if data.added}
-      <div
-        role="status"
-        class="mt-4 rounded-xl border border-[var(--app-success-border)] bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium text-[var(--app-success-text)]"
-      >
-        Food added to {mealNames[data.destination.mealSlot].toLowerCase()}.
-      </div>
+      <FeedbackBanner
+        class="mt-4"
+        message={`Food added to ${mealNames[data.destination.mealSlot].toLowerCase()}.`}
+      />
     {:else if data.created}
-      <div
-        role="status"
-        class="mt-4 rounded-xl border border-[var(--app-success-border)] bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium text-[var(--app-success-text)]"
-      >
-        Food created and added to {mealNames[
-          data.destination.mealSlot
-        ].toLowerCase()}.
-      </div>
+      <FeedbackBanner
+        class="mt-4"
+        message={`Food created and added to ${mealNames[data.destination.mealSlot].toLowerCase()}.`}
+      />
     {:else if data.saved}
-      <div
-        role="status"
-        class="mt-4 rounded-xl border border-[var(--app-success-border)] bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium text-[var(--app-success-text)]"
-      >
-        Food changes saved.
-      </div>
+      <FeedbackBanner class="mt-4" message="Food changes saved." />
     {:else if data.archived}
-      <div
-        role="status"
-        class="mt-4 rounded-xl border border-[var(--app-success-border)] bg-[var(--app-success-bg)] px-3 py-2.5 text-sm font-medium text-[var(--app-success-text)]"
-      >
-        Food archived. Existing diary entries were kept.
-      </div>
+      <FeedbackBanner class="mt-4" message="Food archived. Existing diary entries were kept." />
     {/if}
 
     {#if data.scannedBarcode}
@@ -396,8 +382,7 @@
         Create a custom food
       </a>
     </div>
-  </main>
-</div>
+</AppPageShell>
 
 {#if scannerOpen}
   <BarcodeScanner

@@ -245,8 +245,11 @@ Never commit `.env` or Google client secrets.
 ## Shared UI and Navigation
 
 - `src/routes/layout.css` defines light/dark application colours and common form defaults.
+- `src/lib/components/AppPageShell.svelte`, `BackPageHeader.svelte`, `FeedbackBanner.svelte`, and `BottomSubmitBar.svelte` provide the shared responsive page frame, navigation header, form feedback, and fixed submit action.
 - `src/lib/components/FoodFormFields.svelte` provides shared Create/Edit Food fields.
 - `src/lib/components/NutritionGoalForm.svelte` provides the shared onboarding and Settings target form.
+- `src/lib/components/amount-adjuster/` provides shared portion selection, portion quantity, nutrition preview, and diary destination controls for Create Food, Add Food, and Edit Entry.
+- `src/lib/components/settings/` provides the repeated Settings section and row structures.
 - `src/lib/components/BarcodeScanner.svelte` provides the state-preserving scanner overlay.
 - `src/lib/date.ts` provides current Dublin date and calendar-date shifting.
 - `src/lib/navigation.ts` provides `withQuery()` for encoded navigation context.
