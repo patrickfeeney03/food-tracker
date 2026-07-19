@@ -33,7 +33,7 @@ There is no permanent bottom navigation in the initial release. The diary is the
 | Diary Dashboard | Review a date, totals, and logged food | Add Food |
 | Search/Add | Find foods or apply meal shortcuts | Open/quick-add item |
 | Amount Adjuster | Preview and log or edit an exact amount | Log / Save |
-| Create Food | Enter an unsaved reusable-food draft | Continue to amount |
+| Create Food | Enter reusable-food data and its first diary amount | Save Food |
 | Edit Food | Correct reusable food data for future uses | Save Food |
 | Barcode Scanner | Scan or manually enter a local code | Use code |
 | Meal Shortcut Editor | Rename/change/archive a shortcut | Save Shortcut |
@@ -187,7 +187,7 @@ Food row:
 One shared screen with three modes:
 
 1. New log from an existing food.
-2. New food draft plus first log.
+2. First-log controls embedded in Create Food.
 3. Existing diary-entry edit.
 
 ### Header
@@ -231,7 +231,7 @@ Prefill behavior:
 ### Mode-Specific Completion
 
 - New existing-food log: save, return to Search/Add, confirmation + Undo.
-- New food draft: create food and first log atomically, return to Search/Add.
+- New food: create food and first log atomically from the one-page Create Food flow, then return to Search/Add.
 - Existing log edit: update snapshot totals/destination atomically, return to original diary position.
 - Existing log edit includes **Delete Entry**; delete returns to diary with Undo.
 
@@ -244,7 +244,7 @@ Prefill behavior:
 
 ## 6. Create Food
 
-This is the first step of an atomic create-and-log wizard, not a standalone catalogue-management screen.
+This is a one-page atomic create-and-first-log flow, not a standalone catalogue-management screen. Reusable-food fields and the first-entry Amount Adjuster appear in the same form.
 
 ### Identity
 
@@ -291,7 +291,8 @@ Trace/less-than labels are resolved manually to a numeric value.
 
 - All numeric fields use decimal-appropriate mobile keyboards.
 - Static unit suffixes are outside the editable text.
-- Continue validates and forwards an unsaved draft to Amount Adjuster.
+- Save validates reusable-food and first-entry inputs separately while preserving all entered values and field errors.
+- The first-entry controls provide the same portion choices, destination fields, resolved amount, and live nutrition preview as Amount Adjuster.
 - The reusable food is persisted only when the first log succeeds.
 - Similar-name warning does not erase entered data.
 

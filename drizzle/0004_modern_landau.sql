@@ -1,0 +1,1 @@
+ALTER TABLE `diary_logs` ADD `client_request_fingerprint` text DEFAULT '' NOT NULL;

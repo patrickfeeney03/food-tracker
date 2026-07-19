@@ -1,10 +1,12 @@
+import { createHash } from 'node:crypto';
 import { createFoodSchema } from "$lib/nutrition/food-input";
-import { logFoodInputSchema } from "$lib/nutrition/portion-input";
+import { logFoodInputSchema, type LogFoodInput } from "$lib/nutrition/portion-input";
+import { parsePortionCountToMilli, toSafeInteger } from "$lib/nutrition/math";
 import { and, eq, isNull } from "drizzle-orm";
 import type { DatabaseConnection } from "../db/connection";
 import { diaryLogs, foods } from "../db/schema";
 import { buildDiaryLogValues } from "./diary-entry";
-import { mapCreateFoodInput } from "./food-mapper";
+import { mapFoodInput, type MutableFoodValues } from "./food-mapper";
 
 type AppDatabase = DatabaseConnection['db'];
 
@@ -13,6 +15,30 @@ export class FoodCreateBarcodeConflictError extends Error {
     super('This barcode is already assigned to another active food.');
     this.name = 'FoodCreateBarcodeConflictError';
   }
+}
+
+export class FoodCreateMutationConflictError extends Error {
+  constructor() {
+    super('This create-food request was already used with different details. Reload before trying again.');
+    this.name = 'FoodCreateMutationConflictError';
+  }
+}
+
+function createRequestFingerprint(
+  food: MutableFoodValues,
+  log: LogFoodInput
+): string {
+  const canonicalRequest = JSON.stringify({
+    food,
+    log: {
+      portionKind: log.portionKind,
+      portionCountMilli: toSafeInteger(parsePortionCountToMilli(log.portionCount)),
+      diaryDate: log.diaryDate,
+      mealSlot: log.mealSlot
+    }
+  });
+
+  return createHash('sha256').update(canonicalRequest).digest('hex');
 }
 
 function barcodeAlreadyExists(
@@ -93,6 +119,17 @@ function findExistingMutation(
   };
 }
 
+function replayExistingMutation(
+  existing: NonNullable<ReturnType<typeof findExistingMutation>>,
+  requestFingerprint: string
+) {
+  if (existing.diaryLog.clientRequestFingerprint !== requestFingerprint) {
+    throw new FoodCreateMutationConflictError();
+  }
+
+  return existing;
+}
+
 export function createFoodAndLog(
   db: AppDatabase,
   userId: string,
@@ -101,11 +138,13 @@ export function createFoodAndLog(
 ) {
   const foodInput = createFoodSchema.parse(rawFoodInput);
   const logInput = logFoodInputSchema.parse(rawLogInput);
+  const foodValues = mapFoodInput(foodInput);
+  const requestFingerprint = createRequestFingerprint(foodValues, logInput);
 
   const existing = findExistingMutation(db, userId, logInput.clientMutationId);
 
   if (existing !== undefined) {
-    return existing;
+    return replayExistingMutation(existing, requestFingerprint);
   }
 
   if (barcodeAlreadyExists(db, userId, foodInput.barcode)) {
@@ -117,7 +156,7 @@ export function createFoodAndLog(
       const food = transaction
         .insert(foods)
         .values(
-          mapCreateFoodInput(foodInput, userId)
+          { userId, ...foodValues }
         )
         .returning()
         .get();
@@ -125,7 +164,10 @@ export function createFoodAndLog(
       const diaryLog = transaction
         .insert(diaryLogs)
         .values(
-          buildDiaryLogValues(food, logInput)
+          {
+            ...buildDiaryLogValues(food, logInput),
+            clientRequestFingerprint: requestFingerprint
+          }
         )
         .returning()
         .get();
@@ -139,7 +181,7 @@ export function createFoodAndLog(
     const replayed = findExistingMutation(db, userId, logInput.clientMutationId);
 
     if (replayed !== undefined) {
-      return replayed;
+      return replayExistingMutation(replayed, requestFingerprint);
     }
 
     if (isUniqueConstraintError(error)) {

@@ -306,6 +306,7 @@ export const diaryLogs = sqliteTable(
       onDelete: 'set null'
     }),
     clientMutationId: text('client_mutation_id'),
+    clientRequestFingerprint: text('client_request_fingerprint').notNull().default(''),
 
     foodName: text('food_name').notNull(),
     foodBrand: text('food_brand'),

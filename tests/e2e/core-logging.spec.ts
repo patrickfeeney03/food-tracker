@@ -130,6 +130,53 @@ test('supports fractional liquid servings without normalising the label basis', 
   ]);
 });
 
+test('rejects a changed Create Food retry that reuses a mutation ID', async ({ app }) => {
+  const { page } = app;
+  await page.goto(`/foods/new?date=${diaryDate}&mealSlot=breakfast`);
+  const clientMutationId = await page.locator('input[name="clientMutationId"]').inputValue();
+  const request = {
+    clientMutationId,
+    name: 'Retry-safe porridge',
+    brand: '',
+    barcode: '',
+    amountUnit: 'mg',
+    basisAmount: '100',
+    servingAmount: '125',
+    containerAmount: '',
+    energyKcal: '200',
+    proteinG: '10',
+    carbsG: '30',
+    fatG: '5',
+    fibreG: '',
+    sugarG: '',
+    saturatedFatG: '',
+    sodiumMg: '',
+    potassiumMg: '',
+    notes: '',
+    portionKind: 'serving',
+    portionCount: '1',
+    diaryDate,
+    mealSlot: 'breakfast'
+  };
+
+  const first = await page.request.post(page.url(), { form: request });
+  const changed = await page.request.post(page.url(), {
+    form: { ...request, name: 'Changed retry porridge' }
+  });
+
+  expect(first.status()).toBe(200);
+  expect(await first.json()).toMatchObject({ type: 'redirect', status: 303 });
+  expect(changed.status()).toBe(200);
+  const failure = await changed.json();
+  expect(failure).toMatchObject({ type: 'failure', status: 409 });
+  expect(failure.data).toContain(
+    'This create-food request was already used with different details. Reload before trying again.'
+  );
+  expect(app.diaryRows()).toEqual([
+    expect.objectContaining({ foodName: 'Retry-safe porridge' })
+  ]);
+});
+
 test('navigates from the catalogue, logs an existing food, then edits its diary snapshot', async ({ app }) => {
   const foodId = app.createFood({ name: 'Greek yoghurt' });
   const { page } = app;

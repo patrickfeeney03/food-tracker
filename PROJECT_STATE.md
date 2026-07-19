@@ -54,6 +54,7 @@ Amounts support up to three decimal places. The development database is currentl
 
 - `/foods` provides owner-scoped active-food search by name, brand, or barcode; recent-use ordering; barcode scanning/manual entry; destination preservation; and feedback.
 - `/foods/new` atomically creates a reusable food and its first diary snapshot. It supports arbitrary solid/liquid bases, exact serving/container amounts, optional nutrition, live previews, and field-error preservation.
+- Create-and-log retries store a canonical request fingerprint and reject a changed payload that reuses the same mutation UUID.
 - Existing-food Amount Adjuster and `/diary/[entryId]/edit` support portion/date/meal changes using snapshot nutrition.
 - Quick Add replays the latest compatible portion representation with current food nutrition, falls back to the previous exact amount when serving/container definitions change, and provides pending feedback plus Undo.
 - Food editing has optimistic conflict checks, duplicate-barcode handling, and confirmed archival without changing diary history.
@@ -76,7 +77,7 @@ Amounts support up to three decimal places. The development database is currentl
 
 ## Current Route Gaps
 
-- Create Food is a one-page create-and-first-log flow, not the specification's two-step unsaved-draft wizard.
+- Create Food intentionally uses the implemented one-page atomic create-and-first-log flow.
 - Normal Amount Adjuster adds do not yet have pending-button protection or success Undo.
 - Dashboard rows omit some specified details; loading, stale-data, retry, and broader Undo states are incomplete.
 - Barcode archived-hit recovery, checksum override, restore/replace, and link-collision flows are missing.
@@ -85,7 +86,6 @@ Amounts support up to three decimal places. The development database is currentl
 
 ## Integrity and Technical Risks
 
-- Create-and-log exact UUID replay does not compare the retried payload because no request fingerprint is stored.
 - Diary edits lack `updatedAt` concurrency checks, so concurrent tabs can overwrite each other.
 - The home goal guard checks for any goal, while diary selection requires one effective on or before the selected date.
 - Session refresh revalidates before updating by ID; the update should repeat active/non-expired predicates.
@@ -101,9 +101,7 @@ Amounts support up to three decimal places. The development database is currentl
 
 ### P0 — protect the completed logging flow
 
-1. Decide between the current one-page Create Food flow and the specified two-step draft wizard; align `UI_DESIGN_SPEC.md`.
-2. Store a create-and-log request fingerprint so changed retries with the same UUID are rejected.
-3. Add browser coverage for duplicate barcode/general validation recovery and remaining unit/liquid-container representations.
+No open P0 work.
 
 ### P1 — repeated logging and integrity
 
@@ -117,7 +115,7 @@ Amounts support up to three decimal places. The development database is currentl
 1. Implement individual session revocation and JSON/CSV export.
 2. Complete barcode recovery/collision outcomes and PWA/offline/update handling.
 3. Audit core screens against `CalorieTrackerProductDesign.png` at mobile and desktop widths, including 44 px targets, focus, keyboard, and screen-reader behavior.
-4. Optimize latest-use SQL, fix legacy `ml` migration, make date helpers deterministic, and expand route/component tests.
+4. Optimize latest-use SQL, fix the legacy `ml` migration, make date helpers deterministic, and extend route/component coverage with remaining validation and portion variants.
 5. Add reusable Button variants and consolidate truly identical form-reading helpers incrementally.
 
 ## Local Configuration

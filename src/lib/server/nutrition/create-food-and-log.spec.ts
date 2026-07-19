@@ -7,7 +7,8 @@ import { diaryLogs, foods, users } from "../db/schema";
 import { describe, expect, it } from 'vitest';
 import {
   createFoodAndLog,
-  FoodCreateBarcodeConflictError
+  FoodCreateBarcodeConflictError,
+  FoodCreateMutationConflictError
 } from "./create-food-and-log";
 import { eq } from "drizzle-orm";
 
@@ -330,6 +331,50 @@ describe('createFoodAndLog', () => {
           .where(eq(diaryLogs.userId, userId))
           .all()
       ).toHaveLength(1);
+    });
+  });
+
+  it('rejects a retried mutation when the food or first-log details changed', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const foodInput = {
+        name: 'Greek yogurt',
+        amountUnit: 'mg' as const,
+        basisAmount: '100',
+        energyKcal: '65',
+        proteinG: '10',
+        carbsG: '3.5',
+        fatG: '0.8'
+      };
+      const logInput = {
+        clientMutationId,
+        portionKind: 'hundred' as const,
+        portionCount: '2',
+        diaryDate: '2026-07-12',
+        mealSlot: 'breakfast' as const
+      };
+
+      createFoodAndLog(connection.db, userId, foodInput, logInput);
+
+      expect(() =>
+        createFoodAndLog(
+          connection.db,
+          userId,
+          { ...foodInput, name: 'Changed yogurt' },
+          logInput
+        )
+      ).toThrow(FoodCreateMutationConflictError);
+      expect(() =>
+        createFoodAndLog(
+          connection.db,
+          userId,
+          foodInput,
+          { ...logInput, mealSlot: 'lunch' }
+        )
+      ).toThrow(FoodCreateMutationConflictError);
+
+      expect(connection.db.select().from(foods).all()).toHaveLength(1);
+      expect(connection.db.select().from(diaryLogs).all()).toHaveLength(1);
     });
   });
 });

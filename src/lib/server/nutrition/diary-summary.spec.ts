@@ -16,6 +16,7 @@ function makeDiaryLog(
     sourceShortcutId: null,
     shortcutBatchId: null,
     clientMutationId: crypto.randomUUID(),
+    clientRequestFingerprint: '',
 
     foodName: 'Test food',
     foodBrand: null,

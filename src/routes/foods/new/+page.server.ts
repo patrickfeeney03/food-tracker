@@ -6,7 +6,8 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { createFoodSchema } from "$lib/nutrition/food-input";
 import {
   createFoodAndLog,
-  FoodCreateBarcodeConflictError
+  FoodCreateBarcodeConflictError,
+  FoodCreateMutationConflictError
 } from "$lib/server/nutrition/create-food-and-log";
 import { db } from "$lib/server/db";
 import { resolve } from "$app/paths";
@@ -135,6 +136,15 @@ export const actions = {
           values,
           errors: {
             barcode: [caught.message]
+          }
+        });
+      }
+
+      if (caught instanceof FoodCreateMutationConflictError) {
+        return fail(409, {
+          values,
+          errors: {
+            form: [caught.message]
           }
         });
       }
