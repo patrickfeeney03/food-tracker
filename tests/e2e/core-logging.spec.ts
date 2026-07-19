@@ -28,6 +28,7 @@ async function fillCoreFoodFields(
 }
 
 async function chooseRadio(page: Page, name: string) {
+  await page.waitForLoadState('networkidle');
   await page.getByRole('radio', { name }).locator('..').click();
   await expect(page.getByRole('radio', { name })).toBeChecked();
 }
@@ -239,6 +240,7 @@ test('opens the Amount Adjuster from the plus when a food has no previous use', 
   const foodId = app.createFood({ name: 'Never logged food' });
   const { page } = app;
   await page.goto(`/foods?date=${diaryDate}&mealSlot=snacks&q=Never`);
+  await page.waitForLoadState('networkidle');
 
   await page.getByRole('link', { name: 'Choose an amount for Never logged food' }).click();
 

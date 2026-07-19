@@ -8,8 +8,9 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 const workspace = process.cwd();
 const allowedDirectory = resolve(workspace, '.playwright');
 const databasePath = resolve(process.env.DATABASE_URL ?? '');
+const databaseName = basename(databasePath);
 
-if (dirname(databasePath) !== allowedDirectory || basename(databasePath) !== 'e2e.db') {
+if (dirname(databasePath) !== allowedDirectory || !databaseName.startsWith('e2e') || !databaseName.endsWith('.db')) {
   throw new Error(`Refusing to prepare an E2E database outside ${allowedDirectory}`);
 }
 
@@ -25,10 +26,11 @@ try {
   sqlite.close();
 }
 
+const port = process.env.PORT || '4173';
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const server = spawn(
   npmCommand,
-  ['run', 'dev', '--', '--host', '127.0.0.1', '--port', '4173'],
+  ['run', 'dev', '--', '--host', '127.0.0.1', '--port', port],
   { env: process.env, stdio: 'inherit' }
 );
 

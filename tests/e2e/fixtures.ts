@@ -3,8 +3,9 @@ import { resolve } from 'node:path';
 import Database from 'better-sqlite3';
 import { expect, test as base, type Page } from 'playwright/test';
 
-const BASE_URL = 'http://127.0.0.1:4173';
-const DATABASE_PATH = resolve(process.cwd(), '.playwright/e2e.db');
+const port = process.env.PORT || '4173';
+const BASE_URL = `http://127.0.0.1:${port}`;
+const DATABASE_PATH = resolve(process.cwd(), `.playwright/e2e-${port}.db`);
 const SESSION_DURATION_MS = 90 * 24 * 60 * 60 * 1000;
 
 type FoodSeed = {

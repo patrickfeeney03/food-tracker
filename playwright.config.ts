@@ -1,8 +1,9 @@
 import { defineConfig, devices } from 'playwright/test';
 import { resolve } from 'node:path';
 
-const baseURL = 'http://127.0.0.1:4173';
-const databasePath = resolve(process.cwd(), '.playwright/e2e.db');
+const port = process.env.PORT || '4173';
+const baseURL = `http://127.0.0.1:${port}`;
+const databasePath = resolve(process.cwd(), `.playwright/e2e-${port}.db`);
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -24,6 +25,7 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 120_000,
     env: {
+      PORT: port,
       DATABASE_URL: databasePath,
       GOOGLE_CLIENT_ID: 'e2e-unused-client',
       GOOGLE_CLIENT_SECRET: 'e2e-unused-secret',
