@@ -2,10 +2,12 @@
   let {
     label,
     disabled = false,
+    busy = false,
     layout = "contained",
   }: {
     label: string;
     disabled?: boolean;
+    busy?: boolean;
     layout?: "contained" | "floating";
   } = $props();
 </script>
@@ -17,7 +19,8 @@
 >
   <button
     type="submit"
-    {disabled}
+    disabled={disabled || busy}
+    aria-busy={busy}
     class={layout === "floating"
       ? "flex min-h-[52px] w-full items-center justify-center rounded-[12px] bg-[var(--app-accent)] px-4 text-[14px] font-bold text-white shadow-sm transition hover:bg-[var(--app-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)] active:translate-y-px sm:w-56"
       : "mx-auto block min-h-14 w-full max-w-xl cursor-pointer rounded-[13px] border-0 bg-[var(--app-accent)] px-5 text-[14px] font-bold text-white shadow-[0_3px_8px_rgba(40,101,232,0.22)] transition hover:bg-[var(--app-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]/35"}

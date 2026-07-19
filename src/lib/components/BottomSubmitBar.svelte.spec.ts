@@ -17,4 +17,12 @@ describe('BottomSubmitBar', () => {
 
     await expect.element(page.getByRole('button', { name: 'Add to diary' })).toBeDisabled();
   });
+
+  it('exposes its busy state and prevents submission', async () => {
+    render(BottomSubmitBar, { label: 'Adding…', busy: true });
+
+    const button = page.getByRole('button', { name: 'Adding…' });
+    await expect.element(button).toBeDisabled();
+    await expect.element(button).toHaveAttribute('aria-busy', 'true');
+  });
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from "$app/forms";
   import { resolve } from "$app/paths";
   import DiaryDestinationFields from "$lib/components/amount-adjuster/DiaryDestinationFields.svelte";
   import NutritionPreview from "$lib/components/amount-adjuster/NutritionPreview.svelte";
@@ -16,6 +17,7 @@
     scaleNutritionValue,
   } from "$lib/nutrition/math";
   import { untrack } from "svelte";
+  import type { SubmitFunction } from "@sveltejs/kit";
   import type { PageProps } from "./$types";
 
   let { data, form }: PageProps = $props();
@@ -47,6 +49,19 @@
   let portionCount = $state(untrack(() => values.portionCount));
   let diaryDate = $state(untrack(() => values.diaryDate));
   let mealSlot = $state<MealSlot>(untrack(() => values.mealSlot as MealSlot));
+  let isSubmitting = $state(false);
+
+  const enhanceLogFood: SubmitFunction = () => {
+    isSubmitting = true;
+
+    return async ({ result, update }) => {
+      await update();
+
+      if (result.type !== "redirect") {
+        isSubmitting = false;
+      }
+    };
+  };
 
   let displayUnit = $derived(data.food.amountUnit === "mg" ? "g" : "ml");
   let selectedPortion = $derived(
@@ -124,7 +139,11 @@
       </div>
     </header>
 
-    <form method="POST" class="flex flex-1 flex-col px-3 pb-28 sm:px-8">
+    <form
+      method="POST"
+      use:enhance={enhanceLogFood}
+      class="flex flex-1 flex-col px-3 pb-28 sm:px-8"
+    >
       <input type="hidden" name="clientMutationId" value={values.clientMutationId} />
       <input type="hidden" name="q" value={data.context.q} />
 
@@ -193,6 +212,10 @@
         />
       </div>
 
-      <BottomSubmitBar label="Add to diary" disabled={preview === null} />
+      <BottomSubmitBar
+        label={isSubmitting ? "Adding…" : "Add to diary"}
+        disabled={preview === null}
+        busy={isSubmitting}
+      />
     </form>
 </AppPageShell>

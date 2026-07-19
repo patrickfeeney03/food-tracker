@@ -228,6 +228,41 @@ test('navigates from the catalogue, logs an existing food, then edits its diary 
   ]);
 });
 
+test('shows pending feedback while adding an existing food and restores the form after validation fails', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Pending yoghurt' });
+  const { page } = app;
+  let releaseRequest!: () => void;
+  const requestHeld = new Promise<void>((resolve) => {
+    releaseRequest = resolve;
+  });
+
+  await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`);
+  await page.waitForLoadState('networkidle');
+  await page.route((url) => url.pathname === `/foods/${foodId}/log`, async (route) => {
+    if (route.request().method() === 'POST') {
+      await requestHeld;
+    }
+    await route.continue();
+  });
+
+  await page.getByLabel('Number of portions').fill('1');
+  await page.locator('input[name="clientMutationId"]').evaluate((input) => {
+    (input as HTMLInputElement).value = 'invalid-mutation-id';
+  });
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+
+  const pendingButton = page.getByRole('button', { name: 'Adding…' });
+  await expect(pendingButton).toBeDisabled();
+  await expect(pendingButton).toHaveAttribute('aria-busy', 'true');
+
+  releaseRequest();
+  await expect(page.getByText('Must be a valid mutation ID')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add to diary' })).toBeEnabled();
+
+  await page.getByLabel('Number of portions').fill('');
+  await expect(page.getByRole('button', { name: 'Add to diary' })).toBeDisabled();
+});
+
 test('quick adds the latest portion with current nutrition and supports Undo', async ({ app }) => {
   const foodId = app.createFood({ name: 'Quick yoghurt' });
   const { page, db } = app;
