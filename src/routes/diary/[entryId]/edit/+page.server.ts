@@ -4,10 +4,10 @@ import type { PortionKind } from "$lib/nutrition/constants";
 import { editDiaryEntryInputSchema } from "$lib/nutrition/portion-input";
 import { formatStoredValue } from "$lib/nutrition/math";
 import { db } from "$lib/server/db";
-import { diaryLogs } from "$lib/server/db/schema";
+import { deleteDiaryEntry, DiaryEntryDeletionNotFoundError } from "$lib/server/nutrition/delete-diary-entry";
+import { getActiveDiaryEntry } from "$lib/server/nutrition/diary-entry-query";
 import { DiaryEntryNotFoundError, updateDiaryEntry } from "$lib/server/nutrition/update-diary-entry";
 import { error, fail, redirect } from "@sveltejs/kit";
-import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -19,23 +19,6 @@ function readText(
   return typeof value === 'string' ? value : '';
 }
 
-function loadEntry(
-  userId: string,
-  entryId: string
-) {
-  return db
-    .select()
-    .from(diaryLogs)
-    .where(
-      and(
-        eq(diaryLogs.id, entryId),
-        eq(diaryLogs.userId, userId),
-        isNull(diaryLogs.deletedAt)
-      )
-    )
-    .get();
-}
-
 export const load: PageServerLoad = ({
   locals,
   params
@@ -44,7 +27,8 @@ export const load: PageServerLoad = ({
     return redirect(303, '/sign-in');
   }
 
-  const entry = loadEntry(
+  const entry = getActiveDiaryEntry(
+    db,
     locals.user.id,
     params.entryId
   );
@@ -99,7 +83,7 @@ export const load: PageServerLoad = ({
 };
 
 export const actions = {
-  default: async ({
+  save: async ({
     locals,
     params,
     request
@@ -154,6 +138,36 @@ export const actions = {
             portionKind: [caught.message]
           }
         });
+      }
+
+      throw caught;
+    }
+  },
+
+  delete: ({ locals, params }) => {
+    if (locals.user === null) {
+      return redirect(303, '/sign-in');
+    }
+
+    try {
+      const entry = deleteDiaryEntry(
+        db,
+        locals.user.id,
+        params.entryId
+      );
+
+      return redirect(
+        303,
+        resolve(
+          withQuery('/', {
+            date: entry.diaryDate,
+            entryDeleted: entry.id
+          })
+        )
+      );
+    } catch (caught) {
+      if (caught instanceof DiaryEntryDeletionNotFoundError) {
+        return error(404, 'Diary entry not found');
       }
 
       throw caught;

@@ -23,6 +23,7 @@ import {
 } from '$lib/server/db/schema';
 import { and, asc, eq, inArray, isNull, like } from 'drizzle-orm';
 import { buildDiaryLogValuesForExactAmount } from './diary-entry';
+import { getActiveDiaryEntry } from './diary-entry-query';
 import { listActiveFoods } from './food-catalogue';
 
 type AppDatabase = DatabaseConnection['db'];
@@ -158,11 +159,7 @@ function preservedSnapshot(
   }
 
   if (input.sourceEntryId !== undefined) {
-    const entry = db.select().from(diaryLogs).where(and(
-      eq(diaryLogs.id, input.sourceEntryId),
-      eq(diaryLogs.userId, userId),
-      isNull(diaryLogs.deletedAt)
-    )).get();
+    const entry = getActiveDiaryEntry(db, userId, input.sourceEntryId);
 
     if (entry === undefined) {
       throw new MealShortcutBlockedError('A source diary entry is no longer available.');

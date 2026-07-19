@@ -6,6 +6,13 @@ import { describe, expect, it } from "vitest";
 import { createDatabase, type DatabaseConnection } from "../db/connection";
 import { diaryLogs, foods, users } from "../db/schema";
 import { createFoodAndLog } from "./create-food-and-log";
+import {
+  deleteDiaryEntry,
+  DiaryEntryDeletionNotFoundError,
+  restoreDeletedDiaryEntry,
+} from "./delete-diary-entry";
+import { getActiveDiaryEntry, getDeletedDiaryEntry } from "./diary-entry-query";
+import { loadDiaryDay } from "./diary-summary";
 import { DiaryEntryNotFoundError, updateDiaryEntry } from "./update-diary-entry";
 
 function withMigratedDatabase(
@@ -203,6 +210,78 @@ describe('updateDiaryEntry', () => {
           }
         )
       ).toThrow(DiaryEntryNotFoundError);
+    });
+  });
+});
+
+describe('deleteDiaryEntry', () => {
+  it('soft-deletes an entry, removes it from diary totals, and restores the exact deletion', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const created = createEntry(connection, userId);
+      const deletedAt = new Date('2026-07-16T15:00:00.000Z');
+      const restoredAt = new Date('2026-07-16T15:01:00.000Z');
+
+      const deleted = deleteDiaryEntry(
+        connection.db,
+        userId,
+        created.diaryLog.id,
+        deletedAt
+      );
+
+      expect(deleted.deletedAt).toEqual(deletedAt);
+      expect(deleted.updatedAt).toEqual(deletedAt);
+      expect(getDeletedDiaryEntry(connection.db, userId, deleted.id)?.id).toBe(deleted.id);
+      expect(getActiveDiaryEntry(connection.db, userId, deleted.id)).toBeUndefined();
+      expect(loadDiaryDay(connection.db, userId, deleted.diaryDate).totals.energyMkcal).toBe(0);
+
+      const restored = restoreDeletedDiaryEntry(
+        connection.db,
+        userId,
+        deleted.id,
+        deletedAt,
+        restoredAt
+      );
+
+      expect(restored.deletedAt).toBeNull();
+      expect(restored.updatedAt).toEqual(restoredAt);
+      expect(getDeletedDiaryEntry(connection.db, userId, restored.id)).toBeUndefined();
+      expect(getActiveDiaryEntry(connection.db, userId, restored.id)?.id).toBe(restored.id);
+      expect(loadDiaryDay(connection.db, userId, restored.diaryDate).totals.energyMkcal).toBe(62_000);
+    });
+  });
+
+  it('does not delete another user’s entry or restore a different deletion event', () => {
+    withMigratedDatabase((connection) => {
+      const ownerId = insertUser(connection);
+      const otherUserId = insertUser(connection, 'other@example.com');
+      const created = createEntry(connection, ownerId);
+      const deletedAt = new Date('2026-07-16T15:00:00.000Z');
+
+      expect(() =>
+        deleteDiaryEntry(connection.db, otherUserId, created.diaryLog.id, deletedAt)
+      ).toThrow(DiaryEntryDeletionNotFoundError);
+
+      deleteDiaryEntry(connection.db, ownerId, created.diaryLog.id, deletedAt);
+
+      expect(() =>
+        restoreDeletedDiaryEntry(
+          connection.db,
+          otherUserId,
+          created.diaryLog.id,
+          deletedAt
+        )
+      ).toThrow(DiaryEntryDeletionNotFoundError);
+      expect(() =>
+        restoreDeletedDiaryEntry(
+          connection.db,
+          ownerId,
+          created.diaryLog.id,
+          new Date(deletedAt.getTime() + 1)
+        )
+      ).toThrow(DiaryEntryDeletionNotFoundError);
+
+      expect(getDeletedDiaryEntry(connection.db, ownerId, created.diaryLog.id)).toBeDefined();
     });
   });
 });

@@ -128,7 +128,32 @@
       </a>
     </nav>
 
-    {#if data.shortcutFeedback?.kind === "applied"}
+    {#if data.entryFeedback?.kind === "deleted"}
+      {@const deletedFeedback = data.entryFeedback}
+      {#snippet undoEntryDeleteAction()}
+        <form method="POST" action="?/undoEntryDelete">
+          <input type="hidden" name="entryId" value={deletedFeedback.entryId} />
+          <input type="hidden" name="deletedAt" value={deletedFeedback.deletedAt} />
+          <button
+            type="submit"
+            class="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-bold
+              text-[var(--app-success-text)] underline underline-offset-2
+              focus-visible:outline-2 focus-visible:outline-offset-2
+              focus-visible:outline-[var(--app-success-text)]"
+          >Undo</button>
+        </form>
+      {/snippet}
+      <FeedbackBanner
+        class="mb-5"
+        message={`${deletedFeedback.foodName} was removed from this diary.`}
+        action={undoEntryDeleteAction}
+      />
+    {:else if data.entryFeedback?.kind === "restored"}
+      <FeedbackBanner
+        class="mb-5"
+        message={`${data.entryFeedback.foodName} was restored to this diary.`}
+      />
+    {:else if data.shortcutFeedback?.kind === "applied"}
       {@const appliedFeedback = data.shortcutFeedback}
       {#snippet undoShortcutAction()}
         <form method="POST" action="?/undoShortcut">

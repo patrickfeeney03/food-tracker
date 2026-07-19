@@ -14,12 +14,25 @@ import {
   MealShortcutNotFoundError,
   undoMealShortcutApplication
 } from "$lib/server/nutrition/meal-shortcut";
+import {
+  DiaryEntryDeletionNotFoundError,
+  restoreDeletedDiaryEntry
+} from "$lib/server/nutrition/delete-diary-entry";
+import {
+  getActiveDiaryEntry,
+  getDeletedDiaryEntry
+} from "$lib/server/nutrition/diary-entry-query";
 import { resolve } from "$app/paths";
 import { withQuery } from "$lib/navigation";
 import { z } from "zod";
 import type { Actions, PageServerLoad } from "./$types";
 
 const applicationIdSchema = z.uuid();
+const entryIdSchema = z.uuid();
+const undoEntryDeletionSchema = z.object({
+  entryId: entryIdSchema,
+  deletedAt: z.coerce.number().int().nonnegative()
+});
 
 function readText(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -67,6 +80,32 @@ export const load: PageServerLoad = ({
     locals.user.id,
     dateResult.data
   );
+  const deletedEntryId = entryIdSchema.safeParse(url.searchParams.get('entryDeleted'));
+  const restoredEntryId = entryIdSchema.safeParse(url.searchParams.get('entryRestored'));
+  let entryFeedback:
+    | { kind: 'deleted'; entryId: string; foodName: string; deletedAt: number }
+    | { kind: 'restored'; foodName: string }
+    | null = null;
+
+  if (deletedEntryId.success) {
+    const entry = getDeletedDiaryEntry(db, userId, deletedEntryId.data);
+    if (entry !== undefined && entry.diaryDate === dateResult.data && entry.deletedAt !== null) {
+      entryFeedback = {
+        kind: 'deleted',
+        entryId: entry.id,
+        foodName: entry.foodName,
+        deletedAt: entry.deletedAt.getTime()
+      };
+    }
+  } else if (restoredEntryId.success) {
+    const entry = getActiveDiaryEntry(db, userId, restoredEntryId.data);
+    if (entry !== undefined && entry.diaryDate === dateResult.data) {
+      entryFeedback = {
+        kind: 'restored',
+        foodName: entry.foodName
+      };
+    }
+  }
   const shortcutEligibility = Object.fromEntries(
     mealSlots.map((slot) => {
       if (diary.meals[slot].entries.length === 0) {
@@ -148,12 +187,54 @@ export const load: PageServerLoad = ({
       name: locals.user.name
     },
     diary,
+    entryFeedback,
     shortcutEligibility,
     shortcutFeedback
   };
 };
 
 export const actions = {
+  undoEntryDelete: async ({ locals, request }) => {
+    if (locals.user === null) {
+      return redirect(303, '/sign-in');
+    }
+
+    const formData = await request.formData();
+    const result = undoEntryDeletionSchema.safeParse({
+      entryId: readText(formData, 'entryId'),
+      deletedAt: readText(formData, 'deletedAt')
+    });
+
+    if (!result.success) {
+      return error(400, 'Invalid diary entry undo request');
+    }
+
+    try {
+      const entry = restoreDeletedDiaryEntry(
+        db,
+        locals.user.id,
+        result.data.entryId,
+        new Date(result.data.deletedAt)
+      );
+
+      return redirect(
+        303,
+        resolve(
+          withQuery('/', {
+            date: entry.diaryDate,
+            entryRestored: entry.id
+          })
+        )
+      );
+    } catch (caught) {
+      if (caught instanceof DiaryEntryDeletionNotFoundError) {
+        return error(404, 'Deleted diary entry not found');
+      }
+
+      throw caught;
+    }
+  },
+
   undoShortcut: async ({ locals, request }) => {
     if (locals.user === null) {
       return redirect(303, '/sign-in');

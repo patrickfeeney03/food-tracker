@@ -3,6 +3,7 @@ import type { DatabaseConnection } from "$lib/server/db/connection";
 import { diaryLogs, type DiaryLog } from "$lib/server/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { buildDiaryLogUpdateValues } from "./diary-entry";
+import { getActiveDiaryEntry } from "./diary-entry-query";
 
 type Database = DatabaseConnection['db'];
 
@@ -21,17 +22,7 @@ export function updateDiaryEntry(
   updatedAt = new Date()
 ): DiaryLog {
   const input = editDiaryEntryInputSchema.parse(rawInput);
-  const entry = db
-    .select()
-    .from(diaryLogs)
-    .where(
-      and(
-        eq(diaryLogs.id, entryId),
-        eq(diaryLogs.userId, userId),
-        isNull(diaryLogs.deletedAt)
-      )
-    )
-    .get();
+  const entry = getActiveDiaryEntry(db, userId, entryId);
 
   if (entry === undefined) {
     throw new DiaryEntryNotFoundError();

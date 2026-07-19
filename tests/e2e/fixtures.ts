@@ -35,6 +35,7 @@ export type DiaryRow = {
   portionCountMilli: number;
   resolvedAmount: number;
   energyMkcal: number;
+  deletedAt: number | null;
 };
 
 type AuthenticatedApp = {
@@ -165,7 +166,8 @@ export const test = base.extend<Fixtures>({
             portion_amount AS portionAmount,
             portion_count_milli AS portionCountMilli,
             resolved_amount AS resolvedAmount,
-            energy_mkcal AS energyMkcal
+            energy_mkcal AS energyMkcal,
+            deleted_at AS deletedAt
           FROM diary_logs
           WHERE user_id = ?
           ORDER BY logged_at, id

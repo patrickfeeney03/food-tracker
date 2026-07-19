@@ -118,7 +118,7 @@
       </div>
     </header>
 
-    <form method="POST" class="flex flex-1 flex-col px-3 pb-28 sm:px-8">
+    <form method="POST" action="?/save" class="flex flex-1 flex-col px-3 pb-28 sm:px-8">
       <div class="mx-auto w-full max-w-xl flex-1">
         <section class="mb-6">
           <h2
@@ -161,6 +161,30 @@
           mealSlotError={errors.mealSlot?.[0]}
           loggedAt={loggedAtFormatter.format(data.entry.loggedAt)}
         />
+
+        <section
+          aria-labelledby="delete-entry-heading"
+          class="mt-8 border-t border-[var(--app-border)] pt-6"
+        >
+          <h2
+            id="delete-entry-heading"
+            class="text-sm font-bold text-[var(--app-danger-strong)]"
+          >
+            Delete entry
+          </h2>
+          <p class="mt-1 text-xs leading-5 text-[var(--app-muted)]">
+            Remove this entry from the diary. You can undo it from the next screen.
+          </p>
+          <button
+            type="submit"
+            formaction="?/delete"
+            class="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl border
+              border-[var(--app-danger-border)] bg-[var(--app-panel)] px-4 text-sm font-bold
+              text-[var(--app-danger-text)] transition hover:bg-[var(--app-danger-bg)]
+              focus-visible:outline-2 focus-visible:outline-offset-2
+              focus-visible:outline-[var(--app-danger-text)] sm:w-auto"
+          >Delete entry</button>
+        </section>
       </div>
 
       <BottomSubmitBar label="Save changes" disabled={preview === null} />

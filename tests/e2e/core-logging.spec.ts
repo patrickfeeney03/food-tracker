@@ -180,6 +180,53 @@ test('navigates from the catalogue, logs an existing food, then edits its diary 
   ]);
 });
 
+test('deletes a diary entry, recalculates the diary, and restores it with Undo', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Undoable yoghurt' });
+  const { page } = app;
+  await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=lunch`);
+  await chooseRadio(page, 'Serving');
+  await page.getByLabel('Number of portions').fill('1');
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+  await page.goto(`/?date=${diaryDate}`);
+
+  const lunch = page.locator('section[aria-labelledby="lunch-heading"]');
+  await lunch.getByRole('heading', { name: 'Undoable yoghurt' }).click();
+  await page.getByRole('button', { name: 'Delete entry' }).click();
+
+  expectSearchParameters(page, { date: diaryDate });
+  expect(new URL(page.url()).searchParams.get('entryDeleted')).toMatch(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  );
+  await expect(page.getByRole('status')).toContainText(
+    'Undoable yoghurt was removed from this diary.'
+  );
+  await expect(lunch.getByRole('heading', { name: 'Undoable yoghurt' })).toHaveCount(0);
+  expect(app.diaryRows()).toEqual([
+    expect.objectContaining({
+      foodId,
+      diaryDate,
+      mealSlot: 'lunch',
+      deletedAt: expect.any(Number)
+    })
+  ]);
+
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click();
+
+  expectSearchParameters(page, { date: diaryDate });
+  await expect(page.getByRole('status')).toContainText(
+    'Undoable yoghurt was restored to this diary.'
+  );
+  await expect(lunch.getByRole('heading', { name: 'Undoable yoghurt' })).toBeVisible();
+  expect(app.diaryRows()).toEqual([
+    expect.objectContaining({
+      foodId,
+      diaryDate,
+      mealSlot: 'lunch',
+      deletedAt: null
+    })
+  ]);
+});
+
 test('rejects a serving removed after the form loaded and preserves submitted values', async ({ app }) => {
   const foodId = app.createFood({ name: 'Stale serving food', servingAmount: 80_000 });
   const { page, db } = app;
