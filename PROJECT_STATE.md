@@ -227,7 +227,8 @@ Never commit `.env` or Google client secrets.
 - Existing snapshot portion data is loaded without consulting mutable reusable-food nutrition.
 - Portion selection, live resolved amount, live nutrition preview, date change, and meal-slot change are implemented.
 - Saving recalculates and updates the snapshot atomically and returns to the destination diary date.
-- Delete Entry, Undo, and optimistic stale-edit protection are not implemented.
+- Delete Entry soft-deletes the owned active row and returns to the original diary date, where totals are immediately recalculated and an announced Undo action can restore that exact deletion.
+- Optimistic stale-edit protection is not implemented.
 
 ### Barcode scanner overlay
 
@@ -272,7 +273,7 @@ resolve(
 
 ## Known Compromises and Risks
 
-- Quick Add, normal add success Undo, and diary-entry deletion are absent. Meal-shortcut application Undo is implemented for the whole application batch.
+- Quick Add and normal add success Undo are absent. Diary-entry deletion/Undo and whole-batch meal-shortcut application Undo are implemented.
 - Existing-food logging rejects reuse of a mutation UUID with different semantic input. The older create-and-log service still accepts an exact UUID replay without comparing the retried payload, because no request fingerprint is stored.
 - The home-page goal guard checks whether any goal exists, while diary selection requires a goal effective on or before the diary date. A future-dated first goal can therefore bypass setup but leave the current diary without an applicable goal.
 - Diary-entry edits do not compare `updatedAt`, so concurrent tabs can overwrite one another.
@@ -289,7 +290,7 @@ resolve(
 - The diary-destination Zod schema is duplicated between `/foods` and `/foods/new`.
 - `todayInDublin()` reads the clock directly and should accept an optional `Date` for deterministic tests.
 - Date helpers need focused tests around Dublin daylight-saving boundaries.
-- Core services have useful unit/integration coverage. The primary create/add/edit logging interactions and their route actions now have browser coverage; OAuth callback orchestration, Settings flows, meal shortcuts, and the remaining dashboard states still need focused route/component tests.
+- Core services have useful unit/integration coverage. The primary create/add/edit/delete/restore logging interactions and their route actions now have browser coverage; OAuth callback orchestration, Settings flows, meal shortcuts, and the remaining dashboard states still need focused route/component tests.
 
 ## Prioritized Roadmap
 
@@ -304,12 +305,11 @@ resolve(
 
 1. Implement Quick Add from the most recent portion representation while calculating from the reusable food's current nutrition.
 2. Add idempotency, pending-button protection, success feedback, and Undo for normal add and Quick Add.
-3. Add Delete Entry with immediate diary recalculation and Undo.
-4. Add optimistic concurrency protection to diary-entry editing.
-5. Make first-goal/setup guards use the same effective-date rule as diary goal selection.
-6. Make session refresh atomically require a non-revoked, non-expired session and handle a zero-row update as unauthenticated.
-7. Add magnitude and text-length limits at food service boundaries with field-level failures.
-8. Preserve search query, active tab, destination, and scroll state through adjust/edit/back flows.
+3. Add optimistic concurrency protection to diary-entry editing.
+4. Make first-goal/setup guards use the same effective-date rule as diary goal selection.
+5. Make session refresh atomically require a non-revoked, non-expired session and handle a zero-row update as unauthenticated.
+6. Add magnitude and text-length limits at food service boundaries with field-level failures.
+7. Preserve search query, active tab, destination, and scroll state through adjust/edit/back flows.
 
 ### P2: settings, resilience, and visual completion
 
