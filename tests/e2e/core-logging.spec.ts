@@ -159,7 +159,7 @@ test('navigates from the catalogue, logs an existing food, then edits its diary 
   await chooseRadio(page, '100 g');
   await page.getByLabel('Number of portions').fill('0.5');
   await page.getByLabel('Meal').selectOption('snacks');
-  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.getByLabel('Number of portions').press('Enter');
 
   expectSearchParameters(page, { date: diaryDate, updated: '1' });
   const snacks = page.locator('section[aria-labelledby="snacks-heading"]');

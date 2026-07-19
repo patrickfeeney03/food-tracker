@@ -88,7 +88,6 @@
     hour12: false,
     timeZone: "Europe/Dublin",
   });
-
 </script>
 
 <svelte:head>
@@ -96,97 +95,105 @@
 </svelte:head>
 
 <AppPageShell class="relative flex flex-col overflow-hidden" size="wide">
-    <header class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pt-8">
-      <a
-        href={resolve(withQuery("/", { date: data.entry.diaryDate }))}
-        aria-label="Back to diary"
-        class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-xl
+  <header class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pt-8">
+    <a
+      href={resolve(withQuery("/", { date: data.entry.diaryDate }))}
+      aria-label="Back to diary"
+      class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-xl
           text-2xl leading-none text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)]
           focus-visible:outline-2 focus-visible:outline-offset-2
           focus-visible:outline-[var(--app-accent)]"
-      >
-        <span aria-hidden="true">‹</span>
-      </a>
+    >
+      <span aria-hidden="true">‹</span>
+    </a>
 
-      <div class="pt-1">
-        <h1 class="text-[18px] font-bold leading-6 tracking-[-0.02em]">
-          Edit entry
-        </h1>
-        <p class="mt-0.5 text-[11px] leading-4 text-[var(--app-muted)]">
-          {mealNames[data.entry.mealSlot]} · {data.entry.diaryDate}
-        </p>
-      </div>
-    </header>
+    <div class="pt-1">
+      <h1 class="text-[18px] font-bold leading-6 tracking-[-0.02em]">
+        Edit entry
+      </h1>
+      <p class="mt-0.5 text-[11px] leading-4 text-[var(--app-muted)]">
+        {mealNames[data.entry.mealSlot]} · {data.entry.diaryDate}
+      </p>
+    </div>
+  </header>
 
-    <form method="POST" action="?/save" class="flex flex-1 flex-col px-3 pb-28 sm:px-8">
-      <div class="mx-auto w-full max-w-xl flex-1">
-        <section class="mb-6">
-          <h2
-            class="text-[21px] font-extrabold leading-tight tracking-[-0.025em]"
-          >
-            {data.entry.foodName}
-          </h2>
-          <p class="mt-1 text-[12px] text-[var(--app-muted)]">
-            {data.entry.foodBrand ?? "Custom food"}
-          </p>
-        </section>
+  <form id="delete-entry-form" method="POST" action="?/delete"></form>
 
-        <div class="mb-6">
-          <PortionBasisSelector
-            options={data.portionOptions}
-            bind:portionKind
-            error={errors.portionKind?.[0]}
-          />
-        </div>
-
-        <div class="mb-5">
-          <PortionQuantityField
-            bind:portionCount
-            portionLabel={selectedPortion?.label}
-            resolvedAmount={preview
-              ? `${formatStoredValue(preview.resolvedAmount, 1)} ${displayUnit}`
-              : "—"}
-            error={errors.portionCount?.[0]}
-          />
-        </div>
-
-        <div class="mb-7">
-          <NutritionPreview {preview} />
-        </div>
-
-        <DiaryDestinationFields
-          bind:diaryDate
-          bind:mealSlot
-          diaryDateError={errors.diaryDate?.[0]}
-          mealSlotError={errors.mealSlot?.[0]}
-          loggedAt={loggedAtFormatter.format(data.entry.loggedAt)}
-        />
-
-        <section
-          aria-labelledby="delete-entry-heading"
-          class="mt-8 border-t border-[var(--app-border)] pt-6"
+  <form
+    method="POST"
+    action="?/save"
+    class="flex flex-1 flex-col px-3 pb-28 sm:px-8"
+  >
+    <div class="mx-auto w-full max-w-xl flex-1">
+      <section class="mb-6">
+        <h2
+          class="text-[21px] font-extrabold leading-tight tracking-[-0.025em]"
         >
-          <h2
-            id="delete-entry-heading"
-            class="text-sm font-bold text-[var(--app-danger-strong)]"
-          >
-            Delete entry
-          </h2>
-          <p class="mt-1 text-xs leading-5 text-[var(--app-muted)]">
-            Remove this entry from the diary. You can undo it from the next screen.
-          </p>
-          <button
-            type="submit"
-            formaction="?/delete"
-            class="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl border
+          {data.entry.foodName}
+        </h2>
+        <p class="mt-1 text-[12px] text-[var(--app-muted)]">
+          {data.entry.foodBrand ?? "Custom food"}
+        </p>
+      </section>
+
+      <div class="mb-6">
+        <PortionBasisSelector
+          options={data.portionOptions}
+          bind:portionKind
+          error={errors.portionKind?.[0]}
+        />
+      </div>
+
+      <div class="mb-5">
+        <PortionQuantityField
+          bind:portionCount
+          portionLabel={selectedPortion?.label}
+          resolvedAmount={preview
+            ? `${formatStoredValue(preview.resolvedAmount, 1)} ${displayUnit}`
+            : "—"}
+          error={errors.portionCount?.[0]}
+        />
+      </div>
+
+      <div class="mb-7">
+        <NutritionPreview {preview} />
+      </div>
+
+      <DiaryDestinationFields
+        bind:diaryDate
+        bind:mealSlot
+        diaryDateError={errors.diaryDate?.[0]}
+        mealSlotError={errors.mealSlot?.[0]}
+        loggedAt={loggedAtFormatter.format(data.entry.loggedAt)}
+      />
+
+      <section
+        aria-labelledby="delete-entry-heading"
+        class="mt-8 border-t border-[var(--app-border)] pt-6"
+      >
+        <h2
+          id="delete-entry-heading"
+          class="text-sm font-bold text-[var(--app-danger-strong)]"
+        >
+          Delete entry
+        </h2>
+        <p class="mt-1 text-xs leading-5 text-[var(--app-muted)]">
+          Remove this entry from the diary. You can undo it from the next
+          screen.
+        </p>
+        <button
+          type="submit"
+          form="delete-entry-form"
+          class="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl border
               border-[var(--app-danger-border)] bg-[var(--app-panel)] px-4 text-sm font-bold
               text-[var(--app-danger-text)] transition hover:bg-[var(--app-danger-bg)]
               focus-visible:outline-2 focus-visible:outline-offset-2
               focus-visible:outline-[var(--app-danger-text)] sm:w-auto"
-          >Delete entry</button>
-        </section>
-      </div>
+          >Delete entry</button
+        >
+      </section>
+    </div>
 
-      <BottomSubmitBar label="Save changes" disabled={preview === null} />
-    </form>
+    <BottomSubmitBar label="Save changes" disabled={preview === null} />
+  </form>
 </AppPageShell>
