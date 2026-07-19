@@ -8,7 +8,9 @@
   import AppPageShell from "$lib/components/AppPageShell.svelte";
   import FoodFormFields, {
     type FoodFieldErrors,
+    type FoodFieldValues,
   } from "$lib/components/FoodFormFields.svelte";
+  import { readFoodFormValues } from "$lib/nutrition/food-form";
   import { withQuery } from "$lib/navigation";
   import type { PortionKind } from "$lib/nutrition/constants";
   import {
@@ -51,6 +53,9 @@
   let amountUnit = $state<"mg" | "ul">(
     untrack(() => (values.amountUnit === "ul" ? "ul" : "mg")),
   );
+  let foodValues = $state<FoodFieldValues>(
+    untrack(() => ({ ...values })),
+  );
   let portionKind = $state<PortionKind>(
     untrack(() => {
       const kind = values.portionKind;
@@ -91,6 +96,8 @@
   function syncPreviewInput(event: Event) {
     const formElement = event.currentTarget as HTMLFormElement;
     const formData = new FormData(formElement);
+
+    foodValues = readFoodFormValues(formData);
 
     previewInput = {
       basisAmount: formText(formData, "basisAmount"),
@@ -220,7 +227,7 @@
         <FeedbackBanner class="mb-4" message={errors.form[0]} tone="danger" />
       {/if}
 
-      <FoodFormFields {values} {errors} bind:amountUnit />
+      <FoodFormFields values={foodValues} {errors} bind:amountUnit />
 
       <div class="mt-6 space-y-3 sm:col-span-2">
         <PortionBasisSelector

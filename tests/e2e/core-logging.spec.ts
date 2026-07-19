@@ -1,0 +1,286 @@
+import { randomUUID } from 'node:crypto';
+import type { Page } from 'playwright/test';
+import { expect, test } from './fixtures';
+
+const diaryDate = '2026-07-18';
+
+async function fillCoreFoodFields(
+  page: Page,
+  values: {
+    name: string;
+    basisAmount: string;
+    servingAmount?: string;
+    energyKcal: string;
+    proteinG: string;
+    carbsG: string;
+    fatG: string;
+  }
+) {
+  await page.getByLabel('Food name').fill(values.name);
+  await page.getByLabel('Nutrition label basis').fill(values.basisAmount);
+  if (values.servingAmount !== undefined) {
+    await page.locator('#servingAmount').fill(values.servingAmount);
+  }
+  await page.locator('#energyKcal').fill(values.energyKcal);
+  await page.locator('#proteinG').fill(values.proteinG);
+  await page.locator('#carbsG').fill(values.carbsG);
+  await page.locator('#fatG').fill(values.fatG);
+}
+
+async function chooseRadio(page: Page, name: string) {
+  await page.getByRole('radio', { name }).locator('..').click();
+  await expect(page.getByRole('radio', { name })).toBeChecked();
+}
+
+function expectSearchParameters(page: Page, expected: Record<string, string>) {
+  const url = new URL(page.url());
+  for (const [name, value] of Object.entries(expected)) {
+    expect(url.searchParams.get(name)).toBe(value);
+  }
+}
+
+test('creates a food with an arbitrary basis and logs its serving to the selected meal', async ({ app }) => {
+  const { page } = app;
+  await page.goto(`/foods?date=${diaryDate}&mealSlot=breakfast`);
+  await page.getByRole('link', { name: 'Create a custom food' }).click();
+  // Exercise a real change before filling the form so the client-side
+  // navigation has hydrated and attached the live-preview handlers.
+  await chooseRadio(page, 'Liquid (ml)');
+  await chooseRadio(page, 'Solid (g)');
+
+  await fillCoreFoodFields(page, {
+    name: '250 g label porridge',
+    basisAmount: '250',
+    servingAmount: '125',
+    energyKcal: '310',
+    proteinG: '20',
+    carbsG: '50',
+    fatG: '6'
+  });
+  await chooseRadio(page, 'Serving (125 g)');
+  await page.getByLabel('Number of portions').fill('2');
+
+  await expect(page.getByText('250 g', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('First entry nutrition preview').locator('strong').first())
+    .toHaveText('310');
+  await page.getByRole('button', { name: 'Save food' }).click();
+
+  await expect(page).toHaveURL(/\/foods\?/);
+  expectSearchParameters(page, {
+    date: diaryDate,
+    mealSlot: 'breakfast',
+    created: '1'
+  });
+  await expect(page.getByRole('status')).toContainText('Food created and added to breakfast.');
+
+  await page.goto(`/?date=${diaryDate}`);
+  const breakfast = page.locator('section[aria-labelledby="breakfast-heading"]');
+  await expect(breakfast.getByRole('heading', { name: '250 g label porridge' })).toBeVisible();
+  await expect(breakfast.getByText('250 g · 310 kcal')).toBeVisible();
+
+  expect(app.diaryRows()).toEqual([
+    expect.objectContaining({
+      diaryDate,
+      mealSlot: 'breakfast',
+      foodName: '250 g label porridge',
+      basisAmount: 250_000,
+      portionKind: 'serving',
+      portionAmount: 125_000,
+      portionCountMilli: 2_000,
+      resolvedAmount: 250_000,
+      energyMkcal: 310_000
+    })
+  ]);
+});
+
+test('supports fractional liquid servings without normalising the label basis', async ({ app }) => {
+  const { page } = app;
+  await page.goto(`/foods/new?date=${diaryDate}&mealSlot=snacks`);
+  await chooseRadio(page, 'Liquid (ml)');
+  await fillCoreFoodFields(page, {
+    name: 'Fractional smoothie',
+    basisAmount: '250',
+    servingAmount: '330.5',
+    energyKcal: '200',
+    proteinG: '10',
+    carbsG: '30',
+    fatG: '4'
+  });
+  await chooseRadio(page, 'Serving (330.5 ml)');
+  await page.getByLabel('Number of portions').fill('0.5');
+
+  await expect(page.getByText('165.25 ml', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('First entry nutrition preview').locator('strong').first())
+    .toHaveText('132.2');
+  await page.getByRole('button', { name: 'Save food' }).click();
+  await expect(page.getByRole('status')).toContainText('Food created and added to snacks.');
+
+  expect(app.diaryRows()).toEqual([
+    expect.objectContaining({
+      mealSlot: 'snacks',
+      foodName: 'Fractional smoothie',
+      amountUnit: 'ul',
+      basisAmount: 250_000,
+      portionAmount: 330_500,
+      portionCountMilli: 500,
+      resolvedAmount: 165_250,
+      energyMkcal: 132_200
+    })
+  ]);
+});
+
+test('navigates from the catalogue, logs an existing food, then edits its diary snapshot', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Greek yoghurt' });
+  const { page } = app;
+  await page.goto(`/foods?date=${diaryDate}&mealSlot=breakfast&q=Greek`);
+  await page.getByRole('link', { name: 'Add Greek yoghurt to breakfast' }).click();
+  await expect(page).toHaveURL(new RegExp(`/foods/${foodId}/log\\?`));
+
+  await chooseRadio(page, 'Serving');
+  await page.getByLabel('Number of portions').fill('2');
+  await page.getByLabel('Meal').selectOption('dinner');
+  await expect(page.getByText('250 g', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+
+  expectSearchParameters(page, {
+    date: diaryDate,
+    mealSlot: 'dinner',
+    q: 'Greek',
+    added: '1'
+  });
+  await expect(page.getByRole('status')).toContainText('Food added to dinner.');
+
+  await page.goto(`/?date=${diaryDate}`);
+  const dinner = page.locator('section[aria-labelledby="dinner-heading"]');
+  await expect(dinner.getByText('250 g · 155 kcal')).toBeVisible();
+  await dinner.getByRole('heading', { name: 'Greek yoghurt' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Edit entry' })).toBeVisible();
+  await chooseRadio(page, '100 g');
+  await page.getByLabel('Number of portions').fill('0.5');
+  await page.getByLabel('Meal').selectOption('snacks');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+
+  expectSearchParameters(page, { date: diaryDate, updated: '1' });
+  const snacks = page.locator('section[aria-labelledby="snacks-heading"]');
+  await expect(snacks.getByRole('heading', { name: 'Greek yoghurt' })).toBeVisible();
+  await expect(snacks.getByText('50 g · 31 kcal')).toBeVisible();
+  await expect(dinner.getByRole('heading', { name: 'Greek yoghurt' })).toHaveCount(0);
+
+  expect(app.diaryRows()).toEqual([
+    expect.objectContaining({
+      foodId,
+      mealSlot: 'snacks',
+      portionKind: 'hundred',
+      portionAmount: 100_000,
+      portionCountMilli: 500,
+      resolvedAmount: 50_000,
+      energyMkcal: 31_000
+    })
+  ]);
+});
+
+test('rejects a serving removed after the form loaded and preserves submitted values', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Stale serving food', servingAmount: 80_000 });
+  const { page, db } = app;
+  await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=lunch`);
+  await chooseRadio(page, 'Serving');
+  await page.getByLabel('Number of portions').fill('1.5');
+
+  db.prepare('UPDATE foods SET serving_amount = NULL, updated_at = ? WHERE id = ?')
+    .run(Date.now(), foodId);
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+
+  await expect(page.getByRole('alert')).toHaveText('Food does not define a serving amount');
+  await expect(page.getByLabel('Number of portions')).toHaveValue('1.5');
+  await expect(page.getByRole('heading', { name: 'Stale serving food' })).toBeVisible();
+  expect(app.diaryRows()).toEqual([]);
+});
+
+test('rejects a container removed after the form loaded and preserves submitted values', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Stale container food', containerAmount: 500_000 });
+  const { page, db } = app;
+  await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=dinner`);
+  await chooseRadio(page, 'Container');
+  await page.getByLabel('Number of portions').fill('0.75');
+
+  db.prepare('UPDATE foods SET container_amount = NULL, updated_at = ? WHERE id = ?')
+    .run(Date.now(), foodId);
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+
+  await expect(page.getByRole('alert')).toHaveText('Food does not define a container amount');
+  await expect(page.getByLabel('Number of portions')).toHaveValue('0.75');
+  await expect(page.getByRole('heading', { name: 'Stale container food' })).toBeVisible();
+  expect(app.diaryRows()).toEqual([]);
+});
+
+test('replays the same existing-food mutation without creating a duplicate diary row', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Retry-safe food' });
+  const { page } = app;
+  await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=lunch`);
+  const clientMutationId = await page.locator('input[name="clientMutationId"]').inputValue();
+  const request = {
+    clientMutationId,
+    q: '',
+    portionKind: 'serving',
+    portionCount: '1.25',
+    diaryDate,
+    mealSlot: 'lunch'
+  };
+
+  const first = await page.request.post(page.url(), { form: request });
+  const replay = await page.request.post(page.url(), { form: request });
+
+  expect(first.status()).toBe(200);
+  expect(replay.status()).toBe(200);
+  expect(await first.json()).toMatchObject({ type: 'redirect', status: 303 });
+  expect(await replay.json()).toMatchObject({ type: 'redirect', status: 303 });
+  expect(app.diaryRows()).toEqual([
+    expect.objectContaining({
+      foodId,
+      mealSlot: 'lunch',
+      portionKind: 'serving',
+      portionCountMilli: 1_250,
+      resolvedAmount: 156_250
+    })
+  ]);
+});
+
+test('does not expose or log archived and cross-user foods', async ({ app }) => {
+  const otherUserId = app.createUser();
+  const otherFoodId = app.createFood({ userId: otherUserId, name: 'Other user food' });
+  const archivedFoodId = app.createFood({
+    name: 'Archived food',
+    deletedAt: Date.now()
+  });
+  const { page } = app;
+
+  await page.goto(`/foods?date=${diaryDate}&mealSlot=breakfast`);
+  await expect(page.getByText('Other user food')).toHaveCount(0);
+  await expect(page.getByText('Archived food')).toHaveCount(0);
+
+  for (const foodId of [otherFoodId, archivedFoodId]) {
+    const getResponse = await page.goto(
+      `/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`
+    );
+    expect(getResponse?.status()).toBe(404);
+
+    const postResponse = await page.request.post(
+      `/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`,
+      {
+        form: {
+          clientMutationId: randomUUID(),
+          q: '',
+          portionKind: 'hundred',
+          portionCount: '1',
+          diaryDate,
+          mealSlot: 'breakfast'
+        },
+        maxRedirects: 0
+      }
+    );
+    expect(postResponse.status()).toBe(404);
+  }
+
+  expect(app.diaryRows()).toEqual([]);
+});

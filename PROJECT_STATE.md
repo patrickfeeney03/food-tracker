@@ -211,6 +211,7 @@ Never commit `.env` or Google client secrets.
 - The create-food merge artifact that duplicated most form fields and produced duplicate IDs has been removed in the current working change.
 - The misleading hardcoded 100 g/ml first-entry UX has been replaced in the current working change with unit, hundred, available Serving, and available Container choices.
 - The current working change also shows resolved amount and live calorie/macro previews, disables invalid submission, and reports unavailable serving/container choices from the server.
+- Browser coverage verifies the catalogue-to-create flow, arbitrary 250 g label bases, solid and fractional-liquid servings, first-log snapshots, and preserved form values. It also guards against live-preview rerenders restoring initial field values while the user is editing.
 - The route remains a one-page create-and-first-log flow. This differs from the two-step unsaved-draft wizard in `UI_DESIGN_SPEC.md`; either implement that wizard later or explicitly revise the behavior spec after a product decision.
 - Duplicate active barcodes are reported as a field-level error and covered by a service test.
 
@@ -256,6 +257,7 @@ Never commit `.env` or Google client secrets.
 - `src/lib/components/BarcodeScanner.svelte` provides the state-preserving scanner overlay.
 - `src/lib/date.ts` provides current Dublin date and calendar-date shifting.
 - `src/lib/navigation.ts` provides `withQuery()` for encoded navigation context.
+- `tests/e2e/` provides an authenticated Playwright harness backed by a dedicated migrated `.playwright/e2e.db`; it never uses the development database or the Google OAuth flow.
 
 Use `withQuery()` inside `resolve()`:
 
@@ -287,20 +289,16 @@ resolve(
 - The diary-destination Zod schema is duplicated between `/foods` and `/foods/new`.
 - `todayInDublin()` reads the clock directly and should accept an optional `Date` for deterministic tests.
 - Date helpers need focused tests around Dublin daylight-saving boundaries.
-- Core services have useful unit/integration coverage, but route loaders/actions, OAuth callback orchestration, and the main Svelte interactions need focused tests.
+- Core services have useful unit/integration coverage. The primary create/add/edit logging interactions and their route actions now have browser coverage; OAuth callback orchestration, Settings flows, meal shortcuts, and the remaining dashboard states still need focused route/component tests.
 
 ## Prioritized Roadmap
 
 ### P0: protect the completed core logging flow
 
-1. Add route/component tests for Create Food and both Amount Adjusters, including validation preservation and unavailable Serving/Container rejection.
-2. Add browser-level coverage for food-row navigation, successful existing-food logging, idempotent retry, and cross-user/archived-food rejection.
-3. Manually verify:
-   - 100 g basis with a 125 g Serving.
-   - Arbitrary 125 g and 250 g bases.
-   - Fractional ml input and liquid Serving/Container choices.
-4. Decide whether to keep the current one-page Create Food flow or implement the specified two-step unsaved-draft wizard, then align `UI_DESIGN_SPEC.md`.
-5. Add a stored/request fingerprint or equivalent comparison so create-and-log retries reject a changed payload using the same mutation UUID.
+1. Decide whether to keep the current one-page Create Food flow or implement the specified two-step unsaved-draft wizard, then align `UI_DESIGN_SPEC.md`.
+2. Add a stored/request fingerprint or equivalent comparison so create-and-log retries reject a changed payload using the same mutation UUID.
+3. Add browser coverage for duplicate-barcode field errors and Create Food recovery after general server-side validation failures.
+4. Extend browser coverage to the 100 g/unit and liquid-container representations; arbitrary 250 g bases and fractional liquid servings are already covered.
 
 ### P1: complete repeated logging and close integrity gaps
 
@@ -329,8 +327,10 @@ resolve(
 
 ```bash
 npm run check
-npx eslint .
+npm run lint
 npm test
+npm run test:e2e
+npm run build
 ```
 
 Development:
