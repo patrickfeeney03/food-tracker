@@ -19,6 +19,21 @@ import {
   MealShortcutBlockedError,
   MealShortcutNotFoundError
 } from "$lib/server/nutrition/meal-shortcut";
+import {
+  ExistingFoodLogConflictError,
+  ExistingFoodNotFoundError,
+  quickAddExistingFood,
+  QuickAddUnavailableError
+} from "$lib/server/nutrition/log-existing-food";
+import { replayLatestFoodPortion } from "$lib/server/nutrition/latest-food-portion";
+import {
+  deleteDiaryEntry,
+  DiaryEntryDeletionNotFoundError
+} from "$lib/server/nutrition/delete-diary-entry";
+import {
+  getActiveDiaryEntry,
+  getDeletedDiaryEntry
+} from "$lib/server/nutrition/diary-entry-query";
 
 const destinationSchema = z.object({
   date: calendarDateString,
@@ -29,10 +44,34 @@ const searchSchema = z.string().trim().max(200);
 const barcodeSchema = z.string().trim().min(1).max(200);
 const tabSchema = z.enum(['foods', 'shortcuts']);
 const shortcutIdSchema = z.uuid();
+const foodIdSchema = z.uuid();
+const entryIdSchema = z.uuid();
 
 function readText(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === 'string' ? value : '';
+}
+
+function withQuickAddState<T extends {
+  amountUnit: 'mg' | 'ul';
+  servingAmount: number | null;
+  containerAmount: number | null;
+  latestUse: {
+    amountUnit: 'mg' | 'ul';
+    portionKind: 'unit' | 'hundred' | 'serving' | 'container';
+    portionAmount: number;
+    portionCountMilli: number;
+    resolvedAmount: number;
+  } | null;
+}>(food: T) {
+  const replay = food.latestUse === null
+    ? null
+    : replayLatestFoodPortion(food, food.latestUse);
+
+  return {
+    ...food,
+    quickAddMutationId: replay === null ? null : crypto.randomUUID()
+  };
 }
 
 export const load: PageServerLoad = ({
@@ -71,17 +110,58 @@ export const load: PageServerLoad = ({
   }
 
   const tab = tabResult.data;
+  const quickAddedId = entryIdSchema.safeParse(url.searchParams.get('quickAdded'));
+  const quickAddUndoneId = entryIdSchema.safeParse(url.searchParams.get('quickAddUndone'));
+  let quickAddFeedback:
+    | {
+      kind: 'added';
+      entryId: string;
+      foodName: string;
+      amountUnit: 'mg' | 'ul';
+      resolvedAmount: number;
+    }
+    | { kind: 'undone'; foodName: string }
+    | null = null;
+
+  if (quickAddedId.success) {
+    const entry = getActiveDiaryEntry(db, locals.user.id, quickAddedId.data);
+    if (
+      entry !== undefined &&
+      entry.diaryDate === destinationResult.data.date &&
+      entry.mealSlot === destinationResult.data.mealSlot
+    ) {
+      quickAddFeedback = {
+        kind: 'added',
+        entryId: entry.id,
+        foodName: entry.foodName,
+        amountUnit: entry.amountUnit,
+        resolvedAmount: entry.resolvedAmount
+      };
+    }
+  } else if (quickAddUndoneId.success) {
+    const entry = getDeletedDiaryEntry(db, locals.user.id, quickAddUndoneId.data);
+    if (
+      entry !== undefined &&
+      entry.diaryDate === destinationResult.data.date &&
+      entry.mealSlot === destinationResult.data.mealSlot
+    ) {
+      quickAddFeedback = {
+        kind: 'undone',
+        foodName: entry.foodName
+      };
+    }
+  }
   const shortcutSourceAvailable = tab === 'shortcuts'
     ? (() => {
-        const draft = loadMealShortcutDraft(
-          db,
-          locals.user.id,
-          destinationResult.data.date,
-          destinationResult.data.mealSlot
-        );
+      const draft = loadMealShortcutDraft(
+        db,
+        locals.user.id,
+        destinationResult.data.date,
+        destinationResult.data.mealSlot
+      );
 
-        return draft.items.length > 0 || draft.excludedEntries.length > 0;
-      })()
+      return draft.items.length > 0 || draft.excludedEntries.length > 0;
+    })()
     : false;
   const rawBarcode = url.searchParams.get('barcode');
   const barcodeResult = rawBarcode === null
@@ -125,20 +205,21 @@ export const load: PageServerLoad = ({
       isToday: destinationResult.data.date === todayInDublin(),
       query: scannedBarcode,
       scannedBarcode,
-      foods: [matchingFood],
+      foods: [withQuickAddState(matchingFood)],
       shortcuts: [],
-      shortcutSourceAvailable
+      shortcutSourceAvailable,
+      quickAddFeedback
     };
   }
 
   const foods = tab === 'foods'
-    ? listActiveFoods(db, locals.user.id, query)
+    ? listActiveFoods(db, locals.user.id, query).map(withQuickAddState)
     : [];
   const shortcuts = tab === 'shortcuts'
     ? listMealShortcuts(db, locals.user.id, query).map((shortcut) => ({
-        ...shortcut,
-        clientMutationId: crypto.randomUUID()
-      }))
+      ...shortcut,
+      clientMutationId: crypto.randomUUID()
+    }))
     : [];
 
   return {
@@ -154,11 +235,114 @@ export const load: PageServerLoad = ({
     scannedBarcode: null,
     foods,
     shortcuts,
-    shortcutSourceAvailable
+    shortcutSourceAvailable,
+    quickAddFeedback
   };
 };
 
 export const actions = {
+  quickAdd: async ({ locals, request }) => {
+    if (locals.user === null) {
+      return redirect(303, '/sign-in');
+    }
+
+    const formData = await request.formData();
+    const foodIdResult = foodIdSchema.safeParse(readText(formData, 'foodId'));
+    const destinationResult = destinationSchema.safeParse({
+      date: readText(formData, 'diaryDate'),
+      mealSlot: readText(formData, 'mealSlot')
+    });
+    const mutationIdResult = z.uuid().safeParse(readText(formData, 'clientMutationId'));
+    const queryResult = searchSchema.safeParse(readText(formData, 'q'));
+
+    if (
+      !foodIdResult.success ||
+      !destinationResult.success ||
+      !mutationIdResult.success ||
+      !queryResult.success
+    ) {
+      return fail(400, { quickAddError: 'Invalid Quick Add request.' });
+    }
+
+    try {
+      const entry = quickAddExistingFood(
+        db,
+        locals.user.id,
+        foodIdResult.data,
+        {
+          clientMutationId: mutationIdResult.data,
+          diaryDate: destinationResult.data.date,
+          mealSlot: destinationResult.data.mealSlot
+        }
+      );
+
+      return redirect(
+        303,
+        resolve(
+          withQuery('/foods', {
+            date: destinationResult.data.date,
+            mealSlot: destinationResult.data.mealSlot,
+            q: queryResult.data || undefined,
+            quickAdded: entry.id
+          })
+        )
+      );
+    } catch (caught) {
+      if (caught instanceof ExistingFoodNotFoundError) {
+        return error(404, 'Food not found');
+      }
+      if (
+        caught instanceof ExistingFoodLogConflictError ||
+        caught instanceof QuickAddUnavailableError
+      ) {
+        return fail(409, { quickAddError: caught.message });
+      }
+      if (caught instanceof RangeError) {
+        return fail(400, { quickAddError: caught.message });
+      }
+      throw caught;
+    }
+  },
+
+  undoQuickAdd: async ({ locals, request }) => {
+    if (locals.user === null) {
+      return redirect(303, '/sign-in');
+    }
+
+    const formData = await request.formData();
+    const entryIdResult = entryIdSchema.safeParse(readText(formData, 'entryId'));
+    const destinationResult = destinationSchema.safeParse({
+      date: readText(formData, 'diaryDate'),
+      mealSlot: readText(formData, 'mealSlot')
+    });
+    const queryResult = searchSchema.safeParse(readText(formData, 'q'));
+
+    if (!entryIdResult.success || !destinationResult.success || !queryResult.success) {
+      return fail(400, { quickAddError: 'Invalid Quick Add undo request.' });
+    }
+
+    try {
+      const entry = deleteDiaryEntry(db, locals.user.id, entryIdResult.data);
+
+      return redirect(
+        303,
+        resolve(
+          withQuery('/foods', {
+            date: destinationResult.data.date,
+            mealSlot: destinationResult.data.mealSlot,
+            q: queryResult.data || undefined,
+            quickAddUndone: entry.id
+          })
+        )
+      );
+    } catch (caught) {
+      if (caught instanceof DiaryEntryDeletionNotFoundError) {
+        return error(404, 'Diary entry not found');
+      }
+      throw caught;
+    }
+  },
+
   applyShortcut: async ({ locals, request }) => {
     if (locals.user === null) {
       return redirect(303, '/sign-in');

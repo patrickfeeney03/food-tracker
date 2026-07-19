@@ -9,7 +9,9 @@ import { diaryLogs, foods, users } from '../db/schema';
 import {
   ExistingFoodLogConflictError,
   ExistingFoodNotFoundError,
-  logExistingFood
+  logExistingFood,
+  quickAddExistingFood,
+  QuickAddUnavailableError
 } from './log-existing-food';
 
 function withMigratedDatabase(run: (connection: DatabaseConnection) => void): void {
@@ -68,6 +70,15 @@ function logInput(overrides: Record<string, unknown> = {}) {
     portionCount: '2',
     diaryDate: '2026-07-18',
     mealSlot: 'breakfast',
+    ...overrides
+  };
+}
+
+function quickAddInput(overrides: Record<string, unknown> = {}) {
+  return {
+    clientMutationId: 'a3b1c2d3-e4f5-4678-9abc-def012345678',
+    diaryDate: '2026-07-18',
+    mealSlot: 'lunch',
     ...overrides
   };
 }
@@ -225,6 +236,115 @@ describe('logExistingFood', () => {
 
       expect(replayed.id).toBe(first.id);
       expect(connection.db.select().from(diaryLogs).all()).toHaveLength(1);
+    });
+  });
+});
+
+describe('quickAddExistingFood', () => {
+  it('reuses the latest portion representation with the food’s current nutrition', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const food = insertFood(connection, userId);
+      logExistingFood(connection.db, userId, food.id, logInput());
+
+      connection.db
+        .update(foods)
+        .set({ energyMkcalPerBasis: 100_000 })
+        .where(eq(foods.id, food.id))
+        .run();
+
+      const quickAdded = quickAddExistingFood(
+        connection.db,
+        userId,
+        food.id,
+        quickAddInput()
+      );
+
+      expect(quickAdded).toEqual(expect.objectContaining({
+        portionKind: 'serving',
+        portionAmount: 125_000,
+        portionCountMilli: 2_000,
+        resolvedAmount: 250_000,
+        energyMkcalPerBasis: 100_000,
+        energyMkcal: 250_000,
+        mealSlot: 'lunch'
+      }));
+    });
+  });
+
+  it('falls back to the previous exact amount when the serving definition changed', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const food = insertFood(connection, userId);
+      logExistingFood(connection.db, userId, food.id, logInput());
+
+      connection.db
+        .update(foods)
+        .set({ servingAmount: 200_000 })
+        .where(eq(foods.id, food.id))
+        .run();
+
+      const quickAdded = quickAddExistingFood(
+        connection.db,
+        userId,
+        food.id,
+        quickAddInput()
+      );
+
+      expect(quickAdded).toEqual(expect.objectContaining({
+        portionKind: 'unit',
+        portionLabel: '1 g',
+        portionAmount: 1_000,
+        portionCountMilli: 250_000,
+        resolvedAmount: 250_000,
+        energyMkcal: 155_000
+      }));
+    });
+  });
+
+  it('requires a compatible previous use', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const food = insertFood(connection, userId);
+
+      expect(() =>
+        quickAddExistingFood(connection.db, userId, food.id, quickAddInput())
+      ).toThrow(QuickAddUnavailableError);
+
+      logExistingFood(connection.db, userId, food.id, logInput());
+      connection.db
+        .update(foods)
+        .set({ amountUnit: 'ul' })
+        .where(eq(foods.id, food.id))
+        .run();
+
+      expect(() =>
+        quickAddExistingFood(connection.db, userId, food.id, quickAddInput())
+      ).toThrow(QuickAddUnavailableError);
+    });
+  });
+
+  it('returns the original Quick Add row for an identical retry', () => {
+    withMigratedDatabase((connection) => {
+      const userId = insertUser(connection);
+      const food = insertFood(connection, userId);
+      logExistingFood(connection.db, userId, food.id, logInput());
+      const first = quickAddExistingFood(
+        connection.db,
+        userId,
+        food.id,
+        quickAddInput()
+      );
+
+      const replayed = quickAddExistingFood(
+        connection.db,
+        userId,
+        food.id,
+        quickAddInput()
+      );
+
+      expect(replayed.id).toBe(first.id);
+      expect(connection.db.select().from(diaryLogs).all()).toHaveLength(2);
     });
   });
 });

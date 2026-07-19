@@ -180,6 +180,72 @@ test('navigates from the catalogue, logs an existing food, then edits its diary 
   ]);
 });
 
+test('quick adds the latest portion with current nutrition and supports Undo', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Quick yoghurt' });
+  const { page, db } = app;
+  await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`);
+  await chooseRadio(page, 'Serving');
+  await page.getByLabel('Number of portions').fill('2');
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+
+  db.prepare(`
+    UPDATE foods
+    SET energy_mkcal_per_basis = ?, updated_at = ?
+    WHERE id = ?
+  `).run(100_000, Date.now(), foodId);
+  await page.goto(`/foods?date=${diaryDate}&mealSlot=lunch&q=Quick`);
+  await expect(page.getByText('Last: 250 g · 155 kcal')).toBeVisible();
+
+  await page.getByRole('button', {
+    name: 'Quick add Quick yoghurt to lunch using the last amount'
+  }).click();
+
+  expectSearchParameters(page, { date: diaryDate, mealSlot: 'lunch', q: 'Quick' });
+  await expect(page.getByRole('status')).toContainText(
+    '250 g of Quick yoghurt added to lunch.'
+  );
+  expect(app.diaryRows()).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      foodId,
+      mealSlot: 'breakfast',
+      portionKind: 'serving',
+      portionCountMilli: 2_000,
+      resolvedAmount: 250_000,
+      energyMkcal: 155_000,
+      deletedAt: null
+    }),
+    expect.objectContaining({
+      foodId,
+      mealSlot: 'lunch',
+      portionKind: 'serving',
+      portionCountMilli: 2_000,
+      resolvedAmount: 250_000,
+      energyMkcal: 250_000,
+      deletedAt: null
+    })
+  ]));
+
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click();
+
+  await expect(page.getByRole('status')).toContainText(
+    'Quick yoghurt was removed from lunch.'
+  );
+  const rows = app.diaryRows();
+  expect(rows.filter((row) => row.deletedAt === null)).toHaveLength(1);
+  expect(rows.find((row) => row.mealSlot === 'lunch')?.deletedAt).toEqual(expect.any(Number));
+});
+
+test('opens the Amount Adjuster from the plus when a food has no previous use', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Never logged food' });
+  const { page } = app;
+  await page.goto(`/foods?date=${diaryDate}&mealSlot=snacks&q=Never`);
+
+  await page.getByRole('link', { name: 'Choose an amount for Never logged food' }).click();
+
+  await expect(page).toHaveURL(new RegExp(`/foods/${foodId}/log\\?`));
+  expectSearchParameters(page, { date: diaryDate, mealSlot: 'snacks', q: 'Never' });
+});
+
 test('deletes a diary entry, recalculates the diary, and restores it with Undo', async ({ app }) => {
   const foodId = app.createFood({ name: 'Undoable yoghurt' });
   const { page } = app;

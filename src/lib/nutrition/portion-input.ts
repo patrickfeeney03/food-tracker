@@ -72,5 +72,12 @@ export const editDiaryEntryInputSchema = logFoodInputSchema.omit({
   clientMutationId: true
 });
 
+export const quickAddFoodInputSchema = logFoodInputSchema.pick({
+  clientMutationId: true,
+  diaryDate: true,
+  mealSlot: true
+});
+
 export type LogFoodInput = z.infer<typeof logFoodInputSchema>;
 export type EditDiaryEntryInput = z.infer<typeof editDiaryEntryInputSchema>;
+export type QuickAddFoodInput = z.infer<typeof quickAddFoodInputSchema>;

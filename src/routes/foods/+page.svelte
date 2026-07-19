@@ -14,6 +14,7 @@
   let { data, form }: PageProps = $props();
   let scannerOpen = $state(false);
   let pendingShortcutId = $state<string | null>(null);
+  let pendingFoodId = $state<string | null>(null);
 
   const mealNames: Record<MealSlot, string> = {
     breakfast: "Breakfast",
@@ -61,6 +62,17 @@
       return async ({ update }) => {
         await update();
         pendingShortcutId = null;
+      };
+    };
+  }
+
+  function enhanceQuickAdd(foodId: string): SubmitFunction {
+    return () => {
+      pendingFoodId = foodId;
+
+      return async ({ update }) => {
+        await update();
+        pendingFoodId = null;
       };
     };
   }
@@ -270,8 +282,37 @@
       </div>
     </div>
 
-    {#if form?.applyError}
+    {#if form?.quickAddError}
+      <FeedbackBanner class="mt-4" message={form.quickAddError} tone="danger" />
+    {:else if form?.applyError}
       <FeedbackBanner class="mt-4" message={form.applyError} tone="danger" />
+    {:else if data.quickAddFeedback?.kind === "added"}
+      {@const quickAdded = data.quickAddFeedback}
+      {#snippet undoQuickAddAction()}
+        <form method="POST" action="?/undoQuickAdd">
+          <input type="hidden" name="entryId" value={quickAdded.entryId} />
+          <input type="hidden" name="diaryDate" value={data.destination.date} />
+          <input type="hidden" name="mealSlot" value={data.destination.mealSlot} />
+          <input type="hidden" name="q" value={data.query} />
+          <button
+            type="submit"
+            class="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-bold
+              text-[var(--app-success-text)] underline underline-offset-2
+              focus-visible:outline-2 focus-visible:outline-offset-2
+              focus-visible:outline-[var(--app-success-text)]"
+          >Undo</button>
+        </form>
+      {/snippet}
+      <FeedbackBanner
+        class="mt-4"
+        message={`${formatAmount(quickAdded.resolvedAmount, quickAdded.amountUnit)} of ${quickAdded.foodName} added to ${mealNames[data.destination.mealSlot].toLowerCase()}.`}
+        action={undoQuickAddAction}
+      />
+    {:else if data.quickAddFeedback?.kind === "undone"}
+      <FeedbackBanner
+        class="mt-4"
+        message={`${data.quickAddFeedback.foodName} was removed from ${mealNames[data.destination.mealSlot].toLowerCase()}.`}
+      />
     {:else if data.added}
       <FeedbackBanner
         class="mt-4"
@@ -506,19 +547,56 @@
                       focus-visible:outline-[var(--app-accent)]"
                   >Edit</a>
 
-                  <button
-                    type="button"
-                    disabled
-                    aria-label={`Add ${food.name}`}
-                    title="Quick add is not available yet"
-                    class="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--app-accent)]"
-                  >
-                    <span
-                      aria-hidden="true"
-                      class="flex size-8 items-center justify-center rounded-full bg-[var(--app-accent-soft)] text-xl leading-none font-medium"
-                      >+</span
+                  {#if food.quickAddMutationId !== null}
+                    <form
+                      method="POST"
+                      action="?/quickAdd"
+                      use:enhance={enhanceQuickAdd(food.id)}
                     >
-                  </button>
+                      <input type="hidden" name="foodId" value={food.id} />
+                      <input
+                        type="hidden"
+                        name="clientMutationId"
+                        value={food.quickAddMutationId}
+                      />
+                      <input type="hidden" name="diaryDate" value={data.destination.date} />
+                      <input type="hidden" name="mealSlot" value={data.destination.mealSlot} />
+                      <input type="hidden" name="q" value={data.query} />
+                      <button
+                        type="submit"
+                        disabled={pendingFoodId !== null}
+                        aria-label={`Quick add ${food.name} to ${mealNames[data.destination.mealSlot].toLowerCase()} using the last amount`}
+                        aria-busy={pendingFoodId === food.id}
+                        class="inline-flex size-11 shrink-0 items-center justify-center rounded-full
+                          text-[var(--app-accent)] focus-visible:outline-2 focus-visible:outline-offset-1
+                          focus-visible:outline-[var(--app-accent)] disabled:opacity-50"
+                      >
+                        <span
+                          aria-hidden="true"
+                          class="flex size-8 items-center justify-center rounded-full bg-[var(--app-accent-soft)] text-xl leading-none font-medium"
+                        >{pendingFoodId === food.id ? "…" : "+"}</span>
+                      </button>
+                    </form>
+                  {:else}
+                    <a
+                      href={resolve(
+                        withQuery(`/foods/${food.id}/log`, {
+                          date: data.destination.date,
+                          mealSlot: data.destination.mealSlot,
+                          q: data.query || undefined,
+                        }),
+                      )}
+                      aria-label={`Choose an amount for ${food.name}`}
+                      class="inline-flex size-11 shrink-0 items-center justify-center rounded-full
+                        text-[var(--app-accent)] focus-visible:outline-2 focus-visible:outline-offset-1
+                        focus-visible:outline-[var(--app-accent)]"
+                    >
+                      <span
+                        aria-hidden="true"
+                        class="flex size-8 items-center justify-center rounded-full bg-[var(--app-accent-soft)] text-xl leading-none font-medium"
+                      >+</span>
+                    </a>
+                  {/if}
                 </div>
               </article>
             </li>

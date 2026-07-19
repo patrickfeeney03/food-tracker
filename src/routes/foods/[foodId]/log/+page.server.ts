@@ -1,7 +1,6 @@
 import { resolve } from '$app/paths';
 import { withQuery } from '$lib/navigation';
 import { mealSlots, type PortionKind } from '$lib/nutrition/constants';
-import { formatStoredValue } from '$lib/nutrition/math';
 import { calendarDateString, logFoodInputSchema } from '$lib/nutrition/portion-input';
 import { db } from '$lib/server/db';
 import { diaryLogs, foods } from '$lib/server/db/schema';
@@ -10,6 +9,7 @@ import {
   ExistingFoodNotFoundError,
   logExistingFood
 } from '$lib/server/nutrition/log-existing-food';
+import { replayLatestFoodPortion } from '$lib/server/nutrition/latest-food-portion';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
@@ -109,7 +109,8 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       portionKind: diaryLogs.portionKind,
       portionAmount: diaryLogs.portionAmount,
       portionCountMilli: diaryLogs.portionCountMilli,
-      resolvedAmount: diaryLogs.resolvedAmount
+      resolvedAmount: diaryLogs.resolvedAmount,
+      amountUnit: diaryLogs.amountUnit
     })
     .from(diaryLogs)
     .where(
@@ -127,19 +128,11 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
   let portionCount = '';
 
   if (latestUse !== undefined) {
-    const latestOptionStillMatches = portionOptions.some(
-      (option) =>
-        option.kind === latestUse.portionKind &&
-        option.amount === latestUse.portionAmount
-    );
+    const replay = replayLatestFoodPortion(food, latestUse);
 
-    if (latestOptionStillMatches) {
-      portionKind = latestUse.portionKind;
-      portionCount = formatStoredValue(BigInt(latestUse.portionCountMilli), 3);
-    } else {
-      // Preserve the previous exact amount if a serving/container definition was removed.
-      portionKind = 'unit';
-      portionCount = formatStoredValue(BigInt(latestUse.resolvedAmount), 3);
+    if (replay !== null) {
+      portionKind = replay.portionKind;
+      portionCount = replay.portionCount;
     }
   }
 

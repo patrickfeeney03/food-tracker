@@ -49,7 +49,10 @@ export function findActiveFoodByBarcode(
     .select({
       resolvedAmount: diaryLogs.resolvedAmount,
       amountUnit: diaryLogs.amountUnit,
-      energyMkcal: diaryLogs.energyMkcal
+      energyMkcal: diaryLogs.energyMkcal,
+      portionKind: diaryLogs.portionKind,
+      portionAmount: diaryLogs.portionAmount,
+      portionCountMilli: diaryLogs.portionCountMilli
     })
     .from(diaryLogs)
     .where(
@@ -125,6 +128,9 @@ export function listActiveFoods(
       resolvedAmount: number;
       amountUnit: 'mg' | 'ul';
       energyMkcal: number;
+      portionKind: 'unit' | 'hundred' | 'serving' | 'container';
+      portionAmount: number;
+      portionCountMilli: number;
     }
   >();
 
@@ -134,7 +140,10 @@ export function listActiveFoods(
         foodId: diaryLogs.foodId,
         resolvedAmount: diaryLogs.resolvedAmount,
         amountUnit: diaryLogs.amountUnit,
-        energyMkcal: diaryLogs.energyMkcal
+        energyMkcal: diaryLogs.energyMkcal,
+        portionKind: diaryLogs.portionKind,
+        portionAmount: diaryLogs.portionAmount,
+        portionCountMilli: diaryLogs.portionCountMilli
       })
       .from(diaryLogs)
       .where(
@@ -158,7 +167,10 @@ export function listActiveFoods(
         latestUseByFood.set(entry.foodId, {
           resolvedAmount: entry.resolvedAmount,
           amountUnit: entry.amountUnit,
-          energyMkcal: entry.energyMkcal
+          energyMkcal: entry.energyMkcal,
+          portionKind: entry.portionKind,
+          portionAmount: entry.portionAmount,
+          portionCountMilli: entry.portionCountMilli
         });
       }
     }

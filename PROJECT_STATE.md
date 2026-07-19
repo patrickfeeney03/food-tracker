@@ -55,6 +55,7 @@ Amounts support up to three decimal places. The development database is currentl
 - `/foods` provides owner-scoped active-food search by name, brand, or barcode; recent-use ordering; barcode scanning/manual entry; destination preservation; and feedback.
 - `/foods/new` atomically creates a reusable food and its first diary snapshot. It supports arbitrary solid/liquid bases, exact serving/container amounts, optional nutrition, live previews, and field-error preservation.
 - Existing-food Amount Adjuster and `/diary/[entryId]/edit` support portion/date/meal changes using snapshot nutrition.
+- Quick Add replays the latest compatible portion representation with current food nutrition, falls back to the previous exact amount when serving/container definitions change, and provides pending feedback plus Undo.
 - Food editing has optimistic conflict checks, duplicate-barcode handling, and confirmed archival without changing diary history.
 - Diary entry deletion soft-deletes the owned active row, recalculates the diary, and offers exact-deletion Undo.
 - Existing-food mutations and shortcut applications are retry-safe; existing-food retries compare semantic input.
@@ -70,13 +71,13 @@ Amounts support up to three decimal places. The development database is currentl
 ### Tests
 
 - Unit/integration coverage includes nutrition math, services, database behavior, ownership, snapshots, conflicts, retry safety, deletion, and Undo.
-- `tests/e2e/` covers core create/add/edit/delete/restore flows, arbitrary/fractional inputs, stale serving/container rejection, retries, and archived/cross-user access.
+- `tests/e2e/` covers core create/add/Quick Add/edit/delete/restore flows, arbitrary/fractional inputs, stale serving/container rejection, retries, and archived/cross-user access.
 - Playwright uses a dedicated migrated `.playwright/e2e.db`; it does not touch the development database or Google OAuth.
 
 ## Current Route Gaps
 
 - Create Food is a one-page create-and-first-log flow, not the specification's two-step unsaved-draft wizard.
-- Quick Add is disabled. Normal add and Quick Add do not yet have success Undo.
+- Normal Amount Adjuster adds do not yet have pending-button protection or success Undo.
 - Dashboard rows omit some specified details; loading, stale-data, retry, and broader Undo states are incomplete.
 - Barcode archived-hit recovery, checksum override, restore/replace, and link-collision flows are missing.
 - Settings Account Details, individual session revocation, JSON/CSV export, and PWA/update destinations are placeholders or absent.
@@ -106,11 +107,10 @@ Amounts support up to three decimal places. The development database is currentl
 
 ### P1 — repeated logging and integrity
 
-1. Implement Quick Add using the latest portion representation and current reusable-food nutrition.
-2. Add pending protection, idempotency, feedback, and Undo for normal add and Quick Add.
-3. Add diary-edit optimistic concurrency protection.
-4. Align first-goal guards with effective-date selection and make session refresh atomic.
-5. Add magnitude/text limits and preserve catalogue query/tab/scroll context through nested flows.
+1. Add pending-button protection and Undo for normal Amount Adjuster adds.
+2. Add diary-edit optimistic concurrency protection.
+3. Align first-goal guards with effective-date selection and make session refresh atomic.
+4. Add magnitude/text limits and preserve catalogue query/tab/scroll context through nested flows.
 
 ### P2 — settings and resilience
 
