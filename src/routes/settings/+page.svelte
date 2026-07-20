@@ -4,7 +4,7 @@
   import FeedbackBanner from '$lib/components/FeedbackBanner.svelte';
   import SettingsRow from '$lib/components/settings/SettingsRow.svelte';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
-  import { formatStoredValue } from '$lib/nutrition/math';
+  import { formatGrams, formatKcal } from '$lib/nutrition/format';
   import type { PageProps } from './$types';
 
   let { data, form }: PageProps = $props();
@@ -26,18 +26,10 @@
     };
   });
 
-  function formatKcal(value: number): string {
-    return formatStoredValue(BigInt(value), 0);
-  }
-
-  function formatGrams(value: number): string {
-    return formatStoredValue(BigInt(value), 0);
-  }
-
   let goalSummary = $derived(
     data.currentGoal === null
       ? 'No current targets'
-      : `${formatKcal(data.currentGoal.targetEnergyMkcal)} kcal · P ${formatGrams(data.currentGoal.targetProteinMg)} g · C ${formatGrams(data.currentGoal.targetCarbsMg)} g · F ${formatGrams(data.currentGoal.targetFatMg)} g`
+      : `${formatKcal(data.currentGoal.targetEnergyMkcal)} kcal · P ${formatGrams(data.currentGoal.targetProteinMg, 0)} g · C ${formatGrams(data.currentGoal.targetCarbsMg, 0)} g · F ${formatGrams(data.currentGoal.targetFatMg, 0)} g`
   );
 
   let themeLabel = $derived(

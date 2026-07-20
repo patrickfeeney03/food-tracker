@@ -7,8 +7,8 @@
   import AppPageShell from "$lib/components/AppPageShell.svelte";
   import { withQuery } from "$lib/navigation";
   import { mealNames, type MealSlot } from "$lib/nutrition/constants";
+  import { formatAmount, formatDate, formatKcal } from "$lib/nutrition/format";
   import { inputLimits } from "$lib/nutrition/input-limits";
-  import { formatStoredValue } from "$lib/nutrition/math";
   import type { SubmitFunction } from "@sveltejs/kit";
   import type { PageProps } from "./$types";
 
@@ -17,23 +17,8 @@
   let pendingShortcutId = $state<string | null>(null);
   let pendingFoodId = $state<string | null>(null);
 
-  function formatKcal(value: number): string {
-    return formatStoredValue(BigInt(value), 0);
-  }
-
-  function formatAmount(value: number, unit: "mg" | "ul"): string {
-    const displayUnit = unit === "mg" ? "g" : "ml";
-
-    return `${formatStoredValue(BigInt(value), 3)} ${displayUnit}`;
-  }
-
   function formatDiaryDate(date: string): string {
-    const [year, month, day] = date.split("-").map(Number);
-
-    return new Intl.DateTimeFormat("en-IE", {
-      day: "numeric",
-      month: "short",
-    }).format(new Date(Date.UTC(year, month - 1, day)));
+    return formatDate(date, { year: false });
   }
 
   function handleBarcode(barcode: string) {

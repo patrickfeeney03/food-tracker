@@ -3,30 +3,13 @@
   import AppPageShell from '$lib/components/AppPageShell.svelte';
   import BackPageHeader from '$lib/components/BackPageHeader.svelte';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
+  import { formatDate } from '$lib/nutrition/format';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
 
-  const dateFormatter = new Intl.DateTimeFormat('en-IE', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  });
-
-  const dateTimeFormatter = new Intl.DateTimeFormat('en-IE', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-
-  function formatDate(date: Date): string {
-    return dateFormatter.format(date);
-  }
-
   function formatDateTime(date: Date): string {
-    return dateTimeFormatter.format(date);
+    return formatDate(date, { time: true });
   }
 </script>
 

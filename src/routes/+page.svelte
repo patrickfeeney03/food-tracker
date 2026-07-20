@@ -4,29 +4,10 @@
   import { shiftDate } from "$lib/date";
   import { withQuery } from "$lib/navigation";
   import { mealNames, mealSlots, type MealSlot } from "$lib/nutrition/constants";
-  import { formatStoredValue } from "$lib/nutrition/math";
+  import { formatAmount, formatGrams, formatKcal } from "$lib/nutrition/format";
   import type { PageProps } from "./$types";
 
   let { data }: PageProps = $props();
-
-  const integerFormatter = new Intl.NumberFormat("en-IE", {
-    maximumFractionDigits: 0,
-  });
-
-  function formatKcal(value: number): string {
-    return integerFormatter.format(
-      Number(formatStoredValue(BigInt(value), 0)),
-    );
-  }
-
-  function formatGrams(value: number): string {
-    return formatStoredValue(BigInt(value), 1);
-  }
-
-  function formatAmount(value: number, unit: "mg" | "ul"): string {
-    const displayUnit = unit === "mg" ? "g" : "ml";
-    return `${formatStoredValue(BigInt(value), 3)} ${displayUnit}`;
-  }
 
   function progress(consumed: number, target: number): number {
     if (target === 0) return consumed > 0 ? 100 : 0;

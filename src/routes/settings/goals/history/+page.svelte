@@ -1,7 +1,7 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
   import { withQuery } from "$lib/navigation";
-  import { formatStoredValue } from "$lib/nutrition/math";
+  import { formatDate, formatGrams, formatKcal } from "$lib/nutrition/format";
   import AppPageShell from "$lib/components/AppPageShell.svelte";
   import BackPageHeader from "$lib/components/BackPageHeader.svelte";
   import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
@@ -9,22 +9,6 @@
 
   let { data }: PageProps = $props();
 
-  function formatDate(date: string): string {
-    const [year, month, day] = date.split("-").map(Number);
-    return new Intl.DateTimeFormat("en-IE", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(Date.UTC(year, month - 1, day)));
-  }
-
-  function formatKcal(value: number): string {
-    return formatStoredValue(BigInt(value), 0);
-  }
-
-  function formatGrams(value: number): string {
-    return formatStoredValue(BigInt(value), 1);
-  }
 </script>
 
 <svelte:head>
