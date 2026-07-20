@@ -3,18 +3,11 @@
   import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
   import { shiftDate } from "$lib/date";
   import { withQuery } from "$lib/navigation";
-  import { mealSlots, type MealSlot } from "$lib/nutrition/constants";
+  import { mealNames, mealSlots, type MealSlot } from "$lib/nutrition/constants";
   import { formatStoredValue } from "$lib/nutrition/math";
   import type { PageProps } from "./$types";
 
   let { data }: PageProps = $props();
-
-  const mealNames: Record<MealSlot, string> = {
-    breakfast: "Breakfast",
-    lunch: "Lunch",
-    dinner: "Dinner",
-    snacks: "Snacks",
-  };
 
   const integerFormatter = new Intl.NumberFormat("en-IE", {
     maximumFractionDigits: 0,

@@ -6,7 +6,7 @@
   import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
   import AppPageShell from "$lib/components/AppPageShell.svelte";
   import { withQuery } from "$lib/navigation";
-  import type { MealSlot } from "$lib/nutrition/constants";
+  import { mealNames, type MealSlot } from "$lib/nutrition/constants";
   import { inputLimits } from "$lib/nutrition/input-limits";
   import { formatStoredValue } from "$lib/nutrition/math";
   import type { SubmitFunction } from "@sveltejs/kit";
@@ -16,13 +16,6 @@
   let scannerOpen = $state(false);
   let pendingShortcutId = $state<string | null>(null);
   let pendingFoodId = $state<string | null>(null);
-
-  const mealNames: Record<MealSlot, string> = {
-    breakfast: "Breakfast",
-    lunch: "Lunch",
-    dinner: "Dinner",
-    snacks: "Snacks",
-  };
 
   function formatKcal(value: number): string {
     return formatStoredValue(BigInt(value), 0);

@@ -1,12 +1,5 @@
 <script lang="ts">
-  import { mealSlots, type MealSlot } from "$lib/nutrition/constants";
-
-  const mealNames: Record<MealSlot, string> = {
-    breakfast: "Breakfast",
-    lunch: "Lunch",
-    dinner: "Dinner",
-    snacks: "Snacks",
-  };
+  import { mealNames, mealSlots, type MealSlot } from "$lib/nutrition/constants";
 
   let {
     diaryDate = $bindable(),

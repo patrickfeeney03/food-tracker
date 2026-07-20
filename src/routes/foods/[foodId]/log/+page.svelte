@@ -9,7 +9,7 @@
   import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
   import AppPageShell from "$lib/components/AppPageShell.svelte";
   import { withQuery } from "$lib/navigation";
-  import type { MealSlot, PortionKind } from "$lib/nutrition/constants";
+  import { mealNames, type MealSlot, type PortionKind } from "$lib/nutrition/constants";
   import {
     formatStoredValue,
     parsePortionCountToMilli,
@@ -33,13 +33,6 @@
       string[]
     >
   >;
-
-  const mealNames: Record<MealSlot, string> = {
-    breakfast: "Breakfast",
-    lunch: "Lunch",
-    dinner: "Dinner",
-    snacks: "Snacks",
-  };
 
   let values = $derived(form?.values ?? data.values);
   let errors = $derived((form?.errors ?? {}) as FieldErrors);

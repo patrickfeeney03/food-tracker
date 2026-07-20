@@ -16,3 +16,10 @@ export const mealSlots = [
 export type AmountUnit = (typeof amountUnits)[number];
 export type PortionKind = (typeof portionKinds)[number];
 export type MealSlot = (typeof mealSlots)[number];
+
+export const mealNames: Record<MealSlot, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snacks: 'Snacks'
+};
