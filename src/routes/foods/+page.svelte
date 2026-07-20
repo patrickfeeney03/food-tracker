@@ -5,6 +5,10 @@
   import BarcodeScanner from "$lib/components/BarcodeScanner.svelte";
   import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
   import AppPageShell from "$lib/components/AppPageShell.svelte";
+  import BarcodeIcon from "$lib/components/icons/BarcodeIcon.svelte";
+  import ChevronLeftIcon from "$lib/components/icons/ChevronLeftIcon.svelte";
+  import CloseIcon from "$lib/components/icons/CloseIcon.svelte";
+  import SearchIcon from "$lib/components/icons/SearchIcon.svelte";
   import { withQuery } from "$lib/navigation";
   import { mealNames, type MealSlot } from "$lib/nutrition/constants";
   import { formatAmount, formatDate, formatKcal } from "$lib/nutrition/format";
@@ -77,18 +81,7 @@
         aria-label="Back to diary"
         class="inline-flex size-11 items-center justify-start rounded-xl text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
       >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          class="size-5"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="m15 18-6-6 6-6"></path>
-        </svg>
+        <ChevronLeftIcon class="size-5" />
       </a>
 
       <div class="min-w-0 pt-1">
@@ -134,18 +127,7 @@
             <label for="catalogue-search" class="sr-only">
               {data.tab === "shortcuts" ? "Search meal shortcuts" : "Search foods"}
             </label>
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              class="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-[var(--app-muted)]"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            >
-              <circle cx="11" cy="11" r="7"></circle>
-              <path d="m20 20-3.5-3.5"></path>
-            </svg>
+            <SearchIcon class="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-[var(--app-muted)]" />
             <input
               id="catalogue-search"
               name="q"
@@ -169,17 +151,7 @@
                 aria-label="Clear search"
                 class="absolute top-1/2 right-1 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--app-muted)] transition hover:bg-[var(--app-panel-hover)] hover:text-[var(--app-text)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--app-accent)]"
               >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  class="size-4"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                >
-                  <path d="m7 7 10 10M17 7 7 17"></path>
-                </svg>
+                <CloseIcon class="size-4" />
               </a>
             {/if}
           </div>
@@ -195,17 +167,7 @@
                 hover:bg-[var(--app-action-hover)] focus-visible:outline-2
                 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
             >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                class="size-5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.7"
-                stroke-linecap="round"
-              >
-                <path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14"></path>
-              </svg>
+              <BarcodeIcon class="size-5" />
             </button>
           {/if}
         </div>
@@ -446,18 +408,7 @@
           <div
             class="mx-auto flex size-11 items-center justify-center rounded-full bg-[var(--app-accent-soft)] text-[var(--app-accent)]"
           >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              class="size-5"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            >
-              <circle cx="11" cy="11" r="7"></circle>
-              <path d="m20 20-3.5-3.5"></path>
-            </svg>
+            <SearchIcon class="size-5" />
           </div>
           <h3 class="mt-3 text-sm font-bold text-[var(--app-text)]">
             {data.query ? "No matching foods" : "No foods yet"}

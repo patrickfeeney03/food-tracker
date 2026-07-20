@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths';
   import AppPageShell from '$lib/components/AppPageShell.svelte';
   import FeedbackBanner from '$lib/components/FeedbackBanner.svelte';
+  import ChevronLeftIcon from '$lib/components/icons/ChevronLeftIcon.svelte';
   import SettingsRow from '$lib/components/settings/SettingsRow.svelte';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
   import { formatGrams, formatKcal } from '$lib/nutrition/format';
@@ -60,18 +61,7 @@
           focus-visible:outline-2 focus-visible:outline-offset-2
           focus-visible:outline-[var(--app-accent)]"
       >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          class="size-5"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="m15 18-6-6 6-6" />
-        </svg>
+        <ChevronLeftIcon class="size-5" />
       </a>
       <h1 class="text-xl font-bold tracking-tight">Settings</h1>
     </header>

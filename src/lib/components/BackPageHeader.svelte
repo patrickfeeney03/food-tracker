@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ResolvedPathname } from "$app/types";
+  import ChevronLeftIcon from "./icons/ChevronLeftIcon.svelte";
 
   let {
     href,
@@ -25,16 +26,7 @@
       focus-visible:outline-2 focus-visible:outline-offset-2
       focus-visible:outline-[var(--app-accent)]"
   >
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      class="size-5"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-    >
-      <path d="m15 18-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"></path>
-    </svg>
+    <ChevronLeftIcon class="size-5" />
   </a>
   <div class={["pt-1", contentClass]}>
     <h1 class="text-[21px] font-extrabold leading-tight tracking-[-0.025em]">

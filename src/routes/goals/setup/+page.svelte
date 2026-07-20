@@ -3,6 +3,7 @@
     type NutritionGoalFormErrors,
   } from "$lib/components/NutritionGoalForm.svelte";
   import AppPageShell from "$lib/components/AppPageShell.svelte";
+  import PlusIcon from "$lib/components/icons/PlusIcon.svelte";
   import type { PageProps } from "./$types";
 
   let { data, form }: PageProps = $props();
@@ -21,9 +22,7 @@
           text-[var(--app-accent)]"
         aria-hidden="true"
       >
-        <svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 3v18M3 12h18" stroke-linecap="round"></path>
-        </svg>
+        <PlusIcon class="size-6" />
       </span>
       <h1 class="text-[24px] font-extrabold leading-tight tracking-[-0.03em]">
         Set your nutrition goals

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
+  import ChevronRightIcon from "../icons/ChevronRightIcon.svelte";
 
   type SettingsRoute = "/settings/account" | "/settings/goals" | "/settings/goals/history";
 
@@ -36,18 +37,7 @@
   </div>
 
   {#if showChevron}
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      class="size-4 shrink-0 text-[var(--app-muted)]"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
+    <ChevronRightIcon class="size-4 shrink-0 text-[var(--app-muted)]" />
   {/if}
 {/snippet}
 

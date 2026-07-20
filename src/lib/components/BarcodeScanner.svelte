@@ -1,4 +1,7 @@
 <script lang="ts">
+  import CameraOffIcon from "./icons/CameraOffIcon.svelte";
+  import CloseIcon from "./icons/CloseIcon.svelte";
+  import FlashIcon from "./icons/FlashIcon.svelte";
   import { inputLimits } from "$lib/nutrition/input-limits";
   import { onMount, tick } from "svelte";
   import type { IScannerControls } from "@zxing/browser";
@@ -206,9 +209,7 @@
           transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2
           focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="m7 7 10 10M17 7 7 17"></path>
-        </svg>
+        <CloseIcon class="size-5" />
       </button>
 
       <h2 id="scanner-title" class="text-center text-[18px] font-bold tracking-[-0.02em]">
@@ -226,9 +227,7 @@
           class:text-white={torchOn}
           class:text-[var(--app-text)]={!torchOn}
         >
-          <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 2 5.5 13h6L11 22l7.5-12h-6L13 2Z"></path>
-          </svg>
+          <FlashIcon class="size-5" />
         </button>
       {:else}
         <span aria-hidden="true" class="size-11"></span>
@@ -302,10 +301,7 @@
             <div class="absolute inset-0 flex items-center justify-center bg-[#111827] px-7 text-center text-white">
               <div>
                 <div class="mx-auto flex size-11 items-center justify-center rounded-full bg-white/10">
-                  <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <path d="M4 7h3l1.5-2h7L17 7h3v12H4V7Z"></path>
-                    <path d="m5 4 14 16"></path>
-                  </svg>
+                  <CameraOffIcon class="size-5" />
                 </div>
                 <p class="mt-4 text-sm leading-5 font-semibold">{errorMessage}</p>
                 <button type="button" onclick={startScanner} class="mt-5 min-h-11 rounded-xl bg-white px-5 text-sm font-bold text-[#172033] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
