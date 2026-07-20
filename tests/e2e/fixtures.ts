@@ -56,10 +56,16 @@ type Fixtures = {
 function insertUser(db: Database.Database, trackedUserIds: string[], withGoal: boolean): string {
   const userId = randomUUID();
   const now = Date.now();
+  const email = `e2e-${userId}@example.test`;
   db.prepare(`
     INSERT INTO users (id, name, email, settings_json, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(userId, 'Playwright User', `e2e-${userId}@example.test`, '{}', now, now);
+  `).run(userId, 'Playwright User', email, '{}', now, now);
+  db.prepare(`
+    INSERT INTO auth_accounts (
+      id, user_id, provider, provider_subject, email_at_link, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?)
+  `).run(randomUUID(), userId, 'google', `google-${userId}`, email, now);
 
   if (withGoal) {
     db.prepare(`

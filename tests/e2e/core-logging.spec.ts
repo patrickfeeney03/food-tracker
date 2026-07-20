@@ -67,6 +67,31 @@ test('rejects a future effective date for a first goal', async ({ app }) => {
   expect(db.prepare('SELECT id FROM nutrition_goals WHERE user_id = ?').all(userId)).toEqual([]);
 });
 
+test('opens account details from settings and signs out', async ({ app }) => {
+  const { page, db, userId } = app;
+
+  await page.goto('/settings');
+  await page.getByRole('link', { name: /Account/ }).click();
+
+  await expect(page).toHaveURL(/\/settings\/account$/);
+  await expect(page.getByRole('heading', { name: 'Account' })).toBeVisible();
+  await expect(page.getByText('Playwright User')).toBeVisible();
+  await expect(page.getByText(`e2e-${userId}@example.test`).first()).toBeVisible();
+  await expect(page.getByText('Playwright', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/sign-in$/);
+  const revoked = db
+    .prepare('SELECT revoked_at FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1')
+    .get(userId) as { revoked_at: number | null } | undefined;
+  expect(revoked?.revoked_at).not.toBeNull();
+});
+
+test('redirects unauthenticated account access to sign in', async ({ page }) => {
+  await page.goto('/settings/account');
+  await expect(page).toHaveURL(/\/sign-in$/);
+});
+
 test('creates a food with an arbitrary basis and logs its serving to the selected meal', async ({ app }) => {
   const { page } = app;
   await page.goto(`/foods?date=${diaryDate}&mealSlot=breakfast`);
