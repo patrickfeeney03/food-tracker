@@ -1,13 +1,11 @@
 import { resolve } from '$app/paths';
 import { withQuery } from '$lib/navigation';
-import { mealSlots } from '$lib/nutrition/constants';
-import { inputLimits } from '$lib/nutrition/input-limits';
 import {
   createMealShortcutInputSchema,
   mealShortcutDraftSourceSchema,
   readMealShortcutFormData
 } from '$lib/nutrition/meal-shortcut-input';
-import { calendarDateString } from '$lib/nutrition/portion-input';
+import { contextSchema, readContext } from '$lib/nutrition/navigation-context';
 import { formatStoredValue } from '$lib/nutrition/math';
 import { db } from '$lib/server/db';
 import {
@@ -20,12 +18,6 @@ import {
 import { error, fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
-
-const contextSchema = z.object({
-  date: calendarDateString,
-  mealSlot: z.enum(mealSlots),
-  q: z.string().trim().max(inputLimits.catalogueQuery.maxLength)
-});
 
 type PickerFood = ReturnType<typeof searchMealShortcutFoods>[number];
 
@@ -67,11 +59,6 @@ function submittedItems(rawItems: unknown, foods: readonly PickerFood[]) {
         : undefined
     };
   });
-}
-
-function readContext(values: { date: string; mealSlot: string; q: string }) {
-  const result = contextSchema.safeParse(values);
-  return result.success ? result.data : undefined;
 }
 
 export const load: PageServerLoad = ({ locals, url }) => {

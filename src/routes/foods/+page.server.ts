@@ -1,7 +1,6 @@
-import { mealSlots } from "$lib/nutrition/constants";
 import { readText } from "$lib/nutrition/food-form";
 import { inputLimits } from "$lib/nutrition/input-limits";
-import { calendarDateString } from "$lib/nutrition/portion-input";
+import { destinationSchema } from "$lib/nutrition/navigation-context";
 import z from "zod";
 import type { Actions, PageServerLoad } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
@@ -36,11 +35,6 @@ import {
   getActiveDiaryEntry,
   getDeletedDiaryEntry
 } from "$lib/server/nutrition/diary-entry-query";
-
-const destinationSchema = z.object({
-  date: calendarDateString,
-  mealSlot: z.enum(mealSlots)
-});
 
 const searchSchema = z.string().trim().max(inputLimits.catalogueQuery.maxLength);
 const barcodeSchema = z.string().trim().min(1).max(inputLimits.food.barcode.maxLength);

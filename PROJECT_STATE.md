@@ -110,10 +110,6 @@ No open P1 work.
 ### P2 — settings and resilience
 
 1. Implement individual session revocation and JSON/CSV export.
-2. Complete barcode recovery/collision outcomes and PWA/offline/update handling.
-3. Audit core screens against `CalorieTrackerProductDesign.png` at mobile and desktop widths, including 44 px targets, focus, keyboard, and screen-reader behavior.
-4. Optimize latest-use SQL, fix the legacy `ml` migration, make date helpers deterministic, and extend route/component coverage with remaining validation and portion variants.
-5. Add reusable Button variants and consolidate truly identical form-reading helpers incrementally.
 
 ## Local Configuration
 

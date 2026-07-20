@@ -1,13 +1,11 @@
 import { resolve } from '$app/paths';
 import { todayInDublin } from '$lib/date';
 import { withQuery } from '$lib/navigation';
-import { mealSlots } from '$lib/nutrition/constants';
-import { inputLimits } from '$lib/nutrition/input-limits';
 import {
   readMealShortcutFormData,
   updateMealShortcutInputSchema
 } from '$lib/nutrition/meal-shortcut-input';
-import { calendarDateString } from '$lib/nutrition/portion-input';
+import { readContext } from '$lib/nutrition/navigation-context';
 import { formatStoredValue } from '$lib/nutrition/math';
 import { db } from '$lib/server/db';
 import {
@@ -23,18 +21,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
 
-const contextSchema = z.object({
-  date: calendarDateString,
-  mealSlot: z.enum(mealSlots),
-  q: z.string().trim().max(inputLimits.catalogueQuery.maxLength)
-});
-
 type PickerFood = ReturnType<typeof searchMealShortcutFoods>[number];
-
-function readContext(values: { date: string; mealSlot: string; q: string }) {
-  const result = contextSchema.safeParse(values);
-  return result.success ? result.data : undefined;
-}
 
 function unavailableReason(reason: 'food_archived' | 'amount_unit_changed') {
   return reason === 'food_archived'

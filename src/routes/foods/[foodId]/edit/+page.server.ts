@@ -1,11 +1,9 @@
 import { resolve } from '$app/paths';
 import { todayInDublin } from '$lib/date';
 import { withQuery } from '$lib/navigation';
-import { mealSlots } from '$lib/nutrition/constants';
-import { inputLimits } from '$lib/nutrition/input-limits';
 import { editFoodSchema } from '$lib/nutrition/food-input';
 import { readFoodFormValues, readText } from '$lib/nutrition/food-form';
-import { calendarDateString } from '$lib/nutrition/portion-input';
+import { contextSchema, readContext } from '$lib/nutrition/navigation-context';
 import { db } from '$lib/server/db';
 import {
   archiveFood,
@@ -20,26 +18,6 @@ import {
 import { error, fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
-
-const contextSchema = z.object({
-  date: calendarDateString,
-  mealSlot: z.enum(mealSlots),
-  q: z.string().trim().max(inputLimits.catalogueQuery.maxLength)
-});
-
-function readContext(url: URL) {
-  const result = contextSchema.safeParse({
-    date: url.searchParams.get('date') ?? todayInDublin(),
-    mealSlot: url.searchParams.get('mealSlot') ?? 'snacks',
-    q: url.searchParams.get('q') ?? ''
-  });
-
-  if (!result.success) {
-    return error(400, 'Invalid catalogue context');
-  }
-
-  return result.data;
-}
 
 function catalogueRedirect(
   context: { date: string; mealSlot: string; q: string },
@@ -68,8 +46,18 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
     return error(404, 'Food not found');
   }
 
+  const context = readContext({
+    date: url.searchParams.get('date') ?? todayInDublin(),
+    mealSlot: url.searchParams.get('mealSlot') ?? 'snacks',
+    q: url.searchParams.get('q') ?? ''
+  });
+
+  if (context === undefined) {
+    return error(400, 'Invalid catalogue context');
+  }
+
   return {
-    context: readContext(url),
+    context,
     values: formatFoodForEdit(food)
   };
 };

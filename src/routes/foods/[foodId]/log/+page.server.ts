@@ -1,9 +1,9 @@
 import { resolve } from '$app/paths';
 import { withQuery } from '$lib/navigation';
-import { mealSlots, type PortionKind } from '$lib/nutrition/constants';
+import type { PortionKind } from '$lib/nutrition/constants';
 import { readText } from '$lib/nutrition/food-form';
-import { inputLimits } from '$lib/nutrition/input-limits';
-import { calendarDateString, logFoodInputSchema } from '$lib/nutrition/portion-input';
+import { contextSchema } from '$lib/nutrition/navigation-context';
+import { logFoodInputSchema } from '$lib/nutrition/portion-input';
 import { db } from '$lib/server/db';
 import { diaryLogs, foods } from '$lib/server/db/schema';
 import {
@@ -16,12 +16,6 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
-
-const contextSchema = z.object({
-  date: calendarDateString,
-  mealSlot: z.enum(mealSlots),
-  q: z.string().trim().max(inputLimits.catalogueQuery.maxLength)
-});
 
 function portionOptionsFor(food: {
   amountUnit: 'mg' | 'ul';
