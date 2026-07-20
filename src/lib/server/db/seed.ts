@@ -1,7 +1,7 @@
 import { loadEnvFile } from 'node:process';
-import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createDatabase } from './connection';
+import type { MealSlot, PortionKind } from '../../nutrition/constants';
 import {
   users,
   authAccounts,
@@ -10,9 +10,7 @@ import {
   mealShortcuts,
   mealShortcutItems,
   diaryLogs,
-  type AdditionalNutrition,
-  type PortionKind,
-  type MealSlot
+  type AdditionalNutrition
 } from './schema';
 import { scaleNutritionValue, divideRoundHalfUp } from '../../nutrition/math';
 import { eq } from 'drizzle-orm';
@@ -570,11 +568,9 @@ async function seed() {
   }
 
   const daysToSeed = 7;
-  const eggFood = createdFoodsMap.get('Large Free Range Egg')!;
   const breadFood = createdFoodsMap.get('Wholemeal Seeded Bread Slice')!;
   const avocadoFood = createdFoodsMap.get('Fresh Hass Avocado')!;
   const salmonFood = createdFoodsMap.get('Atlantic Salmon Fillet (Raw)')!;
-  const sweetPotatoFood = createdFoodsMap.get('Sweet Potato (Baked)') ?? createdFoodsMap.get('Fresh Medium Banana')!;
   const almondsFood = createdFoodsMap.get('Raw Whole Almonds')!;
   const coffeeFood = createdFoodsMap.get('Black Double Espresso Coffee')!;
 
