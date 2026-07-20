@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { z } from 'zod';
-import { nutritionGoalInputSchema } from "./goal-input";
+import {
+  firstGoalEffectiveDateError,
+  nutritionGoalInputSchema
+} from "./goal-input";
 
 const validGoal = {
   effectiveFrom: '2026-07-12',
@@ -88,5 +91,12 @@ describe('nutrtionGoalInputSchema', () => {
         'Must have at most 3 fractional digits'
       );
     }
+  });
+
+  it('allows a first goal today or earlier, but not in the future', () => {
+    expect(firstGoalEffectiveDateError('2026-07-18', '2026-07-18')).toBeUndefined();
+    expect(firstGoalEffectiveDateError('2026-07-01', '2026-07-18')).toBeUndefined();
+    expect(firstGoalEffectiveDateError('2026-07-19', '2026-07-18'))
+      .toBe('Your first goal cannot start in the future.');
   });
 })

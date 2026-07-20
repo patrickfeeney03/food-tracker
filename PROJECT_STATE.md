@@ -105,10 +105,8 @@ No open P0 work.
 
 ### P1 — repeated logging and integrity
 
-1. Add pending-button protection and Undo for normal Amount Adjuster adds.
-2. Add diary-edit optimistic concurrency protection.
-3. Align first-goal guards with effective-date selection and make session refresh atomic.
-4. Add magnitude/text limits and preserve catalogue query/tab/scroll context through nested flows.
+1. Align first-goal guards with effective-date selection and make session refresh atomic.
+2. Add magnitude/text limits and preserve catalogue query/tab/scroll context through nested flows.
 
 ### P2 — settings and resilience
 

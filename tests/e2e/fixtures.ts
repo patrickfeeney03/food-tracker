@@ -44,6 +44,7 @@ type AuthenticatedApp = {
   db: Database.Database;
   userId: string;
   createUser: () => string;
+  signInAs: (userId: string) => Promise<void>;
   createFood: (seed?: FoodSeed) => string;
   diaryRows: () => DiaryRow[];
 };
@@ -137,6 +138,32 @@ export const test = base.extend<Fixtures>({
     );
 
     const context = await browser.newContext({ baseURL: BASE_URL });
+    const signInAs = async (sessionUserId: string) => {
+      const token = randomBytes(32).toString('base64url');
+      const now = Date.now();
+      db.prepare(`
+        INSERT INTO sessions (
+          id, user_id, token_hash, created_at, last_seen_at, expires_at, revoked_at, user_agent
+        ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)
+      `).run(
+        randomUUID(),
+        sessionUserId,
+        createHash('sha256').update(token).digest('hex'),
+        now,
+        now,
+        now + SESSION_DURATION_MS,
+        'Playwright'
+      );
+      await context.addCookies([{
+        name: 'session',
+        value: token,
+        url: BASE_URL,
+        httpOnly: true,
+        sameSite: 'Lax',
+        secure: false
+      }]);
+    };
+
     await context.addCookies([{
       name: 'session',
       value: token,
@@ -153,6 +180,7 @@ export const test = base.extend<Fixtures>({
         db,
         userId,
         createUser: () => insertUser(db, trackedUserIds, false),
+        signInAs,
         createFood: (seed) => insertFood(db, userId, seed),
         diaryRows: () => db.prepare(`
           SELECT

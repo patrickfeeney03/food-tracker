@@ -33,5 +33,10 @@
       </p>
     </header>
 
-    <NutritionGoalForm {values} {errors} submitLabel="Confirm goals" />
+    <NutritionGoalForm
+      {values}
+      {errors}
+      maxEffectiveDate={data.maxEffectiveDate}
+      submitLabel="Confirm goals"
+    />
 </AppPageShell>

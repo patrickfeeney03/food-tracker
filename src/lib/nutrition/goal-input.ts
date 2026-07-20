@@ -12,3 +12,12 @@ export const nutritionGoalInputSchema = z.object({
 });
 
 export type NutritionGoalInput = z.infer<typeof nutritionGoalInputSchema>;
+
+export function firstGoalEffectiveDateError(
+  effectiveFrom: string,
+  today: string
+): string | undefined {
+  return effectiveFrom > today
+    ? 'Your first goal cannot start in the future.'
+    : undefined;
+}

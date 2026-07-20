@@ -40,6 +40,33 @@ function expectSearchParameters(page: Page, expected: Record<string, string>) {
   }
 }
 
+function nextCalendarDate(date: string): string {
+  const [year, month, day] = date.split('-').map(Number);
+  const next = new Date(Date.UTC(year, month - 1, day + 1));
+  return next.toISOString().slice(0, 10);
+}
+
+test('rejects a future effective date for a first goal', async ({ app }) => {
+  const { page, db } = app;
+  const userId = app.createUser();
+  await app.signInAs(userId);
+
+  await page.goto('/goals/setup');
+  const effectiveDate = page.getByLabel('Effective date');
+  const today = await effectiveDate.getAttribute('max');
+  expect(today).not.toBeNull();
+  const futureDate = nextCalendarDate(today!);
+
+  await effectiveDate.evaluate((input) => input.removeAttribute('max'));
+  await effectiveDate.fill(futureDate);
+  await page.getByRole('button', { name: 'Confirm goals' }).click();
+
+  await expect(page.getByRole('alert')).toHaveText(
+    'Your first goal cannot start in the future.'
+  );
+  expect(db.prepare('SELECT id FROM nutrition_goals WHERE user_id = ?').all(userId)).toEqual([]);
+});
+
 test('creates a food with an arbitrary basis and logs its serving to the selected meal', async ({ app }) => {
   const { page } = app;
   await page.goto(`/foods?date=${diaryDate}&mealSlot=breakfast`);

@@ -3,7 +3,10 @@ import { nutritionGoals } from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
 import { fail, redirect, type Actions } from "@sveltejs/kit";
-import { nutritionGoalInputSchema } from "$lib/nutrition/goal-input";
+import {
+  firstGoalEffectiveDateError,
+  nutritionGoalInputSchema
+} from "$lib/nutrition/goal-input";
 import z from "zod";
 import { saveNutritionGoal } from "$lib/server/nutrition/save-nutrition-goal";
 import { todayInDublin } from '$lib/date';
@@ -33,9 +36,12 @@ export const load: PageServerLoad = ({ locals }) => {
     return redirect(303, '/');
   }
 
+  const today = todayInDublin();
+
   return {
+    maxEffectiveDate: today,
     values: {
-      effectiveFrom: todayInDublin(),
+      effectiveFrom: today,
       targetEnergyKcal: '2900',
       targetProteinG: '200',
       targetCarbsG: '300',
@@ -83,6 +89,18 @@ export const actions = {
         errors: z.flattenError(
           result.error
         ).fieldErrors
+      });
+    }
+
+    const effectiveDateError = firstGoalEffectiveDateError(
+      result.data.effectiveFrom,
+      todayInDublin()
+    );
+
+    if (effectiveDateError !== undefined) {
+      return fail(400, {
+        values,
+        errors: { effectiveFrom: [effectiveDateError] }
       });
     }
 

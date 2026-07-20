@@ -18,11 +18,13 @@
     errors = {},
     submitLabel,
     targetsLegend = "Daily targets",
+    maxEffectiveDate,
   }: {
     values: NutritionGoalFormValues;
     errors?: NutritionGoalFormErrors;
     submitLabel: string;
     targetsLegend?: string;
+    maxEffectiveDate?: string;
   } = $props();
 
   const targetFields = [
@@ -49,6 +51,7 @@
         name="effectiveFrom"
         type="date"
         value={values.effectiveFrom}
+        max={maxEffectiveDate}
         required
         aria-invalid={errors.effectiveFrom ? "true" : undefined}
         aria-describedby={errors.effectiveFrom ? "effectiveFrom-error" : undefined}

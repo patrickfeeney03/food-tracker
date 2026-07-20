@@ -19,6 +19,7 @@ describe('NutritionGoalForm', () => {
     });
 
     await expect.element(page.getByLabelText('Effective date')).toHaveValue('2026-07-18');
+    await expect.element(page.getByLabelText('Effective date')).not.toHaveAttribute('max');
     await expect.element(page.getByLabelText('Calories')).toHaveValue(2900);
     await expect.element(page.getByLabelText('Protein')).toHaveValue(200);
     await expect.element(page.getByLabelText('Carbohydrates')).toHaveValue(300);
@@ -39,5 +40,18 @@ describe('NutritionGoalForm', () => {
     await expect.element(page.getByText('Targets could not be saved')).toBeInTheDocument();
     await expect.element(page.getByText('Must be a non-negative decimal')).toBeInTheDocument();
     await expect.element(page.getByLabelText('Protein')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('only constrains the effective date when a maximum is provided', async () => {
+    render(NutritionGoalForm, {
+      values,
+      submitLabel: 'Confirm goals',
+      maxEffectiveDate: '2026-07-18'
+    });
+
+    await expect.element(page.getByLabelText('Effective date')).toHaveAttribute(
+      'max',
+      '2026-07-18'
+    );
   });
 });
