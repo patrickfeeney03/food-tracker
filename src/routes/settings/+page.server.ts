@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { and, desc, eq, gt, isNull, lte } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import {
@@ -9,6 +9,7 @@ import {
   type Theme
 } from '$lib/server/db/schema';
 import { todayInDublin } from '$lib/date';
+import { requireUser } from '$lib/server/auth/require-user';
 import {
   THEME_COOKIE_NAME,
   THEME_COOKIE_OPTIONS
@@ -17,9 +18,7 @@ import packageJson from '../../../package.json';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, url }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
+  const user = requireUser(locals);
 
   const currentGoal = db
     .select({
@@ -31,7 +30,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
     .from(nutritionGoals)
     .where(
       and(
-        eq(nutritionGoals.userId, locals.user.id),
+        eq(nutritionGoals.userId, user.id),
         lte(nutritionGoals.effectiveFrom, todayInDublin())
       )
     )
@@ -44,7 +43,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
     .from(sessions)
     .where(
       and(
-        eq(sessions.userId, locals.user.id),
+        eq(sessions.userId, user.id),
         isNull(sessions.revokedAt),
         gt(sessions.expiresAt, new Date())
       )
@@ -54,8 +53,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
 
   return {
     user: {
-      name: locals.user.name,
-      email: locals.user.email
+      name: user.name,
+      email: user.email
     },
     currentGoal: currentGoal ?? null,
     targetsSaved: url.searchParams.get('targets') === 'saved',
@@ -71,9 +70,7 @@ function isTheme(value: FormDataEntryValue | null): value is Theme {
 
 export const actions: Actions = {
   theme: async ({ cookies, locals, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const theme = formData.get('theme');
@@ -87,16 +84,16 @@ export const actions: Actions = {
     db.update(users)
       .set({
         settingsJson: {
-          ...locals.user.settingsJson,
+          ...user.settingsJson,
           theme
         },
         updatedAt: new Date()
       })
-      .where(eq(users.id, locals.user.id))
+      .where(eq(users.id, user.id))
       .run();
 
-    locals.user.settingsJson = {
-      ...locals.user.settingsJson,
+    user.settingsJson = {
+      ...user.settingsJson,
       theme
     };
     locals.theme = theme;

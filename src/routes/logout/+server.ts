@@ -4,6 +4,7 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_OPTIONS
 } from '$lib/server/auth/cookie';
+import { requireUser } from '$lib/server/auth/require-user';
 import { revokeSession } from '$lib/server/auth/session';
 import { db } from '$lib/server/db';
 
@@ -11,13 +12,14 @@ export const POST: RequestHandler = ({
   locals,
   cookies
 }) => {
+  const user = requireUser(locals);
+
   if (
-    locals.user !== null &&
     locals.session !== null
   ) {
     revokeSession(
       db,
-      locals.user.id,
+      user.id,
       locals.session.id
     );
   }

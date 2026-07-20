@@ -35,6 +35,7 @@ import {
   getActiveDiaryEntry,
   getDeletedDiaryEntry
 } from "$lib/server/nutrition/diary-entry-query";
+import { requireUser } from "$lib/server/auth/require-user";
 
 const searchSchema = z.string().trim().max(inputLimits.catalogueQuery.maxLength);
 const barcodeSchema = z.string().trim().min(1).max(inputLimits.food.barcode.maxLength);
@@ -69,9 +70,8 @@ export const load: PageServerLoad = ({
   locals,
   url
 }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
+  const user = requireUser(locals);
+  const userId = user.id;
 
   const destinationResult =
     destinationSchema.safeParse({
@@ -115,7 +115,7 @@ export const load: PageServerLoad = ({
     | null = null;
 
   if (quickAddedId.success) {
-    const entry = getActiveDiaryEntry(db, locals.user.id, quickAddedId.data);
+    const entry = getActiveDiaryEntry(db, userId, quickAddedId.data);
     if (
       entry !== undefined &&
       entry.diaryDate === destinationResult.data.date &&
@@ -130,7 +130,7 @@ export const load: PageServerLoad = ({
       };
     }
   } else if (quickAddUndoneId.success) {
-    const entry = getDeletedDiaryEntry(db, locals.user.id, quickAddUndoneId.data);
+    const entry = getDeletedDiaryEntry(db, userId, quickAddUndoneId.data);
     if (
       entry !== undefined &&
       entry.diaryDate === destinationResult.data.date &&
@@ -146,7 +146,7 @@ export const load: PageServerLoad = ({
     ? (() => {
       const draft = loadMealShortcutDraft(
         db,
-        locals.user.id,
+        userId,
         destinationResult.data.date,
         destinationResult.data.mealSlot
       );
@@ -168,7 +168,7 @@ export const load: PageServerLoad = ({
   if (scannedBarcode !== null && tab === 'foods') {
     const matchingFood = findActiveFoodByBarcode(
       db,
-      locals.user.id,
+      userId,
       scannedBarcode
     );
 
@@ -204,10 +204,10 @@ export const load: PageServerLoad = ({
   }
 
   const foods = tab === 'foods'
-    ? listActiveFoods(db, locals.user.id, query).map(withQuickAddState)
+    ? listActiveFoods(db, userId, query).map(withQuickAddState)
     : [];
   const shortcuts = tab === 'shortcuts'
-    ? listMealShortcuts(db, locals.user.id, query).map((shortcut) => ({
+    ? listMealShortcuts(db, userId, query).map((shortcut) => ({
       ...shortcut,
       clientMutationId: crypto.randomUUID()
     }))
@@ -233,9 +233,7 @@ export const load: PageServerLoad = ({
 
 export const actions = {
   quickAdd: async ({ locals, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const foodIdResult = foodIdSchema.safeParse(readText(formData, 'foodId'));
@@ -258,7 +256,7 @@ export const actions = {
     try {
       const entry = quickAddExistingFood(
         db,
-        locals.user.id,
+        user.id,
         foodIdResult.data,
         {
           clientMutationId: mutationIdResult.data,
@@ -296,9 +294,7 @@ export const actions = {
   },
 
   undoQuickAdd: async ({ locals, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const entryIdResult = entryIdSchema.safeParse(readText(formData, 'entryId'));
@@ -313,7 +309,7 @@ export const actions = {
     }
 
     try {
-      const entry = deleteDiaryEntry(db, locals.user.id, entryIdResult.data);
+      const entry = deleteDiaryEntry(db, user.id, entryIdResult.data);
 
       return redirect(
         303,
@@ -335,9 +331,7 @@ export const actions = {
   },
 
   applyShortcut: async ({ locals, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const shortcutIdResult = shortcutIdSchema.safeParse(readText(formData, 'shortcutId'));
@@ -360,7 +354,7 @@ export const actions = {
     try {
       const result = applyMealShortcut(
         db,
-        locals.user.id,
+        user.id,
         shortcutIdResult.data,
         {
           clientMutationId: clientMutationIdResult.data,

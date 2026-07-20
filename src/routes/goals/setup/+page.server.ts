@@ -9,6 +9,7 @@ import {
 } from "$lib/nutrition/goal-input";
 import { readText } from "$lib/nutrition/food-form";
 import z from "zod";
+import { requireUser } from "$lib/server/auth/require-user";
 import { saveNutritionGoal } from "$lib/server/nutrition/save-nutrition-goal";
 import { todayInDublin } from '$lib/date';
 
@@ -21,11 +22,9 @@ function hasGoal(userId: string): boolean {
 }
 
 export const load: PageServerLoad = ({ locals }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
+  const user = requireUser(locals);
 
-  if (hasGoal(locals.user.id)) {
+  if (hasGoal(user.id)) {
     return redirect(303, '/');
   }
 
@@ -45,9 +44,7 @@ export const load: PageServerLoad = ({ locals }) => {
 
 export const actions = {
   default: async ({ locals, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
 
@@ -99,7 +96,7 @@ export const actions = {
 
     saveNutritionGoal(
       db,
-      locals.user.id,
+      user.id,
       result.data
     );
 

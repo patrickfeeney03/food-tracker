@@ -10,6 +10,7 @@ import {
   FoodCreateBarcodeConflictError,
   FoodCreateMutationConflictError
 } from "$lib/server/nutrition/create-food-and-log";
+import { requireUser } from "$lib/server/auth/require-user";
 import { db } from "$lib/server/db";
 import { resolve } from "$app/paths";
 import { withQuery } from "$lib/navigation";
@@ -21,9 +22,7 @@ export const load: PageServerLoad = ({
   locals,
   url
 }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
+  requireUser(locals);
 
   const destinationResult =
     destinationSchema.safeParse({
@@ -81,9 +80,7 @@ export const load: PageServerLoad = ({
 
 export const actions = {
   default: async ({ locals, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
 
@@ -123,7 +120,7 @@ export const actions = {
     try {
       createFoodAndLog(
         db,
-        locals.user.id,
+        user.id,
         foodResult.data,
         logResult.data
       );

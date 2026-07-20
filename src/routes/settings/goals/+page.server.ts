@@ -5,6 +5,7 @@ import { readText } from '$lib/nutrition/food-form';
 import { nutritionGoalInputSchema } from '$lib/nutrition/goal-input';
 import { formatStoredValue } from '$lib/nutrition/math';
 import { calendarDateString } from '$lib/nutrition/portion-input';
+import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
 import { nutritionGoals } from '$lib/server/db/schema';
 import { saveNutritionGoal } from '$lib/server/nutrition/save-nutrition-goal';
@@ -14,9 +15,7 @@ import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, url }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
+  const user = requireUser(locals);
 
   const today = todayInDublin();
   const rawSelectedDate = url.searchParams.get('date');
@@ -34,7 +33,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
     .from(nutritionGoals)
     .where(
       and(
-        eq(nutritionGoals.userId, locals.user.id),
+        eq(nutritionGoals.userId, user.id),
         lte(nutritionGoals.effectiveFrom, effectiveFrom)
       )
     )
@@ -65,9 +64,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 
 export const actions = {
   default: async ({ locals, request, url }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const values = {
@@ -87,7 +84,7 @@ export const actions = {
     }
 
     try {
-      saveNutritionGoal(db, locals.user.id, result.data);
+      saveNutritionGoal(db, user.id, result.data);
     } catch (caught) {
       if (caught instanceof RangeError) {
         return fail(400, {

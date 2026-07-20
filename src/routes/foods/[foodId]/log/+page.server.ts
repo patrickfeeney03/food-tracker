@@ -4,6 +4,7 @@ import type { PortionKind } from '$lib/nutrition/constants';
 import { readText } from '$lib/nutrition/food-form';
 import { contextSchema } from '$lib/nutrition/navigation-context';
 import { logFoodInputSchema } from '$lib/nutrition/portion-input';
+import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
 import { diaryLogs, foods } from '$lib/server/db/schema';
 import {
@@ -52,9 +53,7 @@ function portionOptionsFor(food: {
 }
 
 export const load: PageServerLoad = ({ locals, params, url }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
+  const user = requireUser(locals);
 
   const contextResult = contextSchema.safeParse({
     date: url.searchParams.get('date'),
@@ -84,7 +83,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
     .where(
       and(
         eq(foods.id, params.foodId),
-        eq(foods.userId, locals.user.id),
+        eq(foods.userId, user.id),
         isNull(foods.deletedAt)
       )
     )
@@ -106,7 +105,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
     .from(diaryLogs)
     .where(
       and(
-        eq(diaryLogs.userId, locals.user.id),
+        eq(diaryLogs.userId, user.id),
         eq(diaryLogs.foodId, food.id),
         isNull(diaryLogs.deletedAt)
       )
@@ -143,9 +142,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 
 export const actions = {
   default: async ({ locals, params, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const query = readText(formData, 'q');
@@ -166,7 +163,7 @@ export const actions = {
     }
 
     try {
-      logExistingFood(db, locals.user.id, params.foodId, result.data);
+      logExistingFood(db, user.id, params.foodId, result.data);
     } catch (caught) {
       if (caught instanceof ExistingFoodNotFoundError) {
         return error(404, 'Food not found');

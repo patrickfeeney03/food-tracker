@@ -1,13 +1,11 @@
-import { redirect } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
+import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
 import { authAccounts } from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
+  const user = requireUser(locals);
 
   const authAccount = db
     .select({
@@ -18,7 +16,7 @@ export const load: PageServerLoad = ({ locals }) => {
     .from(authAccounts)
     .where(
       and(
-        eq(authAccounts.userId, locals.user.id),
+        eq(authAccounts.userId, user.id),
         eq(authAccounts.provider, 'google')
       )
     )
@@ -27,9 +25,9 @@ export const load: PageServerLoad = ({ locals }) => {
 
   return {
     user: {
-      name: locals.user.name,
-      email: locals.user.email,
-      createdAt: locals.user.createdAt
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt
     },
     authAccount: authAccount ?? null,
     currentSession:

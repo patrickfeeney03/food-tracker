@@ -4,6 +4,7 @@ import type { PortionKind } from "$lib/nutrition/constants";
 import { readText } from "$lib/nutrition/food-form";
 import { editDiaryEntryInputSchema } from "$lib/nutrition/portion-input";
 import { formatStoredValue } from "$lib/nutrition/math";
+import { requireUser } from "$lib/server/auth/require-user";
 import { db } from "$lib/server/db";
 import { deleteDiaryEntry, DiaryEntryDeletionNotFoundError } from "$lib/server/nutrition/delete-diary-entry";
 import { getActiveDiaryEntry } from "$lib/server/nutrition/diary-entry-query";
@@ -16,13 +17,11 @@ export const load: PageServerLoad = ({
   locals,
   params
 }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
+  const user = requireUser(locals);
 
   const entry = getActiveDiaryEntry(
     db,
-    locals.user.id,
+    user.id,
     params.entryId
   );
 
@@ -81,9 +80,7 @@ export const actions = {
     params,
     request
   }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const values = {
@@ -105,7 +102,7 @@ export const actions = {
     try {
       const entry = updateDiaryEntry(
         db,
-        locals.user.id,
+        user.id,
         params.entryId,
         result.data
       );
@@ -138,14 +135,12 @@ export const actions = {
   },
 
   delete: ({ locals, params }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     try {
       const entry = deleteDiaryEntry(
         db,
-        locals.user.id,
+        user.id,
         params.entryId
       );
 

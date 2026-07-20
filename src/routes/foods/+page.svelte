@@ -10,7 +10,7 @@
   import CloseIcon from "$lib/components/icons/CloseIcon.svelte";
   import SearchIcon from "$lib/components/icons/SearchIcon.svelte";
   import { withQuery } from "$lib/navigation";
-  import { mealNames, type MealSlot } from "$lib/nutrition/constants";
+  import { mealNames } from "$lib/nutrition/constants";
   import { formatAmount, formatDate, formatKcal } from "$lib/nutrition/format";
   import { inputLimits } from "$lib/nutrition/input-limits";
   import type { SubmitFunction } from "@sveltejs/kit";

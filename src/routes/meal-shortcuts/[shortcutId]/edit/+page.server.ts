@@ -7,6 +7,7 @@ import {
 } from '$lib/nutrition/meal-shortcut-input';
 import { readContext } from '$lib/nutrition/navigation-context';
 import { formatStoredValue } from '$lib/nutrition/math';
+import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
 import {
   archiveMealShortcut,
@@ -76,7 +77,7 @@ function catalogueDestination(
 }
 
 export const load: PageServerLoad = ({ locals, params, url }) => {
-  if (locals.user === null) return redirect(303, '/sign-in');
+  const user = requireUser(locals);
 
   const context = readContext({
     date: url.searchParams.get('date') ?? todayInDublin(),
@@ -86,8 +87,8 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
   if (context === undefined) return error(400, 'Invalid catalogue context');
 
   try {
-    const shortcut = getMealShortcut(db, locals.user.id, params.shortcutId);
-    const foods = searchMealShortcutFoods(db, locals.user.id, '', 200);
+    const shortcut = getMealShortcut(db, user.id, params.shortcutId);
+    const foods = searchMealShortcutFoods(db, user.id, '', 200);
     return {
       context,
       foods,
@@ -116,7 +117,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 
 export const actions = {
   save: async ({ locals, params, request }) => {
-    if (locals.user === null) return redirect(303, '/sign-in');
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const raw = readMealShortcutFormData(formData);
@@ -125,7 +126,7 @@ export const actions = {
       mealSlot: String(formData.get('mealSlot') ?? ''),
       q: String(formData.get('q') ?? '')
     });
-    const foods = searchMealShortcutFoods(db, locals.user.id, '', 200);
+    const foods = searchMealShortcutFoods(db, user.id, '', 200);
     const result = updateMealShortcutInputSchema.safeParse(raw);
     const values = {
       name: raw.name,
@@ -146,7 +147,7 @@ export const actions = {
 
     let shortcut;
     try {
-      shortcut = updateMealShortcut(db, locals.user.id, params.shortcutId, result.data);
+      shortcut = updateMealShortcut(db, user.id, params.shortcutId, result.data);
     } catch (caught) {
       if (caught instanceof MealShortcutNotFoundError) return error(404, 'Meal shortcut not found');
       if (
@@ -166,7 +167,7 @@ export const actions = {
   },
 
   archive: async ({ locals, params, request }) => {
-    if (locals.user === null) return redirect(303, '/sign-in');
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const expectedUpdatedAt = String(formData.get('expectedUpdatedAt') ?? '');
@@ -178,7 +179,7 @@ export const actions = {
     if (context === undefined) return fail(400, { archiveError: 'Invalid catalogue context' });
 
     try {
-      archiveMealShortcut(db, locals.user.id, params.shortcutId, expectedUpdatedAt);
+      archiveMealShortcut(db, user.id, params.shortcutId, expectedUpdatedAt);
     } catch (caught) {
       if (caught instanceof MealShortcutNotFoundError) return error(404, 'Meal shortcut not found');
       if (caught instanceof MealShortcutEditConflictError) {

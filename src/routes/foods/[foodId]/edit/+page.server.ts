@@ -4,6 +4,7 @@ import { withQuery } from '$lib/navigation';
 import { editFoodSchema } from '$lib/nutrition/food-input';
 import { readFoodFormValues, readText } from '$lib/nutrition/food-form';
 import { contextSchema, readContext } from '$lib/nutrition/navigation-context';
+import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
 import {
   archiveFood,
@@ -37,11 +38,9 @@ function catalogueRedirect(
 }
 
 export const load: PageServerLoad = ({ locals, params, url }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
+  const user = requireUser(locals);
 
-  const food = getActiveFoodForEdit(db, locals.user.id, params.foodId);
+  const food = getActiveFoodForEdit(db, user.id, params.foodId);
   if (food === undefined) {
     return error(404, 'Food not found');
   }
@@ -64,9 +63,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
 
 export const actions = {
   save: async ({ locals, params, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const values = {
@@ -92,7 +89,7 @@ export const actions = {
     }
 
     try {
-      updateFood(db, locals.user.id, params.foodId, result.data);
+      updateFood(db, user.id, params.foodId, result.data);
     } catch (caught) {
       if (caught instanceof FoodNotFoundError) {
         return error(404, 'Food not found');
@@ -132,9 +129,7 @@ export const actions = {
   },
 
   archive: async ({ locals, params, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const expectedUpdatedAt = readText(formData, 'expectedUpdatedAt');
@@ -149,7 +144,7 @@ export const actions = {
     }
 
     try {
-      archiveFood(db, locals.user.id, params.foodId, expectedUpdatedAt);
+      archiveFood(db, user.id, params.foodId, expectedUpdatedAt);
     } catch (caught) {
       if (caught instanceof FoodNotFoundError) {
         return error(404, 'Food not found');

@@ -6,7 +6,7 @@
   import SettingsIcon from "$lib/components/icons/SettingsIcon.svelte";
   import { shiftDate } from "$lib/date";
   import { withQuery } from "$lib/navigation";
-  import { mealNames, mealSlots, type MealSlot } from "$lib/nutrition/constants";
+  import { mealNames, mealSlots } from "$lib/nutrition/constants";
   import { formatAmount, formatGrams, formatKcal } from "$lib/nutrition/format";
   import type { PageProps } from "./$types";
 

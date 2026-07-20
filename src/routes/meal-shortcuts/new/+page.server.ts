@@ -7,6 +7,7 @@ import {
 } from '$lib/nutrition/meal-shortcut-input';
 import { contextSchema, readContext } from '$lib/nutrition/navigation-context';
 import { formatStoredValue } from '$lib/nutrition/math';
+import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
 import {
   createMealShortcut,
@@ -62,7 +63,7 @@ function submittedItems(rawItems: unknown, foods: readonly PickerFood[]) {
 }
 
 export const load: PageServerLoad = ({ locals, url }) => {
-  if (locals.user === null) return redirect(303, '/sign-in');
+  const user = requireUser(locals);
 
   const sourceResult = mealShortcutDraftSourceSchema.safeParse({
     diaryDate: url.searchParams.get('date'),
@@ -79,14 +80,14 @@ export const load: PageServerLoad = ({ locals, url }) => {
 
   const draft = loadMealShortcutDraft(
     db,
-    locals.user.id,
+    user.id,
     sourceResult.data.diaryDate,
     sourceResult.data.mealSlot
   );
   if (draft.items.length === 0 && draft.excludedEntries.length === 0) {
     return error(400, 'Log at least one food in this meal before creating a shortcut.');
   }
-  const foods = searchMealShortcutFoods(db, locals.user.id, '', 200);
+  const foods = searchMealShortcutFoods(db, user.id, '', 200);
 
   return {
     context: contextResult.data,
@@ -125,7 +126,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 
 export const actions = {
   save: async ({ locals, request }) => {
-    if (locals.user === null) return redirect(303, '/sign-in');
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const raw = readMealShortcutFormData(formData);
@@ -134,7 +135,7 @@ export const actions = {
       mealSlot: String(formData.get('mealSlot') ?? ''),
       q: String(formData.get('q') ?? '')
     });
-    const foods = searchMealShortcutFoods(db, locals.user.id, '', 200);
+    const foods = searchMealShortcutFoods(db, user.id, '', 200);
     const result = createMealShortcutInputSchema.safeParse(raw);
     const values = {
       clientMutationId: raw.clientMutationId,
@@ -155,7 +156,7 @@ export const actions = {
 
     let shortcut;
     try {
-      shortcut = createMealShortcut(db, locals.user.id, result.data);
+      shortcut = createMealShortcut(db, user.id, result.data);
     } catch (caught) {
       if (
         caught instanceof MealShortcutCreateConflictError ||

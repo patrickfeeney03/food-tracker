@@ -1,14 +1,12 @@
 import { todayInDublin } from '$lib/date';
+import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
 import { nutritionGoals } from '$lib/server/db/schema';
-import { redirect } from '@sveltejs/kit';
 import { desc, eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, url }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
+  const user = requireUser(locals);
 
   const today = todayInDublin();
   const goals = db
@@ -22,7 +20,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
       updatedAt: nutritionGoals.updatedAt
     })
     .from(nutritionGoals)
-    .where(eq(nutritionGoals.userId, locals.user.id))
+    .where(eq(nutritionGoals.userId, user.id))
     .orderBy(desc(nutritionGoals.effectiveFrom))
     .all();
 

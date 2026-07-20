@@ -9,7 +9,18 @@ import {
   THEME_COOKIE_NAME,
   THEME_COOKIE_OPTIONS
 } from '$lib/server/theme';
-import type { Handle } from '@sveltejs/kit';
+import { redirect, type Handle } from '@sveltejs/kit';
+
+const PUBLIC_ROUTES = new Set([
+  '/sign-in',
+  '/auth/google',
+  '/auth/google/callback',
+  '/robots.txt'
+]);
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_ROUTES.has(pathname) || pathname.startsWith('/_app/');
+}
 
 export const handle: Handle = async ({
   event,
@@ -54,6 +65,10 @@ export const handle: Handle = async ({
 
   if (event.locals.user !== null && cookieTheme !== theme) {
     event.cookies.set(THEME_COOKIE_NAME, theme, THEME_COOKIE_OPTIONS);
+  }
+
+  if (event.locals.user === null && !isPublicPath(event.url.pathname)) {
+    return redirect(303, '/sign-in');
   }
 
   const themeAttributes =

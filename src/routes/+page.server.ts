@@ -23,6 +23,7 @@ import {
   getActiveDiaryEntry,
   getDeletedDiaryEntry
 } from "$lib/server/nutrition/diary-entry-query";
+import { requireUser } from "$lib/server/auth/require-user";
 import { resolve } from "$app/paths";
 import { withQuery } from "$lib/navigation";
 import { z } from "zod";
@@ -39,10 +40,8 @@ export const load: PageServerLoad = ({
   locals,
   url
 }) => {
-  if (locals.user === null) {
-    return redirect(303, '/sign-in');
-  }
-  const userId = locals.user.id;
+  const user = requireUser(locals);
+  const userId = user.id;
 
   const hasGoal = db
     .select({ id: nutritionGoals.id })
@@ -50,7 +49,7 @@ export const load: PageServerLoad = ({
     .where(
       eq(
         nutritionGoals.userId,
-        locals.user.id
+        userId
       )
     )
     .get() !== undefined;
@@ -73,7 +72,7 @@ export const load: PageServerLoad = ({
 
   const diary = loadDiaryDay(
     db,
-    locals.user.id,
+    userId,
     dateResult.data
   );
   const deletedEntryId = entryIdSchema.safeParse(url.searchParams.get('entryDeleted'));
@@ -138,7 +137,7 @@ export const load: PageServerLoad = ({
     try {
       const feedback = getMealShortcutApplicationFeedback(
         db,
-        locals.user.id,
+        userId,
         applicationIdResult.data
       );
 
@@ -165,7 +164,7 @@ export const load: PageServerLoad = ({
   const savedIdResult = applicationIdSchema.safeParse(savedId);
   if (shortcutFeedback === null && savedIdResult.success) {
     try {
-      const shortcut = getMealShortcut(db, locals.user.id, savedIdResult.data);
+      const shortcut = getMealShortcut(db, userId, savedIdResult.data);
       shortcutFeedback = {
         kind: 'saved',
         shortcutName: shortcut.name
@@ -180,7 +179,7 @@ export const load: PageServerLoad = ({
   return {
     today,
     user: {
-      name: locals.user.name
+      name: user.name
     },
     diary,
     entryFeedback,
@@ -191,9 +190,7 @@ export const load: PageServerLoad = ({
 
 export const actions = {
   undoEntryDelete: async ({ locals, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const result = undoEntryDeletionSchema.safeParse({
@@ -208,7 +205,7 @@ export const actions = {
     try {
       const entry = restoreDeletedDiaryEntry(
         db,
-        locals.user.id,
+        user.id,
         result.data.entryId,
         new Date(result.data.deletedAt)
       );
@@ -232,9 +229,7 @@ export const actions = {
   },
 
   undoShortcut: async ({ locals, request }) => {
-    if (locals.user === null) {
-      return redirect(303, '/sign-in');
-    }
+    const user = requireUser(locals);
 
     const formData = await request.formData();
     const applicationIdResult = applicationIdSchema.safeParse(
@@ -249,7 +244,7 @@ export const actions = {
     try {
       const feedback = undoMealShortcutApplication(
         db,
-        locals.user.id,
+        user.id,
         applicationIdResult.data
       );
 
