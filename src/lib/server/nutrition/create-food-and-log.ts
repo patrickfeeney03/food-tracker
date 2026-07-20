@@ -125,7 +125,7 @@ function replayExistingMutation(
     throw new FoodCreateMutationConflictError();
   }
 
-  return existing;
+  return { ...existing, replayed: true as const };
 }
 
 export function createFoodAndLog(
@@ -172,7 +172,8 @@ export function createFoodAndLog(
 
       return {
         food,
-        diaryLog
+        diaryLog,
+        replayed: false as const
       }
     });
   } catch (error) { // for concurrency scenarios

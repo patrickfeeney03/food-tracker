@@ -94,11 +94,16 @@ export const actions = {
       });
     }
 
-    saveNutritionGoal(
+    const goal = saveNutritionGoal(
       db,
       user.id,
       result.data
     );
+
+    locals.log.info('nutrition_goal.saved', {
+      nutritionGoalId: goal.id,
+      effectiveFrom: goal.effectiveFrom
+    });
 
     return redirect(303, '/');
   }

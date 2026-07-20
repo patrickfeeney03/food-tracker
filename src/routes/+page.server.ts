@@ -210,6 +210,13 @@ export const actions = {
         new Date(result.data.deletedAt)
       );
 
+      locals.log.info('diary_entry.restored', {
+        diaryEntryId: entry.id,
+        foodId: entry.foodId,
+        diaryDate: entry.diaryDate,
+        mealSlot: entry.mealSlot
+      });
+
       return redirect(
         303,
         resolve(
@@ -247,6 +254,14 @@ export const actions = {
         user.id,
         applicationIdResult.data
       );
+
+      locals.log.info('meal_shortcut.undone', {
+        shortcutId: feedback.application.shortcutId,
+        shortcutApplicationId: feedback.application.id,
+        diaryEntryCount: feedback.entryCount,
+        diaryDate: feedback.application.diaryDate,
+        mealSlot: feedback.application.mealSlot
+      });
 
       return redirect(
         303,

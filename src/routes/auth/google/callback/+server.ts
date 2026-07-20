@@ -11,6 +11,7 @@ const GOOGLE_USER_INFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 export const GET: RequestHandler = async ({
   cookies,
   fetch,
+  locals,
   request,
   url
 }) => {
@@ -68,11 +69,17 @@ export const GET: RequestHandler = async ({
       identity,
       getAllowedGoogleEmail()
     );
-    const { token } = createSession(
+    const { token, session } = createSession(
       db,
       user.id,
       request.headers.get('user-agent')
     );
+
+    locals.log.info('auth.signed_in', {
+      userId: user.id,
+      sessionId: session.id,
+      provider: 'google'
+    });
 
     cookies.set(
       SESSION_COOKIE_NAME,
@@ -81,13 +88,20 @@ export const GET: RequestHandler = async ({
     );
   } catch (error) {
     if (error instanceof GoogleEmailNotAllowedError) {
+      locals.log.info('auth.sign_in_denied', {
+        provider: 'google',
+        reason: 'email_not_allowed'
+      });
+
       return redirect(
         303,
         '/sign-in?error=access_denied'
       );
     }
 
-    console.error('Google sign-in failed', error);
+    locals.log.error('auth.sign_in_failed', error, {
+      provider: 'google'
+    });
     return redirect(303, '/sign-in?error=oauth');
   }
 

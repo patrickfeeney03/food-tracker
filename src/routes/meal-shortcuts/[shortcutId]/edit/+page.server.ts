@@ -148,6 +148,12 @@ export const actions = {
     let shortcut;
     try {
       shortcut = updateMealShortcut(db, user.id, params.shortcutId, result.data);
+
+      locals.log.info('meal_shortcut.saved', {
+        shortcutId: shortcut.id,
+        itemCount: result.data.items.length,
+        operation: 'update'
+      });
     } catch (caught) {
       if (caught instanceof MealShortcutNotFoundError) return error(404, 'Meal shortcut not found');
       if (
@@ -179,7 +185,16 @@ export const actions = {
     if (context === undefined) return fail(400, { archiveError: 'Invalid catalogue context' });
 
     try {
-      archiveMealShortcut(db, user.id, params.shortcutId, expectedUpdatedAt);
+      const shortcut = archiveMealShortcut(
+        db,
+        user.id,
+        params.shortcutId,
+        expectedUpdatedAt
+      );
+
+      locals.log.info('meal_shortcut.archived', {
+        shortcutId: shortcut.id
+      });
     } catch (caught) {
       if (caught instanceof MealShortcutNotFoundError) return error(404, 'Meal shortcut not found');
       if (caught instanceof MealShortcutEditConflictError) {

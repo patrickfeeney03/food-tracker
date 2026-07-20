@@ -265,6 +265,15 @@ export const actions = {
         }
       );
 
+      locals.log.info('diary_entry.logged', {
+        diaryEntryId: entry.id,
+        foodId: foodIdResult.data,
+        diaryDate: entry.diaryDate,
+        mealSlot: entry.mealSlot,
+        clientMutationId: mutationIdResult.data,
+        source: 'quick_add'
+      });
+
       return redirect(
         303,
         resolve(
@@ -310,6 +319,14 @@ export const actions = {
 
     try {
       const entry = deleteDiaryEntry(db, user.id, entryIdResult.data);
+
+      locals.log.info('diary_entry.deleted', {
+        diaryEntryId: entry.id,
+        foodId: entry.foodId,
+        diaryDate: entry.diaryDate,
+        mealSlot: entry.mealSlot,
+        source: 'quick_add_undo'
+      });
 
       return redirect(
         303,
@@ -362,6 +379,16 @@ export const actions = {
           mealSlot: destinationResult.data.mealSlot
         }
       );
+
+      locals.log.info('meal_shortcut.applied', {
+        shortcutId: shortcutIdResult.data,
+        shortcutApplicationId: result.application.id,
+        diaryEntryIds: result.entries.map((entry) => entry.id),
+        diaryDate: result.application.diaryDate,
+        mealSlot: result.application.mealSlot,
+        clientMutationId: clientMutationIdResult.data,
+        replayed: result.replayed
+      });
 
       return redirect(
         303,

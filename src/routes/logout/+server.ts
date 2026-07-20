@@ -17,11 +17,17 @@ export const POST: RequestHandler = ({
   if (
     locals.session !== null
   ) {
+    const sessionId = locals.session.id;
+
     revokeSession(
       db,
       user.id,
-      locals.session.id
+      sessionId
     );
+
+    locals.log.info('auth.signed_out', {
+      sessionId
+    });
   }
 
   cookies.delete(SESSION_COOKIE_NAME, {

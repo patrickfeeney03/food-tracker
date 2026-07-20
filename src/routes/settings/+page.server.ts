@@ -99,6 +99,8 @@ export const actions: Actions = {
     locals.theme = theme;
     cookies.set(THEME_COOKIE_NAME, theme, THEME_COOKIE_OPTIONS);
 
+    locals.log.info('user.theme_updated', { theme });
+
     return {
       themeSaved: true
     };

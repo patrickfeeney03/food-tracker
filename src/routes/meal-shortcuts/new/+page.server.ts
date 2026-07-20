@@ -157,6 +157,13 @@ export const actions = {
     let shortcut;
     try {
       shortcut = createMealShortcut(db, user.id, result.data);
+
+      locals.log.info('meal_shortcut.saved', {
+        shortcutId: shortcut.id,
+        clientMutationId: result.data.clientMutationId,
+        itemCount: result.data.items.length,
+        operation: 'create'
+      });
     } catch (caught) {
       if (
         caught instanceof MealShortcutCreateConflictError ||

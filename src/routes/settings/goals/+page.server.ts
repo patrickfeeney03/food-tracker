@@ -84,7 +84,12 @@ export const actions = {
     }
 
     try {
-      saveNutritionGoal(db, user.id, result.data);
+      const goal = saveNutritionGoal(db, user.id, result.data);
+
+      locals.log.info('nutrition_goal.saved', {
+        nutritionGoalId: goal.id,
+        effectiveFrom: goal.effectiveFrom
+      });
     } catch (caught) {
       if (caught instanceof RangeError) {
         return fail(400, {

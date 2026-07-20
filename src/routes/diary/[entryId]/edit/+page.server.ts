@@ -107,6 +107,13 @@ export const actions = {
         result.data
       );
 
+      locals.log.info('diary_entry.updated', {
+        diaryEntryId: entry.id,
+        foodId: entry.foodId,
+        diaryDate: entry.diaryDate,
+        mealSlot: entry.mealSlot
+      });
+
       return redirect(
         303,
         resolve(
@@ -143,6 +150,14 @@ export const actions = {
         user.id,
         params.entryId
       );
+
+      locals.log.info('diary_entry.deleted', {
+        diaryEntryId: entry.id,
+        foodId: entry.foodId,
+        diaryDate: entry.diaryDate,
+        mealSlot: entry.mealSlot,
+        source: 'diary'
+      });
 
       return redirect(
         303,

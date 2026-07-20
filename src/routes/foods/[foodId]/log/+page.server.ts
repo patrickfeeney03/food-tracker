@@ -163,7 +163,16 @@ export const actions = {
     }
 
     try {
-      logExistingFood(db, user.id, params.foodId, result.data);
+      const entry = logExistingFood(db, user.id, params.foodId, result.data);
+
+      locals.log.info('diary_entry.logged', {
+        diaryEntryId: entry.id,
+        foodId: params.foodId,
+        diaryDate: entry.diaryDate,
+        mealSlot: entry.mealSlot,
+        clientMutationId: result.data.clientMutationId,
+        source: 'existing_food'
+      });
     } catch (caught) {
       if (caught instanceof ExistingFoodNotFoundError) {
         return error(404, 'Food not found');

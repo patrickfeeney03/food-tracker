@@ -118,12 +118,30 @@ export const actions = {
     }
 
     try {
-      createFoodAndLog(
+      const created = createFoodAndLog(
         db,
         user.id,
         foodResult.data,
         logResult.data
       );
+
+      if (!created.replayed) {
+        locals.log.info('food.created', {
+          foodId: created.food.id,
+          diaryEntryId: created.diaryLog.id,
+          clientMutationId: logResult.data.clientMutationId
+        });
+      }
+
+      locals.log.info('diary_entry.logged', {
+        diaryEntryId: created.diaryLog.id,
+        foodId: created.food.id,
+        diaryDate: created.diaryLog.diaryDate,
+        mealSlot: created.diaryLog.mealSlot,
+        clientMutationId: logResult.data.clientMutationId,
+        source: 'new_food',
+        replayed: created.replayed
+      });
     } catch (caught) {
       if (caught instanceof FoodCreateBarcodeConflictError) {
         return fail(400, {

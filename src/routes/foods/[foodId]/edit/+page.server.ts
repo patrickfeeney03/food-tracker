@@ -89,7 +89,11 @@ export const actions = {
     }
 
     try {
-      updateFood(db, user.id, params.foodId, result.data);
+      const food = updateFood(db, user.id, params.foodId, result.data);
+
+      locals.log.info('food.updated', {
+        foodId: food.id
+      });
     } catch (caught) {
       if (caught instanceof FoodNotFoundError) {
         return error(404, 'Food not found');
@@ -144,7 +148,11 @@ export const actions = {
     }
 
     try {
-      archiveFood(db, user.id, params.foodId, expectedUpdatedAt);
+      const food = archiveFood(db, user.id, params.foodId, expectedUpdatedAt);
+
+      locals.log.info('food.archived', {
+        foodId: food.id
+      });
     } catch (caught) {
       if (caught instanceof FoodNotFoundError) {
         return error(404, 'Food not found');
