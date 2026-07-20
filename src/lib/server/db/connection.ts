@@ -4,8 +4,11 @@ import * as schema from './schema';
 
 export interface DatabaseConnection {
 	client: Database.Database;
-	db: ReturnType<typeof drizzle<typeof schema>>;
+	db: AppDatabase;
 }
+
+export type AppDatabase = ReturnType<typeof drizzle<typeof schema>>;
+export type ReadDatabase = Pick<AppDatabase, 'select'>;
 
 export function configureSqlite(client: Database.Database): void {
 	client.pragma('busy_timeout = 5000');

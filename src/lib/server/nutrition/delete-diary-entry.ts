@@ -1,8 +1,6 @@
-import type { DatabaseConnection } from "$lib/server/db/connection";
+import type { AppDatabase } from "$lib/server/db/connection";
 import { diaryLogs, type DiaryLog } from "$lib/server/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
-
-type Database = DatabaseConnection["db"];
 
 export class DiaryEntryDeletionNotFoundError extends Error {
   constructor() {
@@ -12,7 +10,7 @@ export class DiaryEntryDeletionNotFoundError extends Error {
 }
 
 export function deleteDiaryEntry(
-  db: Database,
+  db: AppDatabase,
   userId: string,
   entryId: string,
   deletedAt = new Date(),
@@ -38,7 +36,7 @@ export function deleteDiaryEntry(
 }
 
 export function restoreDeletedDiaryEntry(
-  db: Database,
+  db: AppDatabase,
   userId: string,
   entryId: string,
   expectedDeletedAt: Date,

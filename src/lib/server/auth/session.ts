@@ -1,14 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
 import { and, eq, isNull } from 'drizzle-orm';
-import type { DatabaseConnection } from "../db/connection";
+import type { AppDatabase } from "../db/connection";
 import {
   sessions,
   users,
   type Session,
   type User
 } from "../db/schema";
-
-type AppDatabase = DatabaseConnection['db'];
 
 export const SESSION_DURATION_MS =
   90 * 24 * 60 * 60 * 1000;

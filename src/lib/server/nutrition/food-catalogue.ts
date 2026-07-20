@@ -9,10 +9,8 @@ import {
   max,
   or
 } from 'drizzle-orm';
-import type { DatabaseConnection } from '$lib/server/db/connection';
+import type { AppDatabase } from '$lib/server/db/connection';
 import { diaryLogs, foods } from '$lib/server/db/schema';
-
-type AppDatabase = DatabaseConnection['db'];
 
 const foodSelection = {
   id: foods.id,

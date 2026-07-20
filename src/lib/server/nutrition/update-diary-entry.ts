@@ -1,11 +1,9 @@
 import { editDiaryEntryInputSchema, type EditDiaryEntryInput } from "$lib/nutrition/portion-input";
-import type { DatabaseConnection } from "$lib/server/db/connection";
+import type { AppDatabase } from "$lib/server/db/connection";
 import { diaryLogs, type DiaryLog } from "$lib/server/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { buildDiaryLogUpdateValues } from "./diary-entry";
 import { getActiveDiaryEntry } from "./diary-entry-query";
-
-type Database = DatabaseConnection['db'];
 
 export class DiaryEntryNotFoundError extends Error {
   constructor() {
@@ -15,7 +13,7 @@ export class DiaryEntryNotFoundError extends Error {
 }
 
 export function updateDiaryEntry(
-  db: Database,
+  db: AppDatabase,
   userId: string,
   entryId: string,
   rawInput: EditDiaryEntryInput,

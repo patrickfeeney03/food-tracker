@@ -1,12 +1,9 @@
 import { editFoodSchema, type EditFoodFormInput } from '$lib/nutrition/food-input';
 import { formatStoredValue } from '$lib/nutrition/math';
-import type { DatabaseConnection } from '$lib/server/db/connection';
+import type { AppDatabase, ReadDatabase } from '$lib/server/db/connection';
 import { foods, mealShortcutItems, type Food } from '$lib/server/db/schema';
 import { and, eq, isNull, ne } from 'drizzle-orm';
 import { mapFoodInput } from './food-mapper';
-
-type AppDatabase = DatabaseConnection['db'];
-type ReadDatabase = Pick<AppDatabase, 'select'>;
 
 export class FoodNotFoundError extends Error {
   constructor() {

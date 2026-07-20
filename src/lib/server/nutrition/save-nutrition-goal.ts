@@ -1,9 +1,7 @@
 import { nutritionGoalInputSchema } from '$lib/nutrition/goal-input';
-import type { DatabaseConnection } from '$lib/server/db/connection';
+import type { AppDatabase } from '$lib/server/db/connection';
 import { nutritionGoals } from '$lib/server/db/schema';
 import { mapNutritionGoalInput } from './goal-mapper';
-
-type AppDatabase = DatabaseConnection['db'];
 
 export function saveNutritionGoal(
   db: AppDatabase,

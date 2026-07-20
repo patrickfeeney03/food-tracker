@@ -9,7 +9,7 @@ import {
   type MealShortcutItemInput
 } from '$lib/nutrition/meal-shortcut-input';
 import { parseFixedPoint, scaleNutritionValue, toSafeInteger } from '$lib/nutrition/math';
-import type { DatabaseConnection } from '$lib/server/db/connection';
+import type { AppDatabase, ReadDatabase } from '$lib/server/db/connection';
 import {
   diaryLogs,
   foods,
@@ -25,9 +25,6 @@ import { and, asc, eq, inArray, isNull, like } from 'drizzle-orm';
 import { buildDiaryLogValuesForExactAmount } from './diary-entry';
 import { getActiveDiaryEntry } from './diary-entry-query';
 import { listActiveFoods } from './food-catalogue';
-
-type AppDatabase = DatabaseConnection['db'];
-type ReadDatabase = Pick<AppDatabase, 'select'>;
 
 export class MealShortcutNotFoundError extends Error {
   constructor() {

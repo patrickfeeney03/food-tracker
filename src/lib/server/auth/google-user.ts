@@ -1,8 +1,6 @@
 import { and, eq } from "drizzle-orm";
-import type { DatabaseConnection } from "../db/connection";
+import type { AppDatabase } from "../db/connection";
 import { authAccounts, users, type User } from "../db/schema";
-
-type AppDatabase = DatabaseConnection['db'];
 
 export interface GoogleIdentity {
   subject: string;

@@ -3,12 +3,10 @@ import { createFoodSchema } from "$lib/nutrition/food-input";
 import { logFoodInputSchema, type LogFoodInput } from "$lib/nutrition/portion-input";
 import { parsePortionCountToMilli, toSafeInteger } from "$lib/nutrition/math";
 import { and, eq, isNull } from "drizzle-orm";
-import type { DatabaseConnection } from "../db/connection";
+import type { AppDatabase } from "../db/connection";
 import { diaryLogs, foods } from "../db/schema";
 import { buildDiaryLogValues } from "./diary-entry";
 import { mapFoodInput, type MutableFoodValues } from "./food-mapper";
-
-type AppDatabase = DatabaseConnection['db'];
 
 export class FoodCreateBarcodeConflictError extends Error {
   constructor() {

@@ -2,10 +2,9 @@ import { mealSlots, type MealSlot } from "$lib/nutrition/constants";
 import { toSafeInteger } from "$lib/nutrition/math";
 import { calendarDateString } from "$lib/nutrition/portion-input";
 import { and, asc, desc, eq, isNull, lte } from "drizzle-orm";
-import type { DatabaseConnection } from "../db/connection";
+import type { AppDatabase } from "../db/connection";
 import { diaryLogs, nutritionGoals, type DiaryLog } from "../db/schema";
 
-type AppDatabase = DatabaseConnection['db'];
 type NutritionGoal = typeof nutritionGoals.$inferSelect;
 
 export interface DiaryBalances {

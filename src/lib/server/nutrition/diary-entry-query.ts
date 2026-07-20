@@ -1,9 +1,6 @@
-import type { DatabaseConnection } from "$lib/server/db/connection";
+import type { ReadDatabase } from "$lib/server/db/connection";
 import { diaryLogs, type DiaryLog } from "$lib/server/db/schema";
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
-
-type Database = DatabaseConnection["db"];
-type ReadDatabase = Pick<Database, "select">;
 
 export function getActiveDiaryEntry(
   db: ReadDatabase,
