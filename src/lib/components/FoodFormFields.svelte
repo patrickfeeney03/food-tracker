@@ -1,5 +1,6 @@
 <script lang="ts">
   import { inputLimits } from "$lib/nutrition/input-limits";
+  import NutrientInput from "./NutrientInput.svelte";
 
   export type FoodFieldValues = {
     name: string;
@@ -217,31 +218,17 @@
     >Required nutrition</legend>
     <div class="grid grid-cols-2 gap-3">
       {#each requiredNutrition as nutrient (nutrient.id)}
-        <div class="relative">
-          <label for={nutrient.id} class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px] !font-medium text-[var(--app-muted)]">{nutrient.label}</label>
-          <input
-            id={nutrient.id}
-            name={nutrient.id}
-            type="number"
-            min="0"
-            max={nutrient.max}
-            step="0.001"
-            inputmode="decimal"
-            value={values[nutrient.id]}
-            required
-            aria-invalid={errors[nutrient.id] ? "true" : undefined}
-            class="!min-h-[58px] !rounded-[12px] !border-[var(--app-border)]
-              !bg-[var(--app-panel)] !pb-1.5 !pl-3 !pr-11 !pt-5 !text-[14px]
-              !font-bold !text-[var(--app-text)] !shadow-none
-              focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
-          />
-          <span class="pointer-events-none absolute bottom-2 right-3 text-[11px] font-semibold text-[var(--app-muted)]">{nutrient.unit}</span>
-        </div>
+        <NutrientInput
+          id={nutrient.id}
+          label={nutrient.label}
+          unit={nutrient.unit}
+          max={nutrient.max}
+          value={values[nutrient.id]}
+          required
+          error={errors[nutrient.id]?.[0]}
+        />
       {/each}
     </div>
-    {#each requiredNutrition as nutrient (nutrient.id)}
-      {#if errors[nutrient.id]}<p role="alert">{errors[nutrient.id]?.[0]}</p>{/if}
-    {/each}
   </fieldset>
 
   <details
@@ -258,26 +245,15 @@
     </summary>
     <div class="grid grid-cols-2 gap-3 pb-2">
       {#each additionalNutrition as nutrient (nutrient.id)}
-        <div class="relative">
-          <label for={nutrient.id} class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px] !font-medium text-[var(--app-muted)]">{nutrient.label}</label>
-          <input
-            id={nutrient.id}
-            name={nutrient.id}
-            type="number"
-            min="0"
-            max={nutrient.max}
-            step={nutrient.step}
-            inputmode="decimal"
-            value={values[nutrient.id]}
-            aria-invalid={errors[nutrient.id] ? "true" : undefined}
-            class="!min-h-[58px] !rounded-[12px] !border-[var(--app-border)]
-              !bg-[var(--app-panel)] !pb-1.5 !pl-3 !pr-9 !pt-5 !text-[14px]
-              !font-bold !text-[var(--app-text)] !shadow-none
-              focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
-          />
-          <span class="pointer-events-none absolute bottom-2 right-3 text-[11px] font-semibold text-[var(--app-muted)]">{nutrient.unit}</span>
-          {#if errors[nutrient.id]}<p role="alert" class="mt-1">{errors[nutrient.id]?.[0]}</p>{/if}
-        </div>
+        <NutrientInput
+          id={nutrient.id}
+          label={nutrient.label}
+          unit={nutrient.unit}
+          max={nutrient.max}
+          step={nutrient.step}
+          value={values[nutrient.id]}
+          error={errors[nutrient.id]?.[0]}
+        />
       {/each}
     </div>
   </details>

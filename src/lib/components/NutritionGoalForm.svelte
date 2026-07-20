@@ -1,6 +1,7 @@
 <script lang="ts">
   import FeedbackBanner from "./FeedbackBanner.svelte";
   import { inputLimits } from "$lib/nutrition/input-limits";
+  import NutrientInput from "./NutrientInput.svelte";
 
   export type NutritionGoalFieldName =
     | "effectiveFrom"
@@ -71,39 +72,15 @@
       >{targetsLegend}</legend>
       <div class="grid grid-cols-2 gap-3">
         {#each targetFields as field (field.name)}
-          <div class="relative">
-            <label
-              for={field.name}
-              class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px]
-                !font-medium text-[var(--app-muted)]"
-            >{field.label}</label>
-            <input
-              id={field.name}
-              name={field.name}
-              type="number"
-              min="0"
-              max={field.max}
-              step="0.001"
-              inputmode="decimal"
-              value={values[field.name]}
-              required
-              aria-invalid={errors[field.name] ? "true" : undefined}
-              aria-describedby={errors[field.name] ? `${field.name}-error` : undefined}
-              class="!min-h-[58px] !rounded-[12px] !border-[var(--app-border)]
-                !bg-[var(--app-panel)] !pb-1.5 !pl-3 !pr-12 !pt-5 !text-[14px]
-                !font-bold !text-[var(--app-text)] !shadow-none
-                focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
-            />
-            <span
-              class="pointer-events-none absolute bottom-2 right-3 text-[11px]
-                font-semibold text-[var(--app-muted)]"
-            >{field.unit}</span>
-            {#if errors[field.name]}
-              <p id={`${field.name}-error`} class="mt-1" role="alert">
-                {errors[field.name]?.[0]}
-              </p>
-            {/if}
-          </div>
+          <NutrientInput
+            id={field.name}
+            label={field.label}
+            unit={field.unit}
+            max={field.max}
+            value={values[field.name]}
+            required
+            error={errors[field.name]?.[0]}
+          />
         {/each}
       </div>
     </fieldset>
