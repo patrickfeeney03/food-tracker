@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { mealSlots } from './constants';
+import { readText } from './food-form';
 import { positiveDecimalString } from './food-input';
 import { inputLimits } from './input-limits';
 import { calendarDateString } from './portion-input';
@@ -38,11 +39,6 @@ export type MealShortcutItemInput = z.infer<typeof mealShortcutItemInputSchema>;
 export type CreateMealShortcutInput = z.infer<typeof createMealShortcutInputSchema>;
 export type UpdateMealShortcutInput = z.infer<typeof updateMealShortcutInputSchema>;
 export type ApplyMealShortcutInput = z.infer<typeof applyMealShortcutInputSchema>;
-
-function readText(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === 'string' ? value : '';
-}
 
 export function readMealShortcutFormData(formData: FormData) {
   const itemsJson = readText(formData, 'itemsJson');

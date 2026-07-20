@@ -7,17 +7,10 @@ import {
   firstGoalEffectiveDateError,
   nutritionGoalInputSchema
 } from "$lib/nutrition/goal-input";
+import { readText } from "$lib/nutrition/food-form";
 import z from "zod";
 import { saveNutritionGoal } from "$lib/server/nutrition/save-nutrition-goal";
 import { todayInDublin } from '$lib/date';
-
-function readText(
-  formData: FormData,
-  name: string
-): string {
-  const value = formData.get(name);
-  return typeof value === 'string' ? value : '';
-}
 
 function hasGoal(userId: string): boolean {
   return db

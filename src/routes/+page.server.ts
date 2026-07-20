@@ -3,6 +3,7 @@ import { db } from "$lib/server/db";
 import { nutritionGoals } from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { calendarDateString } from "$lib/nutrition/portion-input";
+import { readText } from "$lib/nutrition/food-form";
 import { loadDiaryDay } from "$lib/server/nutrition/diary-summary";
 import { todayInDublin } from "$lib/date";
 import { mealSlots, type MealSlot } from "$lib/nutrition/constants";
@@ -33,11 +34,6 @@ const undoEntryDeletionSchema = z.object({
   entryId: entryIdSchema,
   deletedAt: z.coerce.number().int().nonnegative()
 });
-
-function readText(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === 'string' ? value : '';
-}
 
 export const load: PageServerLoad = ({
   locals,

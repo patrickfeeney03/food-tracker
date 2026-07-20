@@ -1,6 +1,7 @@
 import { resolve } from "$app/paths";
 import { withQuery } from "$lib/navigation";
 import type { PortionKind } from "$lib/nutrition/constants";
+import { readText } from "$lib/nutrition/food-form";
 import { editDiaryEntryInputSchema } from "$lib/nutrition/portion-input";
 import { formatStoredValue } from "$lib/nutrition/math";
 import { db } from "$lib/server/db";
@@ -10,14 +11,6 @@ import { DiaryEntryNotFoundError, updateDiaryEntry } from "$lib/server/nutrition
 import { error, fail, redirect } from "@sveltejs/kit";
 import { z } from "zod";
 import type { Actions, PageServerLoad } from "./$types";
-
-function readText(
-  formData: FormData,
-  name: string
-): string {
-  const value = formData.get(name);
-  return typeof value === 'string' ? value : '';
-}
 
 export const load: PageServerLoad = ({
   locals,

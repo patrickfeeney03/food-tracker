@@ -1,4 +1,5 @@
 import { mealSlots } from "$lib/nutrition/constants";
+import { readText } from "$lib/nutrition/food-form";
 import { inputLimits } from "$lib/nutrition/input-limits";
 import { calendarDateString } from "$lib/nutrition/portion-input";
 import z from "zod";
@@ -47,11 +48,6 @@ const tabSchema = z.enum(['foods', 'shortcuts']);
 const shortcutIdSchema = z.uuid();
 const foodIdSchema = z.uuid();
 const entryIdSchema = z.uuid();
-
-function readText(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === 'string' ? value : '';
-}
 
 function withQuickAddState<T extends {
   amountUnit: 'mg' | 'ul';

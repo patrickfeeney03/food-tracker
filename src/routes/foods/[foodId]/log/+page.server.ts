@@ -1,6 +1,7 @@
 import { resolve } from '$app/paths';
 import { withQuery } from '$lib/navigation';
 import { mealSlots, type PortionKind } from '$lib/nutrition/constants';
+import { readText } from '$lib/nutrition/food-form';
 import { inputLimits } from '$lib/nutrition/input-limits';
 import { calendarDateString, logFoodInputSchema } from '$lib/nutrition/portion-input';
 import { db } from '$lib/server/db';
@@ -21,11 +22,6 @@ const contextSchema = z.object({
   mealSlot: z.enum(mealSlots),
   q: z.string().trim().max(inputLimits.catalogueQuery.maxLength)
 });
-
-function readText(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === 'string' ? value : '';
-}
 
 function portionOptionsFor(food: {
   amountUnit: 'mg' | 'ul';

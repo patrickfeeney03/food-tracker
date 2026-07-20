@@ -1,6 +1,7 @@
 import { resolve } from '$app/paths';
 import { todayInDublin } from '$lib/date';
 import { withQuery } from '$lib/navigation';
+import { readText } from '$lib/nutrition/food-form';
 import { nutritionGoalInputSchema } from '$lib/nutrition/goal-input';
 import { formatStoredValue } from '$lib/nutrition/math';
 import { calendarDateString } from '$lib/nutrition/portion-input';
@@ -11,11 +12,6 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
-
-function readText(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === 'string' ? value : '';
-}
 
 export const load: PageServerLoad = ({ locals, url }) => {
   if (locals.user === null) {
