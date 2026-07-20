@@ -125,9 +125,9 @@
     class="flex flex-1 flex-col px-3 pb-28 sm:px-8"
   >
     <div class="mx-auto w-full max-w-xl flex-1">
-      <section class="mb-6">
+      <section class="mb-6 min-w-0">
         <h2
-          class="text-[21px] font-extrabold leading-tight tracking-[-0.025em]"
+          class="min-w-0 max-w-full truncate text-[21px] font-extrabold leading-tight tracking-[-0.025em]"
         >
           {data.entry.foodName}
         </h2>

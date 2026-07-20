@@ -399,12 +399,12 @@
                     href={resolve("/diary/[entryId]/edit", {
                       entryId: entry.id,
                     })}
-                    class="block rounded-[13px] border border-[var(--app-border)] bg-[var(--app-panel)]
+                    class="block min-w-0 max-w-full rounded-[13px] border border-[var(--app-border)] bg-[var(--app-panel)]
                       px-[15px] py-[13px] text-[var(--app-text)] no-underline transition
                       hover:border-[var(--app-border-strong)] hover:shadow-sm focus-visible:outline-3
                       focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]/30"
                   >
-                    <h3 class="m-0 text-[15px] font-bold leading-tight">
+                    <h3 class="m-0 min-w-0 max-w-full truncate text-[15px] font-bold leading-tight">
                       {entry.foodName}
                     </h3>
                     <p class="mb-0 mt-1 text-[12px] text-[var(--app-muted)]">

@@ -105,8 +105,7 @@ No open P0 work.
 
 ### P1 — repeated logging and integrity
 
-1. Align first-goal guards with effective-date selection and make session refresh atomic.
-2. Add magnitude/text limits and preserve catalogue query/tab/scroll context through nested flows.
+No open P1 work.
 
 ### P2 — settings and resilience
 

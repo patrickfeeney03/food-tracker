@@ -337,6 +337,39 @@ test('navigates from the catalogue, logs an existing food, then edits its diary 
   ]);
 });
 
+test('truncates a long unbroken food name inside the dashboard meal card', async ({ app }) => {
+  const longName = `LongUnbrokenFoodName${'aW'.repeat(80)}`;
+  const foodId = app.createFood({ name: longName });
+  const { page } = app;
+
+  await page.setViewportSize({ width: 1458, height: 900 });
+  await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`);
+  await chooseRadio(page, '100 g');
+  await page.getByLabel('Number of portions').fill('1');
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+  await expect(page).toHaveURL(/\/foods\?/);
+
+  await page.goto(`/?date=${diaryDate}`);
+  const breakfast = page.locator('section[aria-labelledby="breakfast-heading"]');
+  const heading = breakfast.getByRole('heading', { name: longName });
+  const card = heading.locator('xpath=ancestor::a[1]');
+
+  await expect(heading).toBeVisible();
+  await expect(heading).toHaveCSS('overflow', 'hidden');
+  await expect(heading).toHaveCSS('text-overflow', 'ellipsis');
+  await expect(heading).toHaveCSS('white-space', 'nowrap');
+  await expect.poll(async () => card.evaluate((node) => node.scrollWidth <= node.clientWidth))
+    .toBe(true);
+
+  await heading.click();
+  await expect(page.getByRole('heading', { name: 'Edit entry' })).toBeVisible();
+  const editHeading = page.getByRole('heading', { name: longName });
+  await expect(editHeading).toBeVisible();
+  await expect(editHeading).toHaveCSS('overflow', 'hidden');
+  await expect(editHeading).toHaveCSS('text-overflow', 'ellipsis');
+  await expect(editHeading).toHaveCSS('white-space', 'nowrap');
+});
+
 test('shows pending feedback while adding an existing food and restores the form after validation fails', async ({ app }) => {
   const foodId = app.createFood({ name: 'Pending yoghurt' });
   const { page } = app;
