@@ -1,7 +1,7 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
 
-  type SettingsRoute = "/settings/goals" | "/settings/goals/history";
+  type SettingsRoute = "/settings/account" | "/settings/goals" | "/settings/goals/history";
 
   type RowDetail =
     | { description: string; value?: never }

@@ -104,7 +104,11 @@
       </SettingsSection>
 
       <SettingsSection headingId="account-heading" title="Account & data">
-        <SettingsRow label="Account" value={`${data.user.name} · ${data.user.email}`} />
+        <SettingsRow
+          label="Account"
+          value={`${data.user.name} · ${data.user.email}`}
+          route="/settings/account"
+        />
         <SettingsRow
           label="Active sessions"
           description={`${data.activeSessionCount} ${data.activeSessionCount === 1 ? 'session' : 'sessions'}`}

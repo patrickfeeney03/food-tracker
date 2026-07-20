@@ -44,13 +44,25 @@ describe("SettingsRow", () => {
 
   it("renders a static value row without making it interactive", async () => {
     render(SettingsRow, {
-      label: "Account",
-      value: "Patrick · patrick@example.com",
+      label: "Network status",
+      value: "Online · last synced just now",
     });
 
-    await expect.element(page.getByText("Patrick · patrick@example.com")).toBeInTheDocument();
+    await expect.element(page.getByText("Online · last synced just now")).toBeInTheDocument();
     expect(document.querySelector("a")).toBeNull();
     expect(document.querySelector("p.truncate")).not.toBeNull();
     expect(document.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+  });
+
+  it("links to the account page", async () => {
+    render(SettingsRow, {
+      label: "Account",
+      value: "Patrick · patrick@example.com",
+      route: "/settings/account",
+    });
+
+    await expect
+      .element(page.getByRole("link", { name: /Account/ }))
+      .toHaveAttribute("href", "/settings/account");
   });
 });
