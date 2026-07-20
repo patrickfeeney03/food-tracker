@@ -121,6 +121,62 @@ test('creates a food with an arbitrary basis and logs its serving to the selecte
   ]);
 });
 
+test('enforces display-unit nutrition limits in the browser and server action', async ({ app }) => {
+  const { page } = app;
+  await page.goto(`/foods/new?date=${diaryDate}&mealSlot=breakfast`);
+  await page.waitForLoadState('networkidle');
+  await fillCoreFoodFields(page, {
+    name: 'Over-limit protein food',
+    basisAmount: '100',
+    servingAmount: '125',
+    energyKcal: '200',
+    proteinG: '1000.001',
+    carbsG: '30',
+    fatG: '5'
+  });
+
+  const protein = page.getByLabel('Protein');
+  expect(
+    await protein.evaluate((input) => (input as HTMLInputElement).validity.rangeOverflow)
+  ).toBe(true);
+  await page.getByRole('button', { name: 'Save food' }).click();
+  await expect(page).toHaveURL(/\/foods\/new\?/);
+  expect(app.diaryRows()).toHaveLength(0);
+
+  const response = await page.request.post(page.url(), {
+    form: {
+      clientMutationId: randomUUID(),
+      name: 'Over-limit protein food',
+      brand: '',
+      barcode: '',
+      amountUnit: 'mg',
+      basisAmount: '100',
+      servingAmount: '125',
+      containerAmount: '',
+      energyKcal: '200',
+      proteinG: '1000.001',
+      carbsG: '30',
+      fatG: '5',
+      fibreG: '',
+      sugarG: '',
+      saturatedFatG: '',
+      sodiumMg: '',
+      potassiumMg: '',
+      notes: '',
+      portionKind: 'serving',
+      portionCount: '1',
+      diaryDate,
+      mealSlot: 'breakfast'
+    }
+  });
+
+  expect(response.status()).toBe(200);
+  const failure = await response.json();
+  expect(failure).toMatchObject({ type: 'failure', status: 400 });
+  expect(failure.data).toContain('Must be at most 1000');
+  expect(app.diaryRows()).toHaveLength(0);
+});
+
 test('supports fractional liquid servings without normalising the label basis', async ({ app }) => {
   const { page } = app;
   await page.goto(`/foods/new?date=${diaryDate}&mealSlot=snacks`);
@@ -216,6 +272,7 @@ test('navigates from the catalogue, logs an existing food, then edits its diary 
   await page.getByLabel('Meal').selectOption('dinner');
   await expect(page.getByText('250 g', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add to diary' }).click();
+  await expect(page).toHaveURL(/\/foods\?/);
 
   expectSearchParameters(page, {
     date: diaryDate,
@@ -297,6 +354,7 @@ test('quick adds the latest portion with current nutrition and supports Undo', a
   await chooseRadio(page, 'Serving');
   await page.getByLabel('Number of portions').fill('2');
   await page.getByRole('button', { name: 'Add to diary' }).click();
+  await expect(page).toHaveURL(/\/foods\?/);
 
   db.prepare(`
     UPDATE foods
@@ -304,6 +362,7 @@ test('quick adds the latest portion with current nutrition and supports Undo', a
     WHERE id = ?
   `).run(100_000, Date.now(), foodId);
   await page.goto(`/foods?date=${diaryDate}&mealSlot=lunch&q=Quick`);
+  await page.waitForLoadState('networkidle');
   await expect(page.getByText('Last: 250 g · 155 kcal')).toBeVisible();
 
   await page.getByRole('button', {

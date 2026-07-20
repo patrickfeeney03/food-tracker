@@ -1,10 +1,27 @@
 import { z } from "zod";
 import { amountUnits } from "./constants";
+import { inputLimits } from "./input-limits";
 
 const decimalPattern = /^\d+(?:\.\d+)?$/;
 const zeroPattern = /^0+(?:\.0+)?$/;
 
-export function decimalString(maxFractionalDigits: number) {
+function isAtMost(value: string, maximum: number): boolean {
+  const [integerPart, fractionalPart = ""] = value.split(".");
+  const normalizedInteger = integerPart.replace(/^0+/, "") || "0";
+  const maximumInteger = String(maximum);
+
+  if (normalizedInteger.length !== maximumInteger.length) {
+    return normalizedInteger.length < maximumInteger.length;
+  }
+
+  if (normalizedInteger !== maximumInteger) {
+    return normalizedInteger < maximumInteger;
+  }
+
+  return /^0*$/.test(fractionalPart);
+}
+
+export function decimalString(maxFractionalDigits: number, maximum?: number) {
   if (
     !Number.isInteger(maxFractionalDigits) ||
     maxFractionalDigits < 0
@@ -23,34 +40,39 @@ export function decimalString(maxFractionalDigits: number) {
     .refine((value) => {
       const fractionalPart = value.split('.')[1] ?? '';
       return fractionalPart.length <= maxFractionalDigits;
-    }, `Must have at most ${maxFractionalDigits} fractional digits`);
+    }, `Must have at most ${maxFractionalDigits} fractional digits`)
+    .refine(
+      (value) => maximum === undefined || isAtMost(value, maximum),
+      maximum === undefined ? undefined : `Must be at most ${maximum}`
+    );
 }
 
-export function positiveDecimalString(maxFractionalDigits: number) {
-  return decimalString(maxFractionalDigits).refine(
+export function positiveDecimalString(maxFractionalDigits: number, maximum?: number) {
+  return decimalString(maxFractionalDigits, maximum).refine(
     (value) => !zeroPattern.test(value),
     'Must be greater than zero'
   );
 }
 
-const optionalText = z
+const optionalText = (maximum: number) => z
   .string()
   .trim()
+  .max(maximum, `Must have at most ${maximum} characters`)
   .optional()
   .default('');
 
-const optionalDecimal = (maxFractionalDigits: number) => z
+const optionalDecimal = (maxFractionalDigits: number, maximum: number) => z
   .union([
     z.literal(''),
-    decimalString(maxFractionalDigits)
+    decimalString(maxFractionalDigits, maximum)
   ])
   .optional()
   .default('');
 
-const optionalPositiveDecimal = (maxFractionalDigits: number) => z
+const optionalPositiveDecimal = (maxFractionalDigits: number, maximum: number) => z
   .union([
     z.literal(''),
-    positiveDecimalString(maxFractionalDigits)
+    positiveDecimalString(maxFractionalDigits, maximum)
   ])
   .optional()
   .default('');
@@ -60,30 +82,30 @@ export const createFoodSchema = z.object({
     .string()
     .trim()
     .min(1, 'Name is required')
-    .max(200, 'Name must have at most 200 characters'),
+    .max(inputLimits.food.name.maxLength, 'Name must have at most 200 characters'),
 
-  brand: optionalText,
-  barcode: optionalText,
+  brand: optionalText(inputLimits.food.brand.maxLength),
+  barcode: optionalText(inputLimits.food.barcode.maxLength),
 
   amountUnit: z.enum(amountUnits),
 
-  basisAmount: positiveDecimalString(3),
-  servingAmount: optionalPositiveDecimal(3),
-  containerAmount: optionalPositiveDecimal(3),
+  basisAmount: positiveDecimalString(3, inputLimits.food.basisAmount.max),
+  servingAmount: optionalPositiveDecimal(3, inputLimits.food.servingAmount.max),
+  containerAmount: optionalPositiveDecimal(3, inputLimits.food.containerAmount.max),
 
-  energyKcal: decimalString(3),
-  proteinG: decimalString(3),
-  carbsG: decimalString(3),
-  fatG: decimalString(3),
+  energyKcal: decimalString(3, inputLimits.food.energyKcal.max),
+  proteinG: decimalString(3, inputLimits.food.proteinG.max),
+  carbsG: decimalString(3, inputLimits.food.carbsG.max),
+  fatG: decimalString(3, inputLimits.food.fatG.max),
 
-  fibreG: optionalDecimal(3),
-  sugarG: optionalDecimal(3),
-  saturatedFatG: optionalDecimal(3),
+  fibreG: optionalDecimal(3, inputLimits.food.fibreG.max),
+  sugarG: optionalDecimal(3, inputLimits.food.sugarG.max),
+  saturatedFatG: optionalDecimal(3, inputLimits.food.saturatedFatG.max),
 
-  sodiumMg: optionalDecimal(0),
-  potassiumMg: optionalDecimal(0),
+  sodiumMg: optionalDecimal(0, inputLimits.food.sodiumMg.max),
+  potassiumMg: optionalDecimal(0, inputLimits.food.potassiumMg.max),
 
-  notes: optionalText
+  notes: optionalText(inputLimits.food.notes.maxLength)
 });
 
 export type CreateFoodFormInput = z.infer<typeof createFoodSchema>;

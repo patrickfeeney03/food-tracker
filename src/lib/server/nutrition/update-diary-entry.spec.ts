@@ -97,7 +97,7 @@ describe('updateDiaryEntry', () => {
         created.diaryLog.id,
         {
           portionKind: 'unit',
-          portionCount: '250',
+          portionCount: '100',
           diaryDate: '2026-07-17',
           mealSlot: 'lunch'
         },
@@ -111,14 +111,14 @@ describe('updateDiaryEntry', () => {
           portionKind: 'unit',
           portionLabel: '1 g',
           portionAmount: 1_000,
-          portionCountMilli: 250_000,
-          resolvedAmount: 250_000,
-          energyMkcal: 155_000,
-          proteinMg: 22_500,
-          carbsMg: 10_000,
-          fatMg: 3_750,
+          portionCountMilli: 100_000,
+          resolvedAmount: 100_000,
+          energyMkcal: 62_000,
+          proteinMg: 9_000,
+          carbsMg: 4_000,
+          fatMg: 1_500,
           additionalNutritionTotalJson: {
-            fibreMg: 2_000
+            fibreMg: 800
           },
           loggedAt: originalLoggedAt,
           updatedAt

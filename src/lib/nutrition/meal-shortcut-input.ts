@@ -1,18 +1,19 @@
 import { z } from 'zod';
 import { mealSlots } from './constants';
 import { positiveDecimalString } from './food-input';
+import { inputLimits } from './input-limits';
 import { calendarDateString } from './portion-input';
 
 export const mealShortcutItemInputSchema = z.object({
     itemId: z.uuid().optional(),
     sourceEntryId: z.uuid().optional(),
     foodId: z.uuid(),
-    amount: positiveDecimalString(3)
+    amount: positiveDecimalString(3, inputLimits.mealShortcut.amount.max)
   });
 
 export const createMealShortcutInputSchema = z.object({
   clientMutationId: z.uuid('Must be a valid mutation ID'),
-  name: z.string().trim().min(1, 'Name is required').max(200),
+  name: z.string().trim().min(1, 'Name is required').max(inputLimits.mealShortcut.name.maxLength),
   items: z.array(mealShortcutItemInputSchema).min(1).max(100)
 });
 

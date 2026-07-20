@@ -2,6 +2,7 @@ import { resolve } from '$app/paths';
 import { todayInDublin } from '$lib/date';
 import { withQuery } from '$lib/navigation';
 import { mealSlots } from '$lib/nutrition/constants';
+import { inputLimits } from '$lib/nutrition/input-limits';
 import {
   readMealShortcutFormData,
   updateMealShortcutInputSchema
@@ -25,7 +26,7 @@ import type { Actions, PageServerLoad } from './$types';
 const contextSchema = z.object({
   date: calendarDateString,
   mealSlot: z.enum(mealSlots),
-  q: z.string().trim().max(200)
+  q: z.string().trim().max(inputLimits.catalogueQuery.maxLength)
 });
 
 type PickerFood = ReturnType<typeof searchMealShortcutFoods>[number];

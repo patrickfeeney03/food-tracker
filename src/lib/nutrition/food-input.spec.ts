@@ -47,6 +47,13 @@ describe('decimalString', () => {
     expect(decimalString(0).safeParse('1.5').success).toBe(false);
   });
 
+  it('accepts its maximum and rejects larger display values', () => {
+    expect(decimalString(3, 100).parse('100')).toBe('100');
+    expect(decimalString(3, 100).parse('100.000')).toBe('100.000');
+    expect(decimalString(3, 100).safeParse('100.001').success).toBe(false);
+    expect(decimalString(3, 100).safeParse('1000').success).toBe(false);
+  });
+
   it.each([-1, 1.5, Number.NaN])(
     'rejects invalid precision configuration: %s',
     (maxFractionalDigits) => {
@@ -208,6 +215,51 @@ describe('createFoodSchema', () => {
       proteinG: '5',
       carbsG: '10',
       fatG: '2'
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts maximum display-unit values', () => {
+    expect(createFoodSchema.safeParse({
+      name: 'n'.repeat(200),
+      brand: 'b'.repeat(200),
+      barcode: '1'.repeat(200),
+      amountUnit: 'mg',
+      basisAmount: '10000',
+      servingAmount: '10000',
+      containerAmount: '10000',
+      energyKcal: '10000',
+      proteinG: '1000',
+      carbsG: '1000',
+      fatG: '1000',
+      fibreG: '1000',
+      sugarG: '1000',
+      saturatedFatG: '1000',
+      sodiumMg: '10000',
+      potassiumMg: '10000',
+      notes: 'n'.repeat(2000)
+    }).success).toBe(true);
+  });
+
+  it.each([
+    ['basisAmount', '10000.001'],
+    ['energyKcal', '10000.001'],
+    ['proteinG', '1000.001'],
+    ['sodiumMg', '10001'],
+    ['brand', 'b'.repeat(201)],
+    ['barcode', '1'.repeat(201)],
+    ['notes', 'n'.repeat(2001)]
+  ] as const)('rejects an over-limit %s', (field, value) => {
+    const result = createFoodSchema.safeParse({
+      name: 'Valid food',
+      amountUnit: 'mg',
+      basisAmount: '100',
+      energyKcal: '100',
+      proteinG: '10',
+      carbsG: '10',
+      fatG: '10',
+      [field]: value
     });
 
     expect(result.success).toBe(false);

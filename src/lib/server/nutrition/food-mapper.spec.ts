@@ -1,4 +1,4 @@
-import { createFoodSchema } from "$lib/nutrition/food-input";
+import { createFoodSchema, type CreateFoodFormInput } from "$lib/nutrition/food-input";
 import { describe, expect, it } from "vitest";
 import { mapCreateFoodInput } from "./food-mapper";
 
@@ -97,15 +97,25 @@ describe('mapCreateFoodInput', () => {
   });
 
   it('rejects a value outside the safe database integer range', () => {
-    const input = createFoodSchema.parse({
+    const input: CreateFoodFormInput = {
       name: 'Overflow',
+      brand: '',
+      barcode: '',
       amountUnit: 'mg',
       basisAmount: '100',
+      servingAmount: '',
+      containerAmount: '',
       energyKcal: '9007199254740.992',
       proteinG: '0',
       carbsG: '0',
-      fatG: '0'
-    });
+      fatG: '0',
+      fibreG: '',
+      sugarG: '',
+      saturatedFatG: '',
+      sodiumMg: '',
+      potassiumMg: '',
+      notes: ''
+    };
 
     expect(() => mapCreateFoodInput(input, userId)).toThrow(
       new RangeError('Value exceeds the safe integer range')

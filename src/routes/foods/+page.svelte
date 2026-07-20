@@ -7,6 +7,7 @@
   import AppPageShell from "$lib/components/AppPageShell.svelte";
   import { withQuery } from "$lib/navigation";
   import type { MealSlot } from "$lib/nutrition/constants";
+  import { inputLimits } from "$lib/nutrition/input-limits";
   import { formatStoredValue } from "$lib/nutrition/math";
   import type { SubmitFunction } from "@sveltejs/kit";
   import type { PageProps } from "./$types";
@@ -173,7 +174,7 @@
               type="search"
               value={data.query}
               placeholder={data.tab === "shortcuts" ? "Search shortcuts" : "Search foods"}
-              maxlength="200"
+              maxlength={inputLimits.catalogueQuery.maxLength}
               autocomplete="off"
               class="!min-h-12 !rounded-xl !border-[var(--app-border)] !bg-[var(--app-panel)] !pr-10 !pl-10 !text-sm !shadow-none placeholder:!text-[var(--app-muted)] focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
             />

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { inputLimits } from "$lib/nutrition/input-limits";
+
   export type FoodFieldValues = {
     name: string;
     brand: string;
@@ -35,23 +37,24 @@
   let displayUnit = $derived(amountUnit === "mg" ? "g" : "ml");
 
   const requiredNutrition = [
-    { id: "energyKcal", label: "Calories", unit: "kcal" },
-    { id: "proteinG", label: "Protein", unit: "g" },
-    { id: "carbsG", label: "Carbs", unit: "g" },
-    { id: "fatG", label: "Fat", unit: "g" },
+    { id: "energyKcal", label: "Calories", unit: "kcal", max: inputLimits.food.energyKcal.max },
+    { id: "proteinG", label: "Protein", unit: "g", max: inputLimits.food.proteinG.max },
+    { id: "carbsG", label: "Carbs", unit: "g", max: inputLimits.food.carbsG.max },
+    { id: "fatG", label: "Fat", unit: "g", max: inputLimits.food.fatG.max },
   ] as const;
 
   const additionalNutrition = [
-    { id: "fibreG", label: "Fibre", unit: "g", step: "0.001" },
-    { id: "sugarG", label: "Sugar", unit: "g", step: "0.001" },
+    { id: "fibreG", label: "Fibre", unit: "g", step: "0.001", max: inputLimits.food.fibreG.max },
+    { id: "sugarG", label: "Sugar", unit: "g", step: "0.001", max: inputLimits.food.sugarG.max },
     {
       id: "saturatedFatG",
       label: "Saturated fat",
       unit: "g",
       step: "0.001",
+      max: inputLimits.food.saturatedFatG.max,
     },
-    { id: "sodiumMg", label: "Sodium", unit: "mg", step: "1" },
-    { id: "potassiumMg", label: "Potassium", unit: "mg", step: "1" },
+    { id: "sodiumMg", label: "Sodium", unit: "mg", step: "1", max: inputLimits.food.sodiumMg.max },
+    { id: "potassiumMg", label: "Potassium", unit: "mg", step: "1", max: inputLimits.food.potassiumMg.max },
   ] as const;
 </script>
 
@@ -67,7 +70,7 @@
       id="name"
       name="name"
       value={values.name}
-      maxlength="200"
+      maxlength={inputLimits.food.name.maxLength}
       required
       autocomplete="off"
       aria-invalid={errors.name ? "true" : undefined}
@@ -87,7 +90,7 @@
       id="brand"
       name="brand"
       value={values.brand}
-      maxlength="200"
+      maxlength={inputLimits.food.brand.maxLength}
       autocomplete="organization"
       aria-invalid={errors.brand ? "true" : undefined}
       class="!min-h-12 !rounded-[12px] !border-[var(--app-border)] !bg-[var(--app-panel)]
@@ -106,6 +109,7 @@
       id="barcode"
       name="barcode"
       value={values.barcode}
+      maxlength={inputLimits.food.barcode.maxLength}
       autocomplete="off"
       inputmode="numeric"
       aria-invalid={errors.barcode ? "true" : undefined}
@@ -160,6 +164,7 @@
         name="basisAmount"
         type="number"
         min="0.001"
+        max={inputLimits.food.basisAmount.max}
         step="0.001"
         inputmode="decimal"
         value={values.basisAmount}
@@ -187,6 +192,7 @@
             name={portion.id}
             type="number"
             min="0.001"
+            max={inputLimits.food[portion.id].max}
             step="0.001"
             inputmode="decimal"
             value={values[portion.id]}
@@ -218,6 +224,7 @@
             name={nutrient.id}
             type="number"
             min="0"
+            max={nutrient.max}
             step="0.001"
             inputmode="decimal"
             value={values[nutrient.id]}
@@ -258,6 +265,7 @@
             name={nutrient.id}
             type="number"
             min="0"
+            max={nutrient.max}
             step={nutrient.step}
             inputmode="decimal"
             value={values[nutrient.id]}
@@ -288,6 +296,7 @@
       id="notes"
       name="notes"
       rows="5"
+      maxlength={inputLimits.food.notes.maxLength}
       placeholder="Add anything useful about this food or its values."
       aria-invalid={errors.notes ? "true" : undefined}
       class="!rounded-[12px] !border-[var(--app-border)] !bg-[var(--app-panel)]

@@ -1,6 +1,7 @@
 import z from "zod";
 import { mealSlots, portionKinds } from "./constants";
 import { positiveDecimalString } from "./food-input";
+import { inputLimits } from "./input-limits";
 
 const calendarDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -61,7 +62,7 @@ export const logFoodInputSchema = z.object({
 
   portionKind: z.enum(portionKinds),
 
-  portionCount: positiveDecimalString(3),
+  portionCount: positiveDecimalString(3, inputLimits.portionCount.max),
 
   diaryDate: calendarDateString,
 

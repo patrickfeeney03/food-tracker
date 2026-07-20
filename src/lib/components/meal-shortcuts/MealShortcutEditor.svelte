@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { inputLimits } from "$lib/nutrition/input-limits";
   import { formatStoredValue } from "$lib/nutrition/math";
   import MealShortcutFoodPicker from "./MealShortcutFoodPicker.svelte";
 
@@ -117,7 +118,7 @@
     name="name"
     bind:value={name}
     required
-    maxlength="200"
+    maxlength={inputLimits.mealShortcut.name.maxLength}
     autocomplete="off"
     aria-invalid={nameError ? "true" : undefined}
     aria-describedby={nameError ? "shortcut-name-error" : undefined}
@@ -223,6 +224,7 @@
                   id={`shortcut-amount-${item.key}`}
                   type="number"
                   min="0.001"
+                  max={inputLimits.mealShortcut.amount.max}
                   step="0.001"
                   inputmode="decimal"
                   value={item.amount}

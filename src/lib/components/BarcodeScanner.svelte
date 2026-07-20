@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { inputLimits } from "$lib/nutrition/input-limits";
   import { onMount, tick } from "svelte";
   import type { IScannerControls } from "@zxing/browser";
 
@@ -245,7 +246,7 @@
             id="manual-barcode"
             name="barcode"
             bind:value={manualBarcode}
-            maxlength="200"
+            maxlength={inputLimits.food.barcode.maxLength}
             autocomplete="off"
             autocapitalize="off"
             spellcheck="false"

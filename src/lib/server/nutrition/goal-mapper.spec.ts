@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nutritionGoalInputSchema } from '$lib/nutrition/goal-input';
+import { nutritionGoalInputSchema, type NutritionGoalInput } from '$lib/nutrition/goal-input';
 import { mapNutritionGoalInput } from './goal-mapper';
 
 describe('mapNutritionGoalInput', () => {
@@ -61,13 +61,13 @@ describe('mapNutritionGoalInput', () => {
   });
 
   it('rejects values outside the safe integer range', () => {
-    const input = nutritionGoalInputSchema.parse({
+    const input: NutritionGoalInput = {
       effectiveFrom: '2026-07-12',
       targetEnergyKcal: '9007199254740.992',
       targetProteinG: '0',
       targetCarbsG: '0',
       targetFatG: '0'
-    });
+    };
 
     expect(() => mapNutritionGoalInput(input, 'user-id')).toThrow(
       new RangeError('Value exceeds the safe integer range')

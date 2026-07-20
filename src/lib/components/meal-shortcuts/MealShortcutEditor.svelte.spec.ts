@@ -62,6 +62,8 @@ describe('MealShortcutEditor', () => {
     });
 
     await expect.element(page.getByLabelText('Meal shortcut name')).toHaveValue('Breakfast bowl');
+    await expect.element(page.getByLabelText('Meal shortcut name')).toHaveAttribute('maxlength', '200');
+    await expect.element(page.getByLabelText('Exact amount').first()).toHaveAttribute('max', '10000');
     expect(wireItems()).toEqual([
       {
         itemId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',

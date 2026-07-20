@@ -93,6 +93,20 @@ describe('nutrtionGoalInputSchema', () => {
     }
   });
 
+  it('accepts maximum targets and rejects over-limit targets', () => {
+    expect(nutritionGoalInputSchema.safeParse({
+      ...validGoal,
+      targetEnergyKcal: '10000',
+      targetProteinG: '1000',
+      targetCarbsG: '1000',
+      targetFatG: '1000'
+    }).success).toBe(true);
+    expect(nutritionGoalInputSchema.safeParse({
+      ...validGoal,
+      targetProteinG: '1000.001'
+    }).success).toBe(false);
+  });
+
   it('allows a first goal today or earlier, but not in the future', () => {
     expect(firstGoalEffectiveDateError('2026-07-18', '2026-07-18')).toBeUndefined();
     expect(firstGoalEffectiveDateError('2026-07-01', '2026-07-18')).toBeUndefined();

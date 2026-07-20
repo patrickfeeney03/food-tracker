@@ -100,6 +100,11 @@ describe('logFoodInputSchema', () => {
     ).toBe(false);
   });
 
+  it('accepts the maximum portion count and rejects a larger count', () => {
+    expect(logFoodInputSchema.safeParse({ ...validInput, portionCount: '10000' }).success).toBe(true);
+    expect(logFoodInputSchema.safeParse({ ...validInput, portionCount: '10000.001' }).success).toBe(false);
+  });
+
   it('rejects an unsupported portion kind', () => {
     expect(
       logFoodInputSchema.safeParse({
@@ -134,4 +139,3 @@ describe('logFoodInputSchema', () => {
     ).toBe(clientMutationId)
   });
 });
-

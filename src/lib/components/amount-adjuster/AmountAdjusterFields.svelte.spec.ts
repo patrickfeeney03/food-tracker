@@ -44,6 +44,7 @@ describe('amount adjuster fields', () => {
 
     await expect.element(input).toHaveValue(1.25);
     await expect.element(input).toHaveAttribute('name', 'portionCount');
+    await expect.element(input).toHaveAttribute('max', '10000');
     await expect.element(input).toHaveAttribute('aria-invalid', 'true');
     await expect.element(input).toHaveAttribute('aria-describedby', 'portion-count-error');
     await expect.element(page.getByText('× 100 g')).toBeInTheDocument();

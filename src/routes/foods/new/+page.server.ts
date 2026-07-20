@@ -1,4 +1,5 @@
 import { mealSlots } from "$lib/nutrition/constants";
+import { inputLimits } from "$lib/nutrition/input-limits";
 import { calendarDateString, logFoodInputSchema } from "$lib/nutrition/portion-input";
 import z from "zod";
 import type { Actions, PageServerLoad } from "./$types";
@@ -18,7 +19,7 @@ const destinationSchema = z.object({
   date: calendarDateString,
   mealSlot: z.enum(mealSlots)
 });
-const barcodeSchema = z.string().trim().max(200);
+const barcodeSchema = z.string().trim().max(inputLimits.food.barcode.maxLength);
 
 export const load: PageServerLoad = ({
   locals,

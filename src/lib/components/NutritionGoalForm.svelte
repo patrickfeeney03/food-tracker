@@ -1,5 +1,6 @@
 <script lang="ts">
   import FeedbackBanner from "./FeedbackBanner.svelte";
+  import { inputLimits } from "$lib/nutrition/input-limits";
 
   export type NutritionGoalFieldName =
     | "effectiveFrom"
@@ -28,10 +29,10 @@
   } = $props();
 
   const targetFields = [
-    { name: "targetEnergyKcal", label: "Calories", unit: "kcal" },
-    { name: "targetProteinG", label: "Protein", unit: "g" },
-    { name: "targetCarbsG", label: "Carbohydrates", unit: "g" },
-    { name: "targetFatG", label: "Fat", unit: "g" },
+    { name: "targetEnergyKcal", label: "Calories", unit: "kcal", max: inputLimits.goal.targetEnergyKcal.max },
+    { name: "targetProteinG", label: "Protein", unit: "g", max: inputLimits.goal.targetProteinG.max },
+    { name: "targetCarbsG", label: "Carbohydrates", unit: "g", max: inputLimits.goal.targetCarbsG.max },
+    { name: "targetFatG", label: "Fat", unit: "g", max: inputLimits.goal.targetFatG.max },
   ] as const;
 </script>
 
@@ -81,6 +82,7 @@
               name={field.name}
               type="number"
               min="0"
+              max={field.max}
               step="0.001"
               inputmode="decimal"
               value={values[field.name]}

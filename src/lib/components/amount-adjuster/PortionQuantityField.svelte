@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { inputLimits } from "$lib/nutrition/input-limits";
+
   let {
     portionCount = $bindable(),
     portionLabel,
@@ -30,6 +32,7 @@
         name="portionCount"
         type="number"
         min="0.001"
+        max={inputLimits.portionCount.max}
         step="0.001"
         inputmode="decimal"
         bind:value={portionCount}

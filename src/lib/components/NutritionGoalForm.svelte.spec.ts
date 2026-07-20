@@ -21,6 +21,8 @@ describe('NutritionGoalForm', () => {
     await expect.element(page.getByLabelText('Effective date')).toHaveValue('2026-07-18');
     await expect.element(page.getByLabelText('Effective date')).not.toHaveAttribute('max');
     await expect.element(page.getByLabelText('Calories')).toHaveValue(2900);
+    await expect.element(page.getByLabelText('Calories')).toHaveAttribute('max', '10000');
+    await expect.element(page.getByLabelText('Protein')).toHaveAttribute('max', '1000');
     await expect.element(page.getByLabelText('Protein')).toHaveValue(200);
     await expect.element(page.getByLabelText('Carbohydrates')).toHaveValue(300);
     await expect.element(page.getByLabelText('Fat')).toHaveValue(90);
