@@ -1,8 +1,8 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import AppPageShell from '$lib/components/AppPageShell.svelte';
+  import BackPageHeader from '$lib/components/BackPageHeader.svelte';
   import FeedbackBanner from '$lib/components/FeedbackBanner.svelte';
-  import ChevronLeftIcon from '$lib/components/icons/ChevronLeftIcon.svelte';
   import SettingsRow from '$lib/components/settings/SettingsRow.svelte';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
   import { formatGrams, formatKcal } from '$lib/nutrition/format';
@@ -52,19 +52,13 @@
 
 <AppPageShell class="px-3 py-4 sm:px-6 sm:py-8">
   <div class="w-full">
-    <header class="mb-8 flex min-h-11 items-center gap-3">
-      <a
-        href={resolve('/')}
-        aria-label="Back to diary"
-        class="inline-flex size-11 shrink-0 items-center justify-center rounded-full
-          text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)]
-          focus-visible:outline-2 focus-visible:outline-offset-2
-          focus-visible:outline-[var(--app-accent)]"
-      >
-        <ChevronLeftIcon class="size-5" />
-      </a>
-      <h1 class="text-xl font-bold tracking-tight">Settings</h1>
-    </header>
+    <BackPageHeader
+      href={resolve('/')}
+      backLabel="Back to diary"
+      title="Settings"
+      class="mb-8 flex min-h-11 items-center gap-3"
+      titleClass="text-xl font-bold tracking-tight"
+    />
 
     {#if data.targetsSaved}
       <FeedbackBanner class="mb-5" message="Daily targets saved." />

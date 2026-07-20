@@ -6,6 +6,7 @@
   import PortionQuantityField from "$lib/components/amount-adjuster/PortionQuantityField.svelte";
   import BottomSubmitBar from "$lib/components/BottomSubmitBar.svelte";
   import AppPageShell from "$lib/components/AppPageShell.svelte";
+  import BackPageHeader from "$lib/components/BackPageHeader.svelte";
   import { withQuery } from "$lib/navigation";
   import { mealNames, type MealSlot, type PortionKind } from "$lib/nutrition/constants";
   import {
@@ -88,27 +89,16 @@
 </svelte:head>
 
 <AppPageShell class="relative flex flex-col overflow-hidden" size="wide">
-  <header class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pt-8">
-    <a
-      href={resolve(withQuery("/", { date: data.entry.diaryDate }))}
-      aria-label="Back to diary"
-      class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-xl
-          text-2xl leading-none text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)]
-          focus-visible:outline-2 focus-visible:outline-offset-2
-          focus-visible:outline-[var(--app-accent)]"
-    >
-      <span aria-hidden="true">‹</span>
-    </a>
-
-    <div class="pt-1">
-      <h1 class="text-[18px] font-bold leading-6 tracking-[-0.02em]">
-        Edit entry
-      </h1>
-      <p class="mt-0.5 text-[11px] leading-4 text-[var(--app-muted)]">
-        {mealNames[data.entry.mealSlot]} · {data.entry.diaryDate}
-      </p>
-    </div>
-  </header>
+  <BackPageHeader
+    href={resolve(withQuery("/", { date: data.entry.diaryDate }))}
+    backLabel="Back to diary"
+    title="Edit entry"
+    description={`${mealNames[data.entry.mealSlot]} · ${data.entry.diaryDate}`}
+    class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pt-8"
+    linkClass="-ml-1 inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
+    titleClass="text-[18px] font-bold leading-6 tracking-[-0.02em]"
+    descriptionClass="mt-0.5 text-[11px] leading-4 text-[var(--app-muted)]"
+  />
 
   <form id="delete-entry-form" method="POST" action="?/delete"></form>
 

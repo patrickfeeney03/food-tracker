@@ -5,6 +5,7 @@
   } from "$lib/components/FoodFormFields.svelte";
   import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
   import AppPageShell from "$lib/components/AppPageShell.svelte";
+  import BackPageHeader from "$lib/components/BackPageHeader.svelte";
   import { withQuery } from "$lib/navigation";
   import { untrack } from "svelte";
   import type { PageProps } from "./$types";
@@ -31,26 +32,20 @@
 </svelte:head>
 
 <AppPageShell class="flex flex-col overflow-hidden" size="wide">
-    <header class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pb-6 sm:pt-8">
-      <a
-        class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-xl text-2xl
-          leading-none text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)]
-          focus-visible:outline-2 focus-visible:outline-offset-2
-          focus-visible:outline-[var(--app-accent)]"
-        href={resolve(withQuery("/foods", {
-          date: context.date,
-          mealSlot: context.mealSlot,
-          q: context.q || undefined,
-        }))}
-        aria-label="Back to food catalogue"
-      ><span aria-hidden="true">‹</span></a>
-      <div class="pt-1">
-        <h1 class="text-[18px] font-bold leading-6 tracking-[-0.02em]">Edit food</h1>
-        <p class="mt-0.5 text-[11px] leading-4 text-[var(--app-muted)]">
-          Changes apply to future diary entries only
-        </p>
-      </div>
-    </header>
+    <BackPageHeader
+      href={resolve(withQuery("/foods", {
+        date: context.date,
+        mealSlot: context.mealSlot,
+        q: context.q || undefined,
+      }))}
+      backLabel="Back to food catalogue"
+      title="Edit food"
+      description="Changes apply to future diary entries only"
+      class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pb-6 sm:pt-8"
+      linkClass="-ml-1 inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
+      titleClass="text-[18px] font-bold leading-6 tracking-[-0.02em]"
+      descriptionClass="mt-0.5 text-[11px] leading-4 text-[var(--app-muted)]"
+    />
 
     <form
       method="POST"

@@ -8,6 +8,7 @@
   import BottomSubmitBar from "$lib/components/BottomSubmitBar.svelte";
   import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
   import AppPageShell from "$lib/components/AppPageShell.svelte";
+  import BackPageHeader from "$lib/components/BackPageHeader.svelte";
   import { withQuery } from "$lib/navigation";
   import { mealNames, type MealSlot, type PortionKind } from "$lib/nutrition/constants";
   import {
@@ -106,31 +107,22 @@
 </svelte:head>
 
 <AppPageShell class="relative flex flex-col overflow-hidden" size="wide">
-    <header class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pt-8">
-      <a
-        href={resolve(
-          withQuery("/foods", {
-            date: data.context.date,
-            mealSlot: data.context.mealSlot,
-            q: data.context.q || undefined,
-          }),
-        )}
-        aria-label="Back to food catalogue"
-        class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-xl
-          text-2xl leading-none text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)]
-          focus-visible:outline-2 focus-visible:outline-offset-2
-          focus-visible:outline-[var(--app-accent)]"
-      >
-        <span aria-hidden="true">‹</span>
-      </a>
-
-      <div class="pt-1">
-        <h1 class="text-[18px] font-bold leading-6 tracking-[-0.02em]">Add food</h1>
-        <p class="mt-0.5 text-[11px] leading-4 text-[var(--app-muted)]">
-          {mealNames[mealSlot]} · {diaryDate}
-        </p>
-      </div>
-    </header>
+    <BackPageHeader
+      href={resolve(
+        withQuery("/foods", {
+          date: data.context.date,
+          mealSlot: data.context.mealSlot,
+          q: data.context.q || undefined,
+        }),
+      )}
+      backLabel="Back to food catalogue"
+      title="Add food"
+      description={`${mealNames[mealSlot]} · ${diaryDate}`}
+      class="flex items-start gap-3 px-3 pb-5 pt-5 sm:px-8 sm:pt-8"
+      linkClass="-ml-1 inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
+      titleClass="text-[18px] font-bold leading-6 tracking-[-0.02em]"
+      descriptionClass="mt-0.5 text-[11px] leading-4 text-[var(--app-muted)]"
+    />
 
     <form
       method="POST"

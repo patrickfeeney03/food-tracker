@@ -2,11 +2,11 @@
   import { enhance } from "$app/forms";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
+  import BackPageHeader from "$lib/components/BackPageHeader.svelte";
   import BarcodeScanner from "$lib/components/BarcodeScanner.svelte";
   import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
   import AppPageShell from "$lib/components/AppPageShell.svelte";
   import BarcodeIcon from "$lib/components/icons/BarcodeIcon.svelte";
-  import ChevronLeftIcon from "$lib/components/icons/ChevronLeftIcon.svelte";
   import CloseIcon from "$lib/components/icons/CloseIcon.svelte";
   import SearchIcon from "$lib/components/icons/SearchIcon.svelte";
   import { withQuery } from "$lib/navigation";
@@ -73,29 +73,17 @@
   class="flex flex-col overflow-hidden px-4 pb-4 sm:px-8 sm:pb-8 lg:px-10"
   size="wide"
 >
-    <header
-      class="grid grid-cols-[44px_1fr_44px] items-start pt-4 sm:pt-7 lg:pt-8"
-    >
-      <a
-        href={resolve(withQuery("/", { date: data.destination.date }))}
-        aria-label="Back to diary"
-        class="inline-flex size-11 items-center justify-start rounded-xl text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
-      >
-        <ChevronLeftIcon class="size-5" />
-      </a>
-
-      <div class="min-w-0 pt-1">
-        <h1 class="text-[19px] leading-6 font-bold tracking-[-0.02em]">
-          Add food
-        </h1>
-        <p class="truncate text-xs leading-4 font-medium text-[var(--app-muted)]">
-          {mealNames[data.destination.mealSlot]} ·
-          {data.isToday ? "Today" : formatDiaryDate(data.destination.date)}
-        </p>
-      </div>
-
-      <span aria-hidden="true" class="size-11"></span>
-    </header>
+    <BackPageHeader
+      href={resolve(withQuery("/", { date: data.destination.date }))}
+      backLabel="Back to diary"
+      title="Add food"
+      description={`${mealNames[data.destination.mealSlot]} · ${data.isToday ? "Today" : formatDiaryDate(data.destination.date)}`}
+      class="flex items-start gap-3 pt-4 sm:pt-7 lg:pt-8"
+      linkClass="inline-flex size-11 shrink-0 items-center justify-start rounded-xl text-[var(--app-text)] transition hover:bg-[var(--app-panel-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]"
+      titleClass="text-[19px] leading-6 font-bold tracking-[-0.02em]"
+      descriptionClass="mt-0.5 truncate text-xs leading-4 font-medium text-[var(--app-muted)]"
+      contentClass="min-w-0"
+    />
 
     {#if data.query === "" && data.tab === "foods" && data.foods.length > 0}
       <p class="sr-only" aria-live="polite">
