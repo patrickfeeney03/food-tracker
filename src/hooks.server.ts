@@ -9,7 +9,7 @@ import {
   THEME_COOKIE_NAME,
   THEME_COOKIE_OPTIONS
 } from '$lib/server/theme';
-import { redirect, type Handle } from '@sveltejs/kit';
+import { isRedirect, redirect, type Handle } from '@sveltejs/kit';
 
 const PUBLIC_ROUTES = new Set([
   '/sign-in',
@@ -22,7 +22,7 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_ROUTES.has(pathname) || pathname.startsWith('/_app/');
 }
 
-export const handle: Handle = async ({
+const handleRequest: Handle = async ({
   event,
   resolve
 }) => {
@@ -78,4 +78,43 @@ export const handle: Handle = async ({
     transformPageChunk: ({ html }) =>
       html.replace('data-theme="system"', themeAttributes)
   });
+};
+
+export const handle: Handle = async ({ event, resolve }) => {
+  const startedAt = performance.now();
+  const request = {
+    method: event.request.method,
+    path: event.url.pathname
+  };
+
+  try {
+    const response = await handleRequest({ event, resolve });
+
+    console.info(JSON.stringify({
+      type: 'request',
+      ...request,
+      status: response.status,
+      durationMs: Math.round(performance.now() - startedAt)
+    }));
+
+    return response;
+  } catch (error) {
+    if (isRedirect(error)) {
+      console.info(JSON.stringify({
+        type: 'request',
+        ...request,
+        status: error.status,
+        durationMs: Math.round(performance.now() - startedAt)
+      }));
+    } else {
+      console.error(JSON.stringify({
+        type: 'request_error',
+        ...request,
+        durationMs: Math.round(performance.now() - startedAt),
+        error: error instanceof Error ? error.message : String(error)
+      }));
+    }
+
+    throw error;
+  }
 };
