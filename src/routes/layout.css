@@ -80,10 +80,8 @@ html.dark {
   textarea {
     font: inherit;
   }
-}
 
-/* iOS Safari zooms the viewport when a text-entry control is smaller than 16px. */
-@supports (-webkit-touch-callout: none) {
+  /* Safari and Chrome on iOS zoom text-entry controls below 16px. */
   @media (hover: none) and (pointer: coarse) {
     input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
     select,
