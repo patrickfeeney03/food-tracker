@@ -41,7 +41,7 @@ describe('findOrCreateGoogleUser', () => {
           email: 'PATRIck@example.com',
           name: 'Patrick'
         },
-        'patrick@example.com'
+        ['patrick@example.com']
       );
 
       expect(user).toMatchObject({
@@ -71,13 +71,13 @@ describe('findOrCreateGoogleUser', () => {
       const first = findOrCreateGoogleUser(
         connection.db,
         identity,
-        'patrick@example.com'
+        ['patrick@example.com']
       );
 
       const second = findOrCreateGoogleUser(
         connection.db,
         identity,
-        'patrick@example.com'
+        ['patrick@example.com']
       );
 
       expect(second.id).toBe(first.id);
@@ -100,7 +100,7 @@ describe('findOrCreateGoogleUser', () => {
             email: 'other@example.com',
             name: 'Other'
           },
-          'patrick@example.com'
+          ['patrick@example.com']
         )
       ).toThrow(GoogleEmailNotAllowedError);
 
@@ -110,6 +110,22 @@ describe('findOrCreateGoogleUser', () => {
       expect(
         connection.db.select().from(authAccounts).all()
       ).toHaveLength(0);
+    });
+  });
+
+  it('allows any normalized email on the allowlist', () => {
+    withMigratedDatabase((connection) => {
+      const user = findOrCreateGoogleUser(
+        connection.db,
+        {
+          subject: 'other-subject',
+          email: 'Other@Example.com',
+          name: 'Other'
+        },
+        ['patrick@example.com', 'other@example.com']
+      );
+
+      expect(user.email).toBe('other@example.com');
     });
   });
 });

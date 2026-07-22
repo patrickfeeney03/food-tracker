@@ -18,11 +18,11 @@ export class GoogleEmailNotAllowedError extends Error {
 export function findOrCreateGoogleUser(
   db: AppDatabase,
   identity: GoogleIdentity,
-  allowedEmail: string
+  allowedEmails: readonly string[]
 ): User {
   const normalizedEmail = identity.email.trim().toLowerCase();
 
-  if (normalizedEmail !== allowedEmail.trim().toLowerCase()) {
+  if (!allowedEmails.includes(normalizedEmail)) {
     throw new GoogleEmailNotAllowedError();
   }
 

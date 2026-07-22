@@ -29,11 +29,18 @@ export function createGoogleOAuthClient(): Google {
   );
 }
 
-export function getAllowedGoogleEmail(): string {
-  return requireEnvironmentVariable(
-    'GOOGLE_ALLOWED_EMAIL',
-    env.GOOGLE_ALLOWED_EMAIL
+export function getAllowedGoogleEmails(): string[] {
+  const allowedEmails = requireEnvironmentVariable(
+    'GOOGLE_ALLOWED_EMAILS',
+    env.GOOGLE_ALLOWED_EMAILS
   )
-    .trim()
-    .toLowerCase();
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => email !== '');
+
+  if (allowedEmails.length === 0) {
+    throw new Error('GOOGLE_ALLOWED_EMAILS must contain at least one email');
+  }
+
+  return allowedEmails;
 }

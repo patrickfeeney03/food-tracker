@@ -22,7 +22,10 @@ try {
 }
 
 const dbUrl = process.env.DATABASE_URL || 'local.db';
-const userEmail = process.env.GOOGLE_ALLOWED_EMAIL || 'patrickfeeneytamayo@gmail.com';
+const userEmail = (process.env.GOOGLE_ALLOWED_EMAILS || 'patrickfeeneytamayo@gmail.com')
+  .split(',')[0]
+  .trim()
+  .toLowerCase();
 const userName = 'Patrick Feeney';
 
 console.log(`🌱 Seeding database at "${dbUrl}" for user "${userEmail}"...`);

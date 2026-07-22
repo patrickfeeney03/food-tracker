@@ -1,6 +1,6 @@
 # Calorie Tracker Project State
 
-Last updated: 2026-07-19
+Last updated: 2026-07-22
 
 This is the compact handoff: durable decisions, implemented scope, known risks, and next work.
 
@@ -66,7 +66,8 @@ Amounts support up to three decimal places. The development database is currentl
 - `/` shows effective targets, calories/macros, meal totals, entries, date navigation, Settings, and edit links.
 - Meal shortcuts support draft creation from populated meals, exact saved portions, reorder/edit/archive, blocked-food repair, idempotent batch application, provenance, and whole-batch Undo.
 - `/goals/setup`, Settings Daily Targets, and Goal History share the effective-dated goal editor.
-- Settings implements theme preference, current identity/targets, network/app information, active-session count, and current-session sign out.
+- Settings implements theme preference, account details, current identity/targets, network/app information, individual active-session revocation, and current-session sign out.
+- Data export provides a versioned, portable JSON archive and an active-entry diary CSV. JSON includes archived/deleted application data with exact storage values and readable units, while excluding authentication and retry metadata.
 - Shared shells, headers, feedback, submit bars, food fields, goal fields, amount-adjuster controls, shortcut editors, and Settings rows are componentized.
 
 ### Tests
@@ -81,7 +82,7 @@ Amounts support up to three decimal places. The development database is currentl
 - Normal Amount Adjuster adds do not yet have pending-button protection or success Undo.
 - Dashboard rows omit some specified details; loading, stale-data, retry, and broader Undo states are incomplete.
 - Barcode archived-hit recovery, checksum override, restore/replace, and link-collision flows are missing.
-- Settings Account Details, individual session revocation, JSON/CSV export, and PWA/update destinations are placeholders or absent.
+- Settings PWA/update destinations remain placeholders or absent.
 - Search tab/query/scroll restoration through nested flows is incomplete.
 
 ## Integrity and Technical Risks
@@ -109,7 +110,7 @@ No open P1 work.
 
 ### P2 — settings and resilience
 
-1. Implement individual session revocation and JSON/CSV export.
+No open P2 work.
 
 ## Local Configuration
 
@@ -118,7 +119,7 @@ DATABASE_URL=local.db
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://localhost:5173/auth/google/callback
-GOOGLE_ALLOWED_EMAIL=
+GOOGLE_ALLOWED_EMAILS=
 ```
 
 Never commit `.env` or Google client secrets.

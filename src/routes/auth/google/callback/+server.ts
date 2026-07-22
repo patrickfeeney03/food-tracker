@@ -1,5 +1,5 @@
 import { GOOGLE_OAUTH_COOKIE_OPTIONS, GOOGLE_OAUTH_STATE_COOKIE_NAME, GOOGLE_OAUTH_VERIFIER_COOKIE_NAME, SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } from "$lib/server/auth/cookie";
-import { createGoogleOAuthClient, getAllowedGoogleEmail } from "$lib/server/auth/google";
+import { createGoogleOAuthClient, getAllowedGoogleEmails } from "$lib/server/auth/google";
 import { findOrCreateGoogleUser, GoogleEmailNotAllowedError } from "$lib/server/auth/google-user";
 import { parseGoogleUserInfo } from "$lib/server/auth/google-user-info";
 import { createSession } from "$lib/server/auth/session";
@@ -67,7 +67,7 @@ export const GET: RequestHandler = async ({
     const user = findOrCreateGoogleUser(
       db,
       identity,
-      getAllowedGoogleEmail()
+      getAllowedGoogleEmails()
     );
     const { token, session } = createSession(
       db,

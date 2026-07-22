@@ -30,7 +30,7 @@ export default defineConfig({
       GOOGLE_CLIENT_ID: 'e2e-unused-client',
       GOOGLE_CLIENT_SECRET: 'e2e-unused-secret',
       GOOGLE_REDIRECT_URI: `${baseURL}/auth/google/callback`,
-      GOOGLE_ALLOWED_EMAIL: 'e2e@example.test'
+      GOOGLE_ALLOWED_EMAILS: 'e2e@example.test'
     }
   }
 });
