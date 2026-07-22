@@ -130,7 +130,6 @@
       class="flex flex-1 flex-col px-3 pb-28 sm:px-8"
     >
       <input type="hidden" name="clientMutationId" value={values.clientMutationId} />
-      <input type="hidden" name="q" value={data.context.q} />
 
       <div class="mx-auto w-full max-w-xl flex-1">
         {#if errors.form || errors.clientMutationId}

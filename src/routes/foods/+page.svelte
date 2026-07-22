@@ -222,7 +222,6 @@
           <input type="hidden" name="entryId" value={quickAdded.entryId} />
           <input type="hidden" name="diaryDate" value={data.destination.date} />
           <input type="hidden" name="mealSlot" value={data.destination.mealSlot} />
-          <input type="hidden" name="q" value={data.query} />
           <button
             type="submit"
             class="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-bold
@@ -479,7 +478,6 @@
                       />
                       <input type="hidden" name="diaryDate" value={data.destination.date} />
                       <input type="hidden" name="mealSlot" value={data.destination.mealSlot} />
-                      <input type="hidden" name="q" value={data.query} />
                       <button
                         type="submit"
                         disabled={pendingFoodId !== null}

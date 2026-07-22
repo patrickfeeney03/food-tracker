@@ -302,9 +302,9 @@ test('navigates from the catalogue, logs an existing food, then edits its diary 
   expectSearchParameters(page, {
     date: diaryDate,
     mealSlot: 'dinner',
-    q: 'Greek',
     added: '1'
   });
+  expect(new URL(page.url()).searchParams.get('q')).toBeNull();
   await expect(page.getByRole('status')).toContainText('Food added to dinner.');
 
   await page.goto(`/?date=${diaryDate}`);
@@ -427,7 +427,11 @@ test('quick adds the latest portion with current nutrition and supports Undo', a
     name: 'Quick add Quick yoghurt to lunch using the last amount'
   }).click();
 
-  expectSearchParameters(page, { date: diaryDate, mealSlot: 'lunch', q: 'Quick' });
+  await page.waitForURL(
+    (url) => url.pathname === '/foods' && url.searchParams.get('q') === null
+  );
+  expectSearchParameters(page, { date: diaryDate, mealSlot: 'lunch' });
+  expect(new URL(page.url()).searchParams.get('q')).toBeNull();
   await expect(page.getByRole('status')).toContainText(
     '250 g of Quick yoghurt added to lunch.'
   );

@@ -145,7 +145,6 @@ export const actions = {
     const user = requireUser(locals);
 
     const formData = await request.formData();
-    const query = readText(formData, 'q');
     const values = {
       clientMutationId: readText(formData, 'clientMutationId'),
       portionKind: readText(formData, 'portionKind'),
@@ -205,7 +204,6 @@ export const actions = {
         withQuery('/foods', {
           date: result.data.diaryDate,
           mealSlot: result.data.mealSlot,
-          q: query || undefined,
           added: 1
         })
       )

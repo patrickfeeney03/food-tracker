@@ -242,13 +242,10 @@ export const actions = {
       mealSlot: readText(formData, 'mealSlot')
     });
     const mutationIdResult = z.uuid().safeParse(readText(formData, 'clientMutationId'));
-    const queryResult = searchSchema.safeParse(readText(formData, 'q'));
-
     if (
       !foodIdResult.success ||
       !destinationResult.success ||
-      !mutationIdResult.success ||
-      !queryResult.success
+      !mutationIdResult.success
     ) {
       return fail(400, { quickAddError: 'Invalid Quick Add request.' });
     }
@@ -280,7 +277,6 @@ export const actions = {
           withQuery('/foods', {
             date: destinationResult.data.date,
             mealSlot: destinationResult.data.mealSlot,
-            q: queryResult.data || undefined,
             quickAdded: entry.id
           })
         )
@@ -311,9 +307,7 @@ export const actions = {
       date: readText(formData, 'diaryDate'),
       mealSlot: readText(formData, 'mealSlot')
     });
-    const queryResult = searchSchema.safeParse(readText(formData, 'q'));
-
-    if (!entryIdResult.success || !destinationResult.success || !queryResult.success) {
+    if (!entryIdResult.success || !destinationResult.success) {
       return fail(400, { quickAddError: 'Invalid Quick Add undo request.' });
     }
 
@@ -334,7 +328,6 @@ export const actions = {
           withQuery('/foods', {
             date: destinationResult.data.date,
             mealSlot: destinationResult.data.mealSlot,
-            q: queryResult.data || undefined,
             quickAddUndone: entry.id
           })
         )
