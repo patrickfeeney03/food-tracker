@@ -2,7 +2,11 @@
   import { resolve } from "$app/paths";
   import ChevronRightIcon from "../icons/ChevronRightIcon.svelte";
 
-  type SettingsRoute = "/settings/account" | "/settings/goals" | "/settings/goals/history";
+  type SettingsRoute =
+    | "/settings/account"
+    | "/settings/goals"
+    | "/settings/goals/history"
+    | "/settings/sessions";
 
   type RowDetail =
     | { description: string; value?: never }

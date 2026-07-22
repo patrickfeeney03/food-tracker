@@ -88,6 +88,7 @@
         <SettingsRow
           label="Active sessions"
           description={`${data.activeSessionCount} ${data.activeSessionCount === 1 ? 'session' : 'sessions'}`}
+          route="/settings/sessions"
           separatorBefore
         />
         <SettingsRow
