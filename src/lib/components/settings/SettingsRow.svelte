@@ -4,6 +4,7 @@
 
   type SettingsRoute =
     | "/settings/account"
+    | "/settings/export"
     | "/settings/goals"
     | "/settings/goals/history"
     | "/settings/sessions";

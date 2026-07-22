@@ -94,6 +94,7 @@
         <SettingsRow
           label="Export data"
           description="Download JSON or CSV"
+          route="/settings/export"
           separatorBefore
         />
       </SettingsSection>
