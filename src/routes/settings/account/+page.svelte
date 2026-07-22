@@ -3,7 +3,7 @@
   import AppPageShell from '$lib/components/AppPageShell.svelte';
   import BackPageHeader from '$lib/components/BackPageHeader.svelte';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
-  import { formatDate, formatDateTime } from '$lib/nutrition/format';
+  import { formatDate } from '$lib/nutrition/format';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
@@ -73,7 +73,7 @@
               Signed in
             </dt>
             <dd class="mt-1 text-sm font-semibold text-[var(--app-text)]">
-              {formatDateTime(data.currentSession.createdAt)}
+              {formatDate(data.currentSession.createdAt, { time: true })}
             </dd>
           </div>
           <div class="px-4 py-3">
@@ -81,7 +81,7 @@
               Last seen
             </dt>
             <dd class="mt-1 text-sm font-semibold text-[var(--app-text)]">
-              {formatDateTime(data.currentSession.lastSeenAt)}
+              {formatDate(data.currentSession.lastSeenAt, { time: true })}
             </dd>
           </div>
           <div class="px-4 py-3">
@@ -89,7 +89,7 @@
               Expires
             </dt>
             <dd class="mt-1 text-sm font-semibold text-[var(--app-text)]">
-              {formatDateTime(data.currentSession.expiresAt)}
+              {formatDate(data.currentSession.expiresAt, { time: true })}
             </dd>
           </div>
           <div class="px-4 py-3">

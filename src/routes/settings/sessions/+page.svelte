@@ -4,7 +4,7 @@
   import BackPageHeader from '$lib/components/BackPageHeader.svelte';
   import FeedbackBanner from '$lib/components/FeedbackBanner.svelte';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
-  import { formatDateTime } from '$lib/nutrition/format';
+  import { formatDate } from '$lib/nutrition/format';
   import type { PageProps } from './$types';
 
   let { data, form }: PageProps = $props();
@@ -77,7 +77,7 @@
                       Signed in
                     </dt>
                     <dd class="mt-0.5 font-medium text-[var(--app-text)]">
-                      {formatDateTime(session.createdAt)}
+                      {formatDate(session.createdAt, { time: true })}
                     </dd>
                   </div>
                   <div>
@@ -85,7 +85,7 @@
                       Last seen
                     </dt>
                     <dd class="mt-0.5 font-medium text-[var(--app-text)]">
-                      {formatDateTime(session.lastSeenAt)}
+                      {formatDate(session.lastSeenAt, { time: true })}
                     </dd>
                   </div>
                   <div>
@@ -93,7 +93,7 @@
                       Expires
                     </dt>
                     <dd class="mt-0.5 font-medium text-[var(--app-text)]">
-                      {formatDateTime(session.expiresAt)}
+                      {formatDate(session.expiresAt, { time: true })}
                     </dd>
                   </div>
                 </dl>
