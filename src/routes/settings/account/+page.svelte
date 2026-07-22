@@ -3,14 +3,10 @@
   import AppPageShell from '$lib/components/AppPageShell.svelte';
   import BackPageHeader from '$lib/components/BackPageHeader.svelte';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
-  import { formatDate } from '$lib/nutrition/format';
+  import { formatDate, formatDateTime } from '$lib/nutrition/format';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
-
-  function formatDateTime(date: Date): string {
-    return formatDate(date, { time: true });
-  }
 </script>
 
 <svelte:head>

@@ -37,6 +37,10 @@ export function formatDate(
   }).format(value);
 }
 
+export function formatDateTime(date: string | Date): string {
+  return formatDate(date, { time: true });
+}
+
 function dateFromCalendarString(date: string): Date {
   const [year, month, day] = date.split('-').map(Number);
   return new Date(Date.UTC(year, month - 1, day));
