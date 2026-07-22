@@ -9,6 +9,7 @@
   import BackPageHeader from "$lib/components/BackPageHeader.svelte";
   import { withQuery } from "$lib/navigation";
   import { mealNames, type MealSlot, type PortionKind } from "$lib/nutrition/constants";
+  import { formatTime } from "$lib/nutrition/format";
   import {
     formatStoredValue,
     parsePortionCountToMilli,
@@ -76,12 +77,6 @@
     }
   });
 
-  const loggedAtFormatter = new Intl.DateTimeFormat("en-IE", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "Europe/Dublin",
-  });
 </script>
 
 <svelte:head>
@@ -147,7 +142,7 @@
         bind:mealSlot
         diaryDateError={errors.diaryDate?.[0]}
         mealSlotError={errors.mealSlot?.[0]}
-        loggedAt={loggedAtFormatter.format(data.entry.loggedAt)}
+        loggedAt={formatTime(data.entry.loggedAt)}
       />
 
       <section

@@ -37,6 +37,15 @@ export function formatDate(
   }).format(value);
 }
 
+export function formatTime(date: Date): string {
+  return new Intl.DateTimeFormat('en-IE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Europe/Dublin'
+  }).format(date);
+}
+
 function dateFromCalendarString(date: string): Date {
   const [year, month, day] = date.split('-').map(Number);
   return new Date(Date.UTC(year, month - 1, day));
