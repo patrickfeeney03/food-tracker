@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { resolve } from '$app/paths';
   import AppPageShell from '$lib/components/AppPageShell.svelte';
   import BackPageHeader from '$lib/components/BackPageHeader.svelte';
@@ -6,11 +7,22 @@
   import SettingsRow from '$lib/components/settings/SettingsRow.svelte';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
   import { formatGrams, formatKcal } from '$lib/nutrition/format';
+  import { applyPwaUpdate, initPwa, pwaNeedRefresh } from '$lib/pwa';
   import type { PageProps } from './$types';
 
   let { data, form }: PageProps = $props();
 
   let isOnline = $state(true);
+  let needRefresh = $state(false);
+  let applyingUpdate = $state(false);
+
+  initPwa();
+
+  const unsubscribeNeedRefresh = pwaNeedRefresh.subscribe((value) => {
+    needRefresh = value;
+  });
+
+  onDestroy(unsubscribeNeedRefresh);
 
   $effect(() => {
     const updateNetworkStatus = () => {
@@ -26,6 +38,21 @@
       window.removeEventListener('offline', updateNetworkStatus);
     };
   });
+
+  async function handleApplyUpdate() {
+    if (applyingUpdate) {
+      return;
+    }
+
+    applyingUpdate = true;
+
+    try {
+      await applyPwaUpdate();
+    } catch (error) {
+      console.error('Failed to apply PWA update', error);
+      applyingUpdate = false;
+    }
+  }
 
   let goalSummary = $derived(
     data.currentGoal === null
@@ -190,16 +217,46 @@
             <div class="min-w-0 flex-1">
               <p class="text-sm font-semibold text-[var(--app-text)]">Network status</p>
               <p class="mt-0.5 text-xs text-[var(--app-muted)]" aria-live="polite">
-                {isOnline ? 'Online · last synced just now' : 'Offline · changes unavailable'}
+                {isOnline
+                  ? 'Online · logging available'
+                  : 'Offline · connectivity required to log food'}
               </p>
             </div>
             <span
               aria-hidden="true"
               class={[
                 'size-3 shrink-0 rounded-full',
-                isOnline ? 'bg-[var(--app-muted)]' : 'bg-[var(--app-orange)]'
+                isOnline ? 'bg-[var(--app-green)]' : 'bg-[var(--app-orange)]'
               ]}
             ></span>
+          </div>
+
+          <div class="border-t border-[var(--app-border)]">
+            <div class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3">
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-[var(--app-text)]">App update</p>
+                <p class="mt-0.5 text-xs text-[var(--app-muted)]" aria-live="polite">
+                  {needRefresh
+                    ? 'A new version is ready. Update when you are not mid-log.'
+                    : 'You are on the latest installed shell.'}
+                </p>
+              </div>
+
+              {#if needRefresh}
+                <button
+                  type="button"
+                  disabled={applyingUpdate}
+                  onclick={handleApplyUpdate}
+                  class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg
+                    bg-[var(--app-accent)] px-3 text-sm font-semibold text-white transition
+                    hover:bg-[var(--app-accent-hover)] focus-visible:outline-2
+                    focus-visible:outline-offset-2 focus-visible:outline-[var(--app-accent)]
+                    disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {applyingUpdate ? 'Updating…' : 'Update'}
+                </button>
+              {/if}
+            </div>
           </div>
         </div>
       </section>

@@ -71,6 +71,9 @@ html.dark {
     min-height: 100dvh;
     background: var(--app-canvas);
     color: var(--app-text);
+    /* Home-screen / notch safe areas on iPhone */
+    padding:
+      env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
     @apply antialiased;
   }
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import PwaUpdateBanner from '$lib/components/PwaUpdateBanner.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children, data }: LayoutProps = $props();
@@ -23,5 +24,11 @@
 	});
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head>
+	<link rel="icon" href={favicon} />
+	<link rel="icon" href="/pwa-192x192.png" type="image/png" sizes="192x192" />
+	<meta name="description" content="Personal calorie and macro tracker for fast food logging." />
+</svelte:head>
+
+<PwaUpdateBanner />
 {@render children()}

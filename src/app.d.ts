@@ -1,5 +1,9 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 
+/// <reference types="vite-plugin-pwa/svelte" />
+/// <reference types="vite-plugin-pwa/info" />
+/// <reference types="vite-plugin-pwa/client" />
+
 import type { Session, Theme, User } from "$lib/server/db/schema";
 import type { RequestLogger } from "$lib/server/logging";
 
