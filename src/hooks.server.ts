@@ -14,6 +14,7 @@ import { isHttpError, isRedirect, redirect, type Handle } from '@sveltejs/kit';
 
 const PUBLIC_ROUTES = new Set([
   '/sign-in',
+  '/offline',
   '/auth/google',
   '/auth/google/callback',
   '/robots.txt'
@@ -31,7 +32,8 @@ function readCorrelationId(request: Request): string {
     : crypto.randomUUID();
 }
 
-function actionName(url: URL): string | null {
+function actionName(request: Request): string | null {
+  const url = new URL(request.url);
   const key = [...url.searchParams.keys()].find((name) => name.startsWith('/'));
   return key?.slice(1) || null;
 }
@@ -108,7 +110,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     method: event.request.method,
     path: event.url.pathname,
     route: event.route.id,
-    action: actionName(event.url),
+    action: actionName(event.request),
     foodId: event.params.foodId,
     diaryEntryId: event.params.entryId,
     shortcutId: event.params.shortcutId

@@ -64,7 +64,19 @@ export default defineConfig({
       workbox: {
         // SSR app: cache the client shell only. Live diary data stays network-first.
         navigateFallback: undefined,
-        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,webmanifest}']
+        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,webmanifest}'],
+        navigationPreload: true,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkOnly',
+            options: {
+              precacheFallback: {
+                fallbackURL: '/offline'
+              }
+            }
+          }
+        ]
       },
       devOptions: {
         enabled: false
