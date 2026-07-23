@@ -337,6 +337,31 @@ test('navigates from the catalogue, logs an existing food, then edits its diary 
   ]);
 });
 
+test('searches the food catalogue automatically while typing', async ({ app }) => {
+  app.createFood({ name: 'Automatic search yoghurt' });
+  app.createFood({ name: 'Unrelated porridge' });
+  const { page } = app;
+
+  await page.goto(`/foods?date=${diaryDate}&mealSlot=breakfast`);
+  await page.waitForLoadState('networkidle');
+  const search = page.getByLabel('Search foods');
+  await search.fill('Automatic');
+
+  await expect(page).toHaveURL((url) => {
+    return url.pathname === '/foods' &&
+      url.searchParams.get('date') === diaryDate &&
+      url.searchParams.get('mealSlot') === 'breakfast' &&
+      url.searchParams.get('q') === 'Automatic';
+  });
+  await expect(page.getByRole('heading', { name: 'Automatic search yoghurt' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Unrelated porridge' })).toHaveCount(0);
+  await expect(search).toBeFocused();
+
+  await search.fill('');
+  await expect(page).toHaveURL((url) => url.searchParams.get('q') === null);
+  await expect(page.getByRole('heading', { name: 'Unrelated porridge' })).toBeVisible();
+});
+
 test('truncates a long unbroken food name inside the dashboard meal card', async ({ app }) => {
   const longName = `LongUnbrokenFoodName${'aW'.repeat(80)}`;
   const foodId = app.createFood({ name: longName });

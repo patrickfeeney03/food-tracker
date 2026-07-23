@@ -14,12 +14,47 @@
   import { formatAmount, formatDate, formatKcal } from "$lib/nutrition/format";
   import { inputLimits } from "$lib/nutrition/input-limits";
   import type { SubmitFunction } from "@sveltejs/kit";
+  import { onDestroy } from "svelte";
   import type { PageProps } from "./$types";
+
+  const searchDebounceMs = 50;
 
   let { data, form }: PageProps = $props();
   let scannerOpen = $state(false);
   let pendingShortcutId = $state<string | null>(null);
   let pendingFoodId = $state<string | null>(null);
+  let searchQuery = $derived(data.query);
+  let searchTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  function runSearch() {
+    const query = searchQuery.trim();
+    if (query === data.query) {
+      return;
+    }
+
+    const path = withQuery("/foods", {
+      date: data.destination.date,
+      mealSlot: data.destination.mealSlot,
+      tab: data.tab,
+      q: query || undefined,
+    });
+    void goto(resolve(path), {
+      keepFocus: true,
+      noScroll: true,
+      replaceState: true,
+    });
+  }
+
+  function scheduleSearch(event: Event) {
+    searchQuery = (event.currentTarget as HTMLInputElement).value;
+    clearTimeout(searchTimeout);
+
+    if (!(event as InputEvent).isComposing) {
+      searchTimeout = setTimeout(runSearch, searchDebounceMs);
+    }
+  }
+
+  onDestroy(() => clearTimeout(searchTimeout));
 
   function formatDiaryDate(date: string): string {
     return formatDate(date, { year: false });
@@ -120,7 +155,9 @@
               id="catalogue-search"
               name="q"
               type="search"
-              value={data.query}
+              value={searchQuery}
+              oninput={scheduleSearch}
+              oncompositionend={scheduleSearch}
               placeholder={data.tab === "shortcuts" ? "Search shortcuts" : "Search foods"}
               maxlength={inputLimits.catalogueQuery.maxLength}
               autocomplete="off"
