@@ -42,6 +42,32 @@ export default defineConfig({
         theme_color: '#172033',
         lang: 'en',
         categories: ['health', 'food', 'lifestyle'],
+        shortcuts: [
+          {
+            name: 'Log breakfast',
+            short_name: 'Breakfast',
+            description: "Add food to today's breakfast.",
+            url: '/launch/log?mealSlot=breakfast'
+          },
+          {
+            name: 'Log lunch',
+            short_name: 'Lunch',
+            description: "Add food to today's lunch.",
+            url: '/launch/log?mealSlot=lunch'
+          },
+          {
+            name: 'Log dinner',
+            short_name: 'Dinner',
+            description: "Add food to today's dinner.",
+            url: '/launch/log?mealSlot=dinner'
+          },
+          {
+            name: 'Log snacks',
+            short_name: 'Snacks',
+            description: "Add food to today's snacks.",
+            url: '/launch/log?mealSlot=snacks'
+          }
+        ],
         icons: [
           {
             src: 'pwa-192x192.png',
