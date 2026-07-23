@@ -10,9 +10,20 @@
     applyPwaUpdate,
     pwaApplyingUpdate,
     pwaIsOnline,
-    pwaNeedRefresh
+    pwaNeedRefresh,
+    pwaServiceWorkerStatus,
+    type PwaServiceWorkerStatus
   } from '$lib/pwa';
   import type { PageProps } from './$types';
+
+  const serviceWorkerStatusLabels: Record<PwaServiceWorkerStatus, string> = {
+    checking: 'Checking service worker…',
+    installing: 'Setting up offline support…',
+    'reload-required': 'Reload once to finish setup',
+    ready: 'Active · this app is controlled',
+    unsupported: 'Unavailable in this browser',
+    error: 'Setup failed · reopen while online'
+  };
 
   let { data, form }: PageProps = $props();
 
@@ -191,6 +202,26 @@
                 $pwaIsOnline ? 'bg-[var(--app-green)]' : 'bg-[var(--app-orange)]'
               ]}
             ></span>
+          </div>
+
+          <div class="border-t border-[var(--app-border)]">
+            <div class="flex min-h-[4.25rem] items-center gap-3 px-4 py-3">
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-[var(--app-text)]">Offline fallback</p>
+                <p class="mt-0.5 text-xs text-[var(--app-muted)]" aria-live="polite">
+                  {serviceWorkerStatusLabels[$pwaServiceWorkerStatus]}
+                </p>
+              </div>
+              <span
+                aria-hidden="true"
+                class={[
+                  'size-3 shrink-0 rounded-full',
+                  $pwaServiceWorkerStatus === 'ready'
+                    ? 'bg-[var(--app-green)]'
+                    : 'bg-[var(--app-orange)]'
+                ]}
+              ></span>
+            </div>
           </div>
 
           <div class="border-t border-[var(--app-border)]">
