@@ -181,7 +181,7 @@
               placeholder={data.tab === "shortcuts" ? "Search shortcuts" : "Search foods"}
               maxlength={inputLimits.catalogueQuery.maxLength}
               autocomplete="off"
-              class="!min-h-12 !rounded-xl !border-[var(--app-border)] !bg-[var(--app-panel)] !pr-10 !pl-10 !text-sm !shadow-none placeholder:!text-[var(--app-muted)] focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
+              class="!min-h-12 !rounded-xl !border-[var(--app-border)] !bg-[var(--app-panel)] !pr-10 !pl-10 !text-sm !shadow-none placeholder:!text-[var(--app-muted)] focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15 [&::-webkit-search-cancel-button]:hidden"
             />
 
             {#if data.query}
