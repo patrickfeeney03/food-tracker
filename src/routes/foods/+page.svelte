@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import { goto } from "$app/navigation";
+  import { afterNavigate, goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import BackPageHeader from "$lib/components/BackPageHeader.svelte";
   import BarcodeScanner from "$lib/components/BarcodeScanner.svelte";
@@ -14,21 +14,30 @@
   import { formatAmount, formatDate, formatKcal } from "$lib/nutrition/format";
   import { inputLimits } from "$lib/nutrition/input-limits";
   import type { SubmitFunction } from "@sveltejs/kit";
-  import { onDestroy } from "svelte";
+  import { onDestroy, untrack } from "svelte";
+  import { SvelteMap } from "svelte/reactivity";
   import type { PageProps } from "./$types";
 
-  const searchDebounceMs = 50;
+  const searchDebounceMs = 150;
 
   let { data, form }: PageProps = $props();
   let scannerOpen = $state(false);
   let pendingShortcutId = $state<string | null>(null);
   let pendingFoodId = $state<string | null>(null);
-  let searchQuery = $derived(data.query);
+  let searchQuery = $state(untrack(() => data.query));
   let searchTimeout: ReturnType<typeof setTimeout> | undefined;
+  const inFlightSearchCountsByQuery = new SvelteMap<string, number>();
+
+  afterNavigate(({ type }) => {
+    if (type !== "goto" || !inFlightSearchCountsByQuery.has(data.query)) {
+      clearTimeout(searchTimeout);
+      searchQuery = data.query;
+    }
+  });
 
   function runSearch() {
     const query = searchQuery.trim();
-    if (query === data.query) {
+    if (query === data.query && inFlightSearchCountsByQuery.size === 0) {
       return;
     }
 
@@ -38,10 +47,21 @@
       tab: data.tab,
       q: query || undefined,
     });
+    inFlightSearchCountsByQuery.set(
+      query,
+      (inFlightSearchCountsByQuery.get(query) ?? 0) + 1,
+    );
     void goto(resolve(path), {
       keepFocus: true,
       noScroll: true,
       replaceState: true,
+    }).finally(() => {
+      const pendingCount = inFlightSearchCountsByQuery.get(query);
+      if (pendingCount === 1) {
+        inFlightSearchCountsByQuery.delete(query);
+      } else if (pendingCount !== undefined) {
+        inFlightSearchCountsByQuery.set(query, pendingCount - 1);
+      }
     });
   }
 

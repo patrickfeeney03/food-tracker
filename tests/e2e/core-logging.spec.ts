@@ -345,7 +345,7 @@ test('searches the food catalogue automatically while typing', async ({ app }) =
   await page.goto(`/foods?date=${diaryDate}&mealSlot=breakfast`);
   await page.waitForLoadState('networkidle');
   const search = page.getByLabel('Search foods');
-  await search.fill('Automatic');
+  await search.pressSequentially('Automatic', { delay: 200 });
 
   await expect(page).toHaveURL((url) => {
     return url.pathname === '/foods' &&
@@ -355,11 +355,55 @@ test('searches the food catalogue automatically while typing', async ({ app }) =
   });
   await expect(page.getByRole('heading', { name: 'Automatic search yoghurt' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Unrelated porridge' })).toHaveCount(0);
+  await expect(search).toHaveValue('Automatic');
   await expect(search).toBeFocused();
 
   await search.fill('');
   await expect(page).toHaveURL((url) => url.searchParams.get('q') === null);
   await expect(page.getByRole('heading', { name: 'Unrelated porridge' })).toBeVisible();
+
+  await search.fill('Automatic');
+  await expect(page).toHaveURL((url) => url.searchParams.get('q') === 'Automatic');
+  await page.getByRole('link', { name: 'Clear search' }).click();
+  await expect(search).toHaveValue('');
+  await page.goBack();
+  await expect(search).toHaveValue('Automatic');
+  await expect(page).toHaveURL((url) => url.searchParams.get('q') === 'Automatic');
+
+  await page.getByRole('tab', { name: 'Meal shortcuts' }).click();
+  await expect(page.getByLabel('Search meal shortcuts')).toHaveValue('Automatic');
+});
+
+test('waits for text composition to finish before searching the food catalogue', async ({ app }) => {
+  app.createFood({ name: 'Composition yoghurt' });
+  const { page } = app;
+
+  await page.goto(`/foods?date=${diaryDate}&mealSlot=breakfast`);
+  await page.waitForLoadState('networkidle');
+  const search = page.getByLabel('Search foods');
+
+  await search.evaluate((input: HTMLInputElement) => {
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+    input.value = 'Composition';
+    input.dispatchEvent(new InputEvent('input', {
+      bubbles: true,
+      data: 'Composition',
+      inputType: 'insertCompositionText',
+      isComposing: true
+    }));
+  });
+  await page.waitForTimeout(200);
+  await expect(search).toHaveValue('Composition');
+  await expect(page).toHaveURL((url) => url.searchParams.get('q') === null);
+
+  await search.evaluate((input: HTMLInputElement) => {
+    input.dispatchEvent(new CompositionEvent('compositionend', {
+      bubbles: true,
+      data: 'Composition'
+    }));
+  });
+  await expect(page).toHaveURL((url) => url.searchParams.get('q') === 'Composition');
+  await expect(page.getByRole('heading', { name: 'Composition yoghurt' })).toBeVisible();
 });
 
 test('truncates a long unbroken food name inside the dashboard meal card', async ({ app }) => {
