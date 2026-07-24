@@ -275,28 +275,3 @@ Constraints and indexes:
 - Index `food_id` to identify shortcuts blocked by an archived food.
 
 Applying a shortcut validates that every referenced food is active, then inserts all diary snapshots inside one database transaction. No item is silently skipped.
-
-## Data Deliberately Not Modelled Initially
-
-- Food revisions
-- Cooked-yield recipes
-- Body weight
-- Exercise calories
-- Custom meal slots
-- Multiple barcodes per food
-- Offline mutation queues
-- Import jobs
-- Copy-day, copy-meal, or duplicate-entry operations
-
-## Changes from the Current Draft
-
-1. Move goal values out of `users.settings` into `nutrition_goals`.
-2. Add Google account and revocable session tables.
-3. Add `user_id` ownership to foods.
-4. Replace every `per_100g` food field with entered-basis fields.
-5. Add liquid support, exact serving/container amounts, and mkcal energy storage.
-6. Expand diary logs into complete historical snapshots with date and fixed meal slot.
-7. Rename `meals` / `meal_ingredients` to `meal_shortcuts` / `meal_shortcut_items`.
-8. Prevent hard food deletion from cascading into shortcut contents.
-9. Add composite indexes that match dashboard and recent-food queries.
-10. Add checks, idempotency, update timestamps, and soft deletion to mutable/logged records.

@@ -6,7 +6,7 @@ This document defines how numeric food-label input is parsed, stored, scaled, ro
 
 - Preserve the nutrition basis printed on the food label. Do not normalize stored food data to 100 g or 100 ml.
 - Treat the food's entered calories as authoritative. Never calculate or enforce calories from protein, carbohydrate, and fat.
-- Use integer fixed-point arithmetic for persisted values and nutrition calculations.
+- Use integer fixed-point arithmetic (BigInt) for persisted values and nutrition calculations.
 - Parse decimal input from strings. Do not pass it through JavaScript `number` arithmetic before converting it to its storage integer.
 - Round only at the boundaries defined below.
 - Diary entries store calculated snapshots. Editing a reusable food never changes an existing diary entry.
@@ -18,7 +18,7 @@ Macro energy calculations such as `protein × 4 + carbohydrate × 4 + fat × 9` 
 | Value | UI unit | Storage unit | Scale |
 |---|---|---|---:|
 | Energy | kcal | milli-kilocalories (`mkcal`) | 1 kcal = 1,000 mkcal |
-| Nutrients | g | milligrams (`mg`) | 1 g = 1,000 mg |
+| Nutrients (macros) | g | milligrams (`mg`) | 1 g = 1,000 mg |
 | Solid amount | g | milligrams (`mg`) | 1 g = 1,000 mg |
 | Liquid amount | ml | microlitres (`ul`) | 1 ml = 1,000 ul |
 | Portion count | portions | milli-portions | 1 portion = 1,000 milli-portions |

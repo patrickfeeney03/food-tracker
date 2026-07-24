@@ -11,7 +11,6 @@ This document defines the screen inventory, navigation, content hierarchy, inter
 - Unsaved input is never lost through background updates, camera overlays, or network errors.
 - Desktop uses the same information architecture rather than becoming a separate application.
 - Minimum interactive target size is 44 × 44 CSS pixels.
-- Every action is usable without swipe, long-press, or hover.
 
 ## Navigation Model
 
@@ -245,6 +244,7 @@ Prefill behavior:
 ## 6. Create Food
 
 This is a one-page atomic create-and-first-log flow, not a standalone catalogue-management screen. Reusable-food fields and the first-entry Amount Adjuster appear in the same form.
+Includes bar code scanner button to link a code to the new food.
 
 ### Identity
 
