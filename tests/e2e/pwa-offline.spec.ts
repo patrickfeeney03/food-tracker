@@ -4,6 +4,8 @@ import { expect, test } from './fixtures';
 const diaryDate = '2026-07-18';
 const earlierDiaryDate = '2026-07-17';
 const foodName = 'Offline test porridge';
+const permanentlyUnavailableFoodName = 'PWA archived offline porridge';
+const temporarilyUnavailableFoodName = 'PWA retry offline porridge';
 
 async function waitForServiceWorkerControl(page: Page) {
   await page.evaluate(() => navigator.serviceWorker.ready);
@@ -116,6 +118,37 @@ async function hasSavedDiaryDate(
   );
 }
 
+async function hasSavedDiaryWindow(
+  page: Page,
+  userId: string,
+  dates: string[]
+): Promise<boolean> {
+  return page.evaluate(
+    ({ userId, dates }) => new Promise<boolean>((resolve) => {
+      const request = indexedDB.open('calorie-tracker-offline');
+      request.onerror = () => resolve(false);
+      request.onsuccess = () => {
+        const database = request.result;
+        const transaction = database.transaction('diary-days', 'readonly');
+        const diaryRequest = transaction.objectStore('diary-days').index('userId').getAll(userId);
+
+        transaction.oncomplete = () => {
+          const savedDates = new Set(
+            diaryRequest.result.map((record: { date: string }) => record.date)
+          );
+          database.close();
+          resolve(dates.every((date) => savedDates.has(date)));
+        };
+        transaction.onerror = () => {
+          database.close();
+          resolve(false);
+        };
+      };
+    }),
+    { userId, dates }
+  );
+}
+
 test('keeps the familiar UI and syncs offline food logs on reconnect', async ({ app }) => {
   const { page, userId } = app;
   const foodId = app.createFood({ name: foodName });
@@ -202,6 +235,126 @@ test('keeps the familiar UI and syncs offline food logs on reconnect', async ({ 
   } finally {
     await page.context().setOffline(false);
   }
+});
+
+test('discards an archived food log that permanently fails to sync', async ({ app }) => {
+  const { page, db, userId } = app;
+  const foodId = app.createFood({ name: permanentlyUnavailableFoodName });
+
+  await page.goto(`/?date=${diaryDate}`, { waitUntil: 'networkidle' });
+  await waitForServiceWorkerControl(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto(
+      `/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`,
+      { waitUntil: 'domcontentloaded' }
+    );
+    await expect(page.getByRole('heading', { name: permanentlyUnavailableFoodName })).toBeVisible();
+    await page.getByRole('radio', { name: '100 g' }).locator('..').click();
+    await page.getByLabel('Number of portions').fill('1');
+    await page.getByRole('button', { name: 'Add to diary' }).click();
+
+    await expect(page.getByText('Offline · 1 change saved on this device.')).toBeVisible();
+    await expect.poll(() => queuedChangeCount(page, userId)).toBe(1);
+
+    db.prepare('UPDATE foods SET deleted_at = ?, updated_at = ? WHERE id = ?')
+      .run(Date.now(), Date.now(), foodId);
+
+    await page.context().setOffline(false);
+    await expect(page.getByText('1 change needs attention.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible();
+
+    page.once('dialog', async (dialog) => {
+      expect(dialog.type()).toBe('confirm');
+      expect(dialog.message()).toBe(
+        'Discard 1 change? This removes the changes that could not be synced from this device.'
+      );
+      await dialog.accept();
+    });
+    await page.getByRole('button', { name: 'Discard' }).click();
+
+    await expect.poll(() => queuedChangeCount(page, userId)).toBe(0);
+    await expect.poll(() => app.diaryRows()).toEqual([]);
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
+test('retries an offline food log after a transient sync failure', async ({ app }) => {
+  const { page, userId } = app;
+  const foodId = app.createFood({ name: temporarilyUnavailableFoodName });
+
+  await page.goto(`/?date=${diaryDate}`, { waitUntil: 'networkidle' });
+  await waitForServiceWorkerControl(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto(
+      `/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`,
+      { waitUntil: 'domcontentloaded' }
+    );
+    await expect(page.getByRole('heading', { name: temporarilyUnavailableFoodName })).toBeVisible();
+    await page.getByRole('radio', { name: '100 g' }).locator('..').click();
+    await page.getByLabel('Number of portions').fill('1');
+    await page.getByRole('button', { name: 'Add to diary' }).click();
+
+    await expect(page.getByText('Offline · 1 change saved on this device.')).toBeVisible();
+    await expect.poll(() => queuedChangeCount(page, userId)).toBe(1);
+
+    let syncAttempts = 0;
+    await page.route('**/api/offline/diary-logs', async (route) => {
+      syncAttempts += 1;
+      if (syncAttempts === 1) {
+        await route.fulfill({ status: 503 });
+        return;
+      }
+
+      await route.continue();
+    });
+
+    await page.context().setOffline(false);
+    await expect(page.getByText('Couldn’t sync 1 change.')).toBeVisible();
+    await page.getByRole('button', { name: 'Retry' }).click();
+
+    await expect(page.getByText('All changes synced.')).toBeVisible();
+    await expect.poll(() => queuedChangeCount(page, userId)).toBe(0);
+    await expect.poll(() => app.diaryRows()).toEqual([
+      expect.objectContaining({
+        foodId,
+        foodName: temporarilyUnavailableFoodName,
+        diaryDate,
+        mealSlot: 'breakfast'
+      })
+    ]);
+    expect(syncAttempts).toBe(2);
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
+test('prefetches the center diary day and five neighboring days in both directions', async ({ app }) => {
+  const { page, userId } = app;
+  const prefetchedDates = [
+    '2026-07-13',
+    '2026-07-14',
+    '2026-07-15',
+    '2026-07-16',
+    '2026-07-17',
+    diaryDate,
+    '2026-07-19',
+    '2026-07-20',
+    '2026-07-21',
+    '2026-07-22',
+    '2026-07-23'
+  ];
+
+  await page.goto(`/?date=${diaryDate}`, { waitUntil: 'networkidle' });
+  await waitForServiceWorkerControl(page);
+
+  await expect.poll(
+    () => hasSavedDiaryWindow(page, userId, prefetchedDates)
+  ).toBe(true);
 });
 
 test('asserts zero document/__data requests and tight latency bounds on local offline transitions', async ({ app }) => {

@@ -3,16 +3,18 @@ import {
   clearAllOfflineData,
   enqueueOfflineDiaryLog,
   listOfflineDiaryLogMutations,
-  markOfflineDiaryLogFailed,
   saveOfflineBootstrap
 } from './indexed-db';
 import {
   discardFailedOfflineChanges,
+  offlineSyncStatus,
   queueOfflineDiaryLog,
   resetOfflineSyncStatus,
+  retryOfflineChanges,
   syncOfflineChanges
 } from './sync';
 import type { OfflineBootstrap } from './types';
+import { get } from 'svelte/store';
 
 const userId = '550e8400-e29b-41d4-a716-446655440000';
 const foodId = '550e8400-e29b-41d4-a716-446655440001';
@@ -152,11 +154,28 @@ describe('offline sync scheduling', () => {
   it('discards failed changes without removing pending changes', async () => {
     const failedId = '550e8400-e29b-41d4-a716-446655440013';
     const pendingId = '550e8400-e29b-41d4-a716-446655440014';
+    let requestCount = 0;
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      requestCount += 1;
+
+      if (requestCount === 1) {
+        return new Response(JSON.stringify({ message: 'Already logged.' }), {
+          status: 409,
+          headers: {
+            'content-type': 'application/json'
+          }
+        });
+      }
+
+      throw new TypeError('Network unavailable');
+    }));
     await enqueueOfflineDiaryLog(userId, foodId, input(failedId));
     await enqueueOfflineDiaryLog(userId, foodId, input(pendingId));
-    await markOfflineDiaryLogFailed(userId, failedId, {
-      code: '404',
-      message: 'Food not found'
+    await syncOfflineChanges();
+
+    expect(get(offlineSyncStatus)).toMatchObject({
+      phase: 'attention',
+      failedCount: 1
     });
 
     await discardFailedOfflineChanges();
@@ -167,5 +186,49 @@ describe('offline sync scheduling', () => {
         state: 'pending'
       })
     ]);
+  });
+
+  it('retries a failed change and drains the outbox after acknowledgement', async () => {
+    const clientMutationId = '550e8400-e29b-41d4-a716-446655440015';
+    const fetchMock = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String(init?.body)) as {
+        input: { clientMutationId: string };
+      };
+
+      if (fetchMock.mock.calls.length === 1) {
+        return new Response(JSON.stringify({ message: 'Already logged.' }), {
+          status: 409,
+          headers: {
+            'content-type': 'application/json'
+          }
+        });
+      }
+
+      return new Response(
+        JSON.stringify({
+          schemaVersion: 1,
+          acknowledgedMutationId: body.input.clientMutationId,
+          bootstrap: bootstrap(2)
+        }),
+        {
+          headers: {
+            'content-type': 'application/json'
+          }
+        }
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await enqueueOfflineDiaryLog(userId, foodId, input(clientMutationId));
+
+    await syncOfflineChanges();
+    await retryOfflineChanges();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(get(offlineSyncStatus)).toMatchObject({
+      phase: 'synced',
+      pendingCount: 0,
+      failedCount: 0
+    });
+    expect(await listOfflineDiaryLogMutations(userId)).toEqual([]);
   });
 });
