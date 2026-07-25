@@ -87,6 +87,7 @@
     entryFeedback?: EntryFeedback | null;
     shortcutFeedback?: unknown;
     quickAddFeedback?: unknown;
+    created?: boolean;
   }
 
   let {
@@ -1011,6 +1012,13 @@
 
         {#if queueError !== null}
           <FeedbackBanner class="mt-4" message={queueError} tone="danger" />
+        {/if}
+
+        {#if initialData?.created === true}
+          <FeedbackBanner
+            class="mt-4"
+            message={`Food created and added to ${mealNames[destinationMealSlot].toLowerCase()}.`}
+          />
         {/if}
 
         <div class="sm:mt-2 sm:grid sm:grid-cols-[minmax(0,1fr)_300px] sm:gap-4">

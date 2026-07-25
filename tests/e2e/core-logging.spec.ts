@@ -439,6 +439,9 @@ test('creates a food with an arbitrary basis and logs its serving to the selecte
   await page.getByRole('button', { name: 'Save food' }).click();
 
   await expect(page).toHaveURL(/\/foods\?/);
+  await expect(page.getByRole('status')).toContainText(
+    'Food created and added to breakfast.'
+  );
 
   await page.goto(`/?date=${diaryDate}`);
   const breakfast = page.locator('section[aria-labelledby="breakfast-heading"]');
@@ -536,6 +539,11 @@ test('supports fractional liquid servings without normalising the label basis', 
   await expect(page.getByLabel('First entry nutrition preview').locator('strong').first())
     .toHaveText('132.2');
   await page.getByRole('button', { name: 'Save food' }).click();
+
+  await expect(page).toHaveURL(/\/foods\?/);
+  await expect(page.getByRole('status')).toContainText(
+    'Food created and added to snacks.'
+  );
 
   expect(app.diaryRows()).toEqual([
     expect.objectContaining({
