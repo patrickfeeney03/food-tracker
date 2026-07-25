@@ -695,6 +695,7 @@ test('searches the food catalogue automatically while typing', async ({ app }) =
 
 test('waits for text composition to finish before searching the food catalogue', async ({ app }) => {
   app.createFood({ name: 'Composition yoghurt' });
+  app.createFood({ name: 'Unrelated porridge' });
   const { page } = app;
 
   await page.goto(`/foods?date=${diaryDate}&mealSlot=breakfast`);
@@ -714,6 +715,7 @@ test('waits for text composition to finish before searching the food catalogue',
   await page.waitForTimeout(200);
   await expect(search).toHaveValue('Composition');
   await expect(page).toHaveURL((url) => url.searchParams.get('q') === null);
+  await expect(page.getByRole('heading', { name: 'Unrelated porridge' })).toBeVisible();
 
   await search.evaluate((input: HTMLInputElement) => {
     input.dispatchEvent(new CompositionEvent('compositionend', {

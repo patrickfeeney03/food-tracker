@@ -241,6 +241,7 @@
   let amountValues = $state<AmountAdjusterValues | null>(boot.amountValues);
   let amountErrors = $state<AmountAdjusterFieldErrors>({});
   let foodQuery = $state(boot.route.query);
+  let isComposingSearch = $state(false);
   let activeTab = $state<'foods' | 'shortcuts'>(boot.route.tab);
   let pendingFoodId = $state<string | null>(null);
   let queueError = $state<string | null>(null);
@@ -729,7 +730,19 @@
   };
 
   function handleSearchInput(event: Event) {
-    foodQuery = (event.currentTarget as HTMLInputElement).value;
+    if (isComposingSearch) {
+      return;
+    }
+
+    updateFoodSearch((event.currentTarget as HTMLInputElement).value);
+  }
+
+  function updateFoodSearch(value: string) {
+    if (foodQuery === value) {
+      return;
+    }
+
+    foodQuery = value;
     const targetUrl = resolve(
       withQuery('/foods', {
         date: selectedDate,
@@ -741,17 +754,9 @@
     replaceState(targetUrl, {});
   }
 
-  function clearFoodSearch(event: MouseEvent) {
-    event.preventDefault();
-    foodQuery = '';
-    const targetUrl = resolve(
-      withQuery('/foods', {
-        date: selectedDate,
-        mealSlot: destinationMealSlot,
-        tab: activeTab
-      })
-    );
-    pushState(targetUrl, {});
+  function finishSearchComposition(event: CompositionEvent) {
+    isComposingSearch = false;
+    updateFoodSearch((event.currentTarget as HTMLInputElement).value);
   }
 
   $effect(() => {
@@ -1022,6 +1027,8 @@
                   type="search"
                   value={foodQuery}
                   oninput={handleSearchInput}
+                  oncompositionstart={() => (isComposingSearch = true)}
+                  oncompositionend={finishSearchComposition}
                   placeholder="Search foods"
                   autocomplete="off"
                   class="!min-h-12 !rounded-xl !border-[var(--app-border)] !bg-[var(--app-panel)]
@@ -1029,16 +1036,21 @@
                     focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
                 />
                 {#if foodQuery}
-                  <button
-                    type="button"
+                  <a
+                    href={resolve(
+                      withQuery('/foods', {
+                        date: selectedDate,
+                        mealSlot: destinationMealSlot,
+                        tab: activeTab
+                      })
+                    )}
                     aria-label="Clear search"
-                    onclick={clearFoodSearch}
                     class="absolute top-1/2 right-1 inline-flex size-10 -translate-y-1/2
                       items-center justify-center rounded-lg text-[var(--app-muted)]
                       transition hover:bg-[var(--app-panel-hover)]"
                   >
                     <CloseIcon class="size-4" />
-                  </button>
+                  </a>
                 {/if}
               </div>
               <button
