@@ -9,6 +9,11 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     sveltekit({
+      // The offline fallback can be served at any application URL, including
+      // deeply nested routes, so its client assets must stay root-relative.
+      paths: {
+        relative: false
+      },
       compilerOptions: {
         // Force runes mode for the project, except for libraries. Can be removed in svelte 6.
         runes: ({ filename }) =>
@@ -27,6 +32,8 @@ export default defineConfig({
       }
     }),
     SvelteKitPWA({
+      // Keep the worker rooted so registration also works from nested URLs.
+      base: '/',
       // Prompt before activating a new shell so mid-log forms are not wiped.
       registerType: 'prompt',
       injectRegister: null,
@@ -88,7 +95,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // SSR app: cache the client shell only. Live diary data stays network-first.
+        // SSR app: cache the client shell only. Live diary data stays network-only.
         navigateFallback: undefined,
         globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,webmanifest}'],
         navigationPreload: true,
@@ -99,7 +106,19 @@ export default defineConfig({
             options: {
               precacheFallback: {
                 fallbackURL: '/offline'
-              }
+              },
+              plugins: [
+                {
+                  requestWillFetch: async ({ request }) => {
+                    if (typeof self !== 'undefined' && self.navigator && self.navigator.onLine === false) {
+                      throw new TypeError('Offline');
+                    }
+                    const controller = new AbortController();
+                    setTimeout(() => controller.abort(), 500);
+                    return new Request(request, { signal: controller.signal });
+                  }
+                }
+              ]
             }
           }
         ]

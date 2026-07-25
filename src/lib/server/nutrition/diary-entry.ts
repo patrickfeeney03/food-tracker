@@ -1,12 +1,19 @@
 import type { MealSlot, PortionKind } from "$lib/nutrition/constants";
-import { parsePortionCountToMilli, resolvePortionAmount, scaleNutritionValue, toSafeInteger } from "$lib/nutrition/math";
+import {
+  calculateFoodLog,
+  scaleAdditionalNutrition,
+  scaleNutritionForStorage,
+  type PortionDefinition
+} from "$lib/nutrition/food-log-calculation";
+import {
+  parsePortionCountToMilli,
+  resolvePortionAmount,
+  toSafeInteger
+} from "$lib/nutrition/math";
 import type { EditDiaryEntryInput, LogFoodInput } from "$lib/nutrition/portion-input";
-import type { AdditionalNutrition, DiaryLog, Food, NewDiaryLog } from "$lib/server/db/schema";
+import type { DiaryLog, Food, NewDiaryLog } from "$lib/server/db/schema";
 
-export interface PortionDefinition {
-  label: string;
-  amount: bigint;
-}
+export { resolvePortionDefinition } from "$lib/nutrition/food-log-calculation";
 
 export interface ExactDiaryLogInput {
   diaryDate: string;
@@ -19,51 +26,6 @@ export interface ExactDiaryLogInput {
   sourceShortcutId: string;
   shortcutBatchId: string;
   loggedAt?: Date;
-}
-
-export function resolvePortionDefinition(
-  food: Food,
-  portionKind: PortionKind
-): PortionDefinition {
-  const displayUnit = food.amountUnit === 'mg' ? 'g' : 'ml';
-
-  switch (portionKind) {
-    case 'unit':
-      return {
-        label: `1 ${displayUnit}`,
-        amount: 1_000n
-      }
-
-    case 'hundred':
-      return {
-        label: `100 ${displayUnit}`,
-        amount: 100_000n
-      }
-
-    case 'serving':
-      if (food.servingAmount === null) {
-        throw new RangeError(
-          'Food does not define a serving amount'
-        );
-      }
-
-      return {
-        label: `Serving`,
-        amount: BigInt(food.servingAmount)
-      };
-
-    case 'container':
-      if (food.containerAmount === null) {
-        throw new RangeError(
-          'Food does not define a container amount'
-        );
-      }
-
-      return {
-        label: 'Container',
-        amount: BigInt(food.containerAmount)
-      };
-  }
 }
 
 export function resolveDiaryEntryPortionDefinition(
@@ -98,74 +60,6 @@ export function resolveDiaryEntryPortionDefinition(
   };
 }
 
-function scaleForStorage(
-  valuePerBasis: number,
-  resolvedAmount: bigint,
-  basisAmount: number
-): number {
-  return toSafeInteger(
-    scaleNutritionValue(
-      BigInt(valuePerBasis),
-      resolvedAmount,
-      BigInt(basisAmount)
-    )
-  );
-}
-
-function scaleAdditionalNutrition(
-  valuesPerBasis: AdditionalNutrition | null,
-  resolvedAmount: bigint,
-  basisAmount: number
-): AdditionalNutrition | null {
-  if (valuesPerBasis === null) {
-    return null;
-  }
-
-  const totals: AdditionalNutrition = {};
-
-  if (valuesPerBasis.fibreMg !== undefined) {
-    totals.fibreMg = scaleForStorage(
-      valuesPerBasis.fibreMg,
-      resolvedAmount,
-      basisAmount
-    );
-  }
-
-  if (valuesPerBasis.sugarMg !== undefined) {
-    totals.sugarMg = scaleForStorage(
-      valuesPerBasis.sugarMg,
-      resolvedAmount,
-      basisAmount
-    );
-  }
-
-  if (valuesPerBasis.saturatedFatMg !== undefined) {
-    totals.saturatedFatMg = scaleForStorage(
-      valuesPerBasis.saturatedFatMg,
-      resolvedAmount,
-      basisAmount
-    );
-  }
-
-  if (valuesPerBasis.sodiumMg !== undefined) {
-    totals.sodiumMg = scaleForStorage(
-      valuesPerBasis.sodiumMg,
-      resolvedAmount,
-      basisAmount
-    );
-  }
-
-  if (valuesPerBasis.potassiumMg !== undefined) {
-    totals.potassiumMg = scaleForStorage(
-      valuesPerBasis.potassiumMg,
-      resolvedAmount,
-      basisAmount
-    );
-  }
-
-  return totals;
-}
-
 export function buildDiaryLogValues(
   food: Food,
   input: LogFoodInput
@@ -176,14 +70,13 @@ export function buildDiaryLogValues(
     );
   }
 
-  const portion = resolvePortionDefinition(
-    food,
-    input.portionKind
+  const calculation = calculateFoodLog(
+    {
+      ...food,
+      additionalNutrition: food.additionalNutritionJson
+    },
+    input
   );
-
-  const portionCountMilli = parsePortionCountToMilli(input.portionCount);
-
-  const resolvedAmount = resolvePortionAmount(portion.amount, portionCountMilli);
 
   return {
     userId: food.userId,
@@ -206,40 +99,17 @@ export function buildDiaryLogValues(
     additionalNutritionPerBasisJson: food.additionalNutritionJson,
 
     portionKind: input.portionKind,
-    portionLabel: portion.label,
-    portionAmount: toSafeInteger(portion.amount),
-    portionCountMilli: toSafeInteger(portionCountMilli),
-    resolvedAmount: toSafeInteger(resolvedAmount),
+    portionLabel: calculation.portionLabel,
+    portionAmount: calculation.portionAmount,
+    portionCountMilli: calculation.portionCountMilli,
+    resolvedAmount: calculation.resolvedAmount,
 
-    energyMkcal: scaleForStorage(
-      food.energyMkcalPerBasis,
-      resolvedAmount,
-      food.basisAmount
-    ),
+    energyMkcal: calculation.energyMkcal,
+    proteinMg: calculation.proteinMg,
+    carbsMg: calculation.carbsMg,
+    fatMg: calculation.fatMg,
 
-    proteinMg: scaleForStorage(
-      food.proteinMgPerBasis,
-      resolvedAmount,
-      food.basisAmount
-    ),
-
-    carbsMg: scaleForStorage(
-      food.carbsMgPerBasis,
-      resolvedAmount,
-      food.basisAmount
-    ),
-
-    fatMg: scaleForStorage(
-      food.fatMgPerBasis,
-      resolvedAmount,
-      food.basisAmount
-    ),
-
-    additionalNutritionTotalJson: scaleAdditionalNutrition(
-      food.additionalNutritionJson,
-      resolvedAmount,
-      food.basisAmount
-    )
+    additionalNutritionTotalJson: calculation.additionalNutritionTotal
   };
 }
 
@@ -284,22 +154,22 @@ export function buildDiaryLogValuesForExactAmount(
     portionAmount: input.portionAmount,
     portionCountMilli: input.portionCountMilli,
     resolvedAmount: input.resolvedAmount,
-    energyMkcal: scaleForStorage(
+    energyMkcal: scaleNutritionForStorage(
       food.energyMkcalPerBasis,
       resolvedAmount,
       food.basisAmount
     ),
-    proteinMg: scaleForStorage(
+    proteinMg: scaleNutritionForStorage(
       food.proteinMgPerBasis,
       resolvedAmount,
       food.basisAmount
     ),
-    carbsMg: scaleForStorage(
+    carbsMg: scaleNutritionForStorage(
       food.carbsMgPerBasis,
       resolvedAmount,
       food.basisAmount
     ),
-    fatMg: scaleForStorage(
+    fatMg: scaleNutritionForStorage(
       food.fatMgPerBasis,
       resolvedAmount,
       food.basisAmount
@@ -339,22 +209,22 @@ export function buildDiaryLogUpdateValues(
     portionAmount: toSafeInteger(portion.amount),
     portionCountMilli: toSafeInteger(portionCountMilli),
     resolvedAmount: toSafeInteger(resolvedAmount),
-    energyMkcal: scaleForStorage(
+    energyMkcal: scaleNutritionForStorage(
       entry.energyMkcalPerBasis,
       resolvedAmount,
       entry.basisAmount
     ),
-    proteinMg: scaleForStorage(
+    proteinMg: scaleNutritionForStorage(
       entry.proteinMgPerBasis,
       resolvedAmount,
       entry.basisAmount
     ),
-    carbsMg: scaleForStorage(
+    carbsMg: scaleNutritionForStorage(
       entry.carbsMgPerBasis,
       resolvedAmount,
       entry.basisAmount
     ),
-    fatMg: scaleForStorage(
+    fatMg: scaleNutritionForStorage(
       entry.fatMgPerBasis,
       resolvedAmount,
       entry.basisAmount

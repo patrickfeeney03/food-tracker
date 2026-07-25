@@ -3,6 +3,7 @@ import { withQuery } from '$lib/navigation';
 import type { PortionKind } from '$lib/nutrition/constants';
 import { readText } from '$lib/nutrition/food-form';
 import { contextSchema } from '$lib/nutrition/navigation-context';
+import { portionOptionsForFood } from '$lib/nutrition/portion-options';
 import { logFoodInputSchema } from '$lib/nutrition/portion-input';
 import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
@@ -12,45 +13,11 @@ import {
   ExistingFoodNotFoundError,
   logExistingFood
 } from '$lib/server/nutrition/log-existing-food';
-import { replayLatestFoodPortion } from '$lib/server/nutrition/latest-food-portion';
+import { replayLatestFoodPortion } from '$lib/nutrition/latest-food-portion';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
-
-function portionOptionsFor(food: {
-  amountUnit: 'mg' | 'ul';
-  servingAmount: number | null;
-  containerAmount: number | null;
-}) {
-  const displayUnit = food.amountUnit === 'mg' ? 'g' : 'ml';
-  const options: Array<{
-    kind: PortionKind;
-    label: string;
-    amount: number;
-  }> = [
-    { kind: 'unit', label: `1 ${displayUnit}`, amount: 1_000 },
-    { kind: 'hundred', label: `100 ${displayUnit}`, amount: 100_000 }
-  ];
-
-  if (food.servingAmount !== null) {
-    options.push({
-      kind: 'serving',
-      label: 'Serving',
-      amount: food.servingAmount
-    });
-  }
-
-  if (food.containerAmount !== null) {
-    options.push({
-      kind: 'container',
-      label: 'Container',
-      amount: food.containerAmount
-    });
-  }
-
-  return options;
-}
 
 export const load: PageServerLoad = ({ locals, params, url }) => {
   const user = requireUser(locals);
@@ -93,7 +60,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
     return error(404, 'Food not found');
   }
 
-  const portionOptions = portionOptionsFor(food);
+  const portionOptions = portionOptionsForFood(food);
   const latestUse = db
     .select({
       portionKind: diaryLogs.portionKind,

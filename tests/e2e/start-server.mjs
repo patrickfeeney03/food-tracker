@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import Database from 'better-sqlite3';
@@ -28,11 +28,25 @@ try {
 
 const port = process.env.PORT || '4173';
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const server = spawn(
-  npmCommand,
-  ['run', 'dev', '--', '--host', '127.0.0.1', '--port', port],
-  { env: process.env, stdio: 'inherit' }
-);
+const production = process.env.PLAYWRIGHT_PRODUCTION === '1';
+
+if (production) {
+  const build = spawnSync(npmCommand, ['run', 'build'], {
+    env: process.env,
+    stdio: 'inherit'
+  });
+
+  if (build.error) throw build.error;
+  if (build.status !== 0) process.exit(build.status ?? 1);
+}
+
+const server = production
+  ? spawn(process.execPath, ['build'], { env: process.env, stdio: 'inherit' })
+  : spawn(
+      npmCommand,
+      ['run', 'dev', '--', '--host', '127.0.0.1', '--port', port],
+      { env: process.env, stdio: 'inherit' }
+    );
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, () => {

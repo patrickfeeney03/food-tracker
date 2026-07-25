@@ -2,11 +2,50 @@
   import { resolve } from '$app/paths';
   import AppPageShell from '$lib/components/AppPageShell.svelte';
   import BackPageHeader from '$lib/components/BackPageHeader.svelte';
+  import { clearOfflineCacheForSignOut } from '$lib/offline/client';
+  import { hasActiveOfflineMutations } from '$lib/offline/indexed-db';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
   import { formatDate } from '$lib/nutrition/format';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
+  let isSigningOut = $state(false);
+
+  async function handleSignOut(event: SubmitEvent) {
+    event.preventDefault();
+
+    if (isSigningOut) {
+      return;
+    }
+
+    isSigningOut = true;
+    const form = event.currentTarget as HTMLFormElement;
+    let hasUnsyncedChanges = false;
+
+    try {
+      hasUnsyncedChanges = await hasActiveOfflineMutations();
+    } catch {
+      // Signing out must still complete if browser storage is unavailable.
+    }
+
+    if (
+      hasUnsyncedChanges &&
+      !window.confirm(
+        'You have unsynced changes saved only on this device. Signing out will permanently discard them. Sign out anyway?'
+      )
+    ) {
+      isSigningOut = false;
+      return;
+    }
+
+    try {
+      await clearOfflineCacheForSignOut();
+    } catch {
+      // Signing out must still complete if browser storage is unavailable.
+    }
+
+    form.submit();
+  }
 </script>
 
 <svelte:head>
@@ -104,16 +143,18 @@
       {/if}
     </SettingsSection>
 
-    <form method="POST" action={resolve('/logout')}>
+    <form method="POST" action={resolve('/logout')} onsubmit={handleSignOut}>
       <button
         type="submit"
+        disabled={isSigningOut}
         class="inline-flex min-h-12 w-full items-center justify-center rounded-xl
           bg-[var(--app-danger-bg)] px-4 text-sm font-bold
           text-[var(--app-danger-text)] transition hover:border-[var(--app-danger-border)]
           hover:bg-[var(--app-panel)] focus-visible:outline-2 focus-visible:outline-offset-2
-          focus-visible:outline-[var(--app-danger-text)]"
+          focus-visible:outline-[var(--app-danger-text)] disabled:cursor-not-allowed
+          disabled:opacity-60"
       >
-        Sign out
+        {isSigningOut ? 'Signing out…' : 'Sign out'}
       </button>
     </form>
   </div>

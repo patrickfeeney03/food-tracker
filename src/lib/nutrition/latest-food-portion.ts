@@ -1,11 +1,9 @@
-import type { PortionKind } from '$lib/nutrition/constants';
-import { formatStoredValue } from '$lib/nutrition/math';
-
-type CurrentFoodPortions = {
-  amountUnit: 'mg' | 'ul';
-  servingAmount: number | null;
-  containerAmount: number | null;
-};
+import type { PortionKind } from './constants';
+import {
+  resolvePortionDefinition,
+  type PortionFood
+} from './food-log-calculation';
+import { formatStoredValue, toSafeInteger } from './math';
 
 export type LatestFoodUse = {
   amountUnit: 'mg' | 'ul';
@@ -21,23 +19,18 @@ export type ReplayableFoodPortion = {
 };
 
 function currentPortionAmount(
-  food: CurrentFoodPortions,
+  food: PortionFood,
   portionKind: PortionKind
 ): number | null {
-  switch (portionKind) {
-    case 'unit':
-      return 1_000;
-    case 'hundred':
-      return 100_000;
-    case 'serving':
-      return food.servingAmount;
-    case 'container':
-      return food.containerAmount;
+  try {
+    return toSafeInteger(resolvePortionDefinition(food, portionKind).amount);
+  } catch {
+    return null;
   }
 }
 
 export function replayLatestFoodPortion(
-  food: CurrentFoodPortions,
+  food: PortionFood,
   latestUse: LatestFoodUse
 ): ReplayableFoodPortion | null {
   if (food.amountUnit !== latestUse.amountUnit) {

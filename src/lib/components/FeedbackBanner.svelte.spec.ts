@@ -20,6 +20,17 @@ describe("FeedbackBanner", () => {
     await expect.element(page.getByRole("alert")).toHaveTextContent("Targets could not be saved.");
   });
 
+  it("announces neutral application status without danger styling", async () => {
+    render(FeedbackBanner, {
+      message: "Offline · showing saved data.",
+      tone: "neutral",
+    });
+
+    const status = page.getByRole("status");
+    await expect.element(status).toHaveTextContent("Offline · showing saved data.");
+    await expect.element(status).toHaveClass(/bg-\[var\(--app-panel\)\]/);
+  });
+
   it("renders an optional feedback action", async () => {
     render(FeedbackBanner, {
       message: "Shortcut added.",

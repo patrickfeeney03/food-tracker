@@ -1,18 +1,19 @@
 import { defineConfig, devices } from 'playwright/test';
 import { resolve } from 'node:path';
 
-const port = process.env.PORT || '4173';
+const port = process.env.PORT || '4190';
+process.env.PORT = port;
 const baseURL = `http://127.0.0.1:${port}`;
 const databasePath = resolve(process.cwd(), `.playwright/e2e-${port}.db`);
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testIgnore: 'pwa-offline.spec.ts',
+  testMatch: 'pwa-offline.spec.ts',
   fullyParallel: false,
   workers: 1,
-  timeout: 30_000,
-  expect: { timeout: 5_000 },
-  outputDir: '.playwright/test-results',
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
+  outputDir: '.playwright/pwa-test-results',
   reporter: [['list']],
   use: {
     ...devices['Desktop Chrome'],
@@ -26,8 +27,10 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 120_000,
     env: {
+      PLAYWRIGHT_PRODUCTION: '1',
       PORT: port,
       DATABASE_URL: databasePath,
+      ORIGIN: baseURL,
       GOOGLE_CLIENT_ID: 'e2e-unused-client',
       GOOGLE_CLIENT_SECRET: 'e2e-unused-secret',
       GOOGLE_REDIRECT_URI: `${baseURL}/auth/google/callback`,

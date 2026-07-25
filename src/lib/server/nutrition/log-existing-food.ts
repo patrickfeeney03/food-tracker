@@ -4,12 +4,12 @@ import {
   type LogFoodInput,
   type QuickAddFoodInput
 } from '$lib/nutrition/portion-input';
+import { replayLatestFoodPortion } from '$lib/nutrition/latest-food-portion';
 import { parsePortionCountToMilli, toSafeInteger } from '$lib/nutrition/math';
 import type { AppDatabase } from '$lib/server/db/connection';
 import { diaryLogs, foods, type DiaryLog } from '$lib/server/db/schema';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { buildDiaryLogValues } from './diary-entry';
-import { replayLatestFoodPortion } from './latest-food-portion';
 
 export class ExistingFoodNotFoundError extends Error {
   constructor() {

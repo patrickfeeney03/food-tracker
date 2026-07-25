@@ -1,7 +1,7 @@
 {
   "name": "calories",
   "private": true,
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -14,6 +14,7 @@
     "test:unit": "vitest",
     "test": "npm run test:unit -- --run",
     "test:e2e": "playwright test",
+    "test:e2e:pwa": "node node_modules/playwright/cli.js test --config playwright.pwa.config.ts",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

@@ -26,7 +26,7 @@ import {
   quickAddExistingFood,
   QuickAddUnavailableError
 } from "$lib/server/nutrition/log-existing-food";
-import { replayLatestFoodPortion } from "$lib/server/nutrition/latest-food-portion";
+import { replayLatestFoodPortion } from "$lib/nutrition/latest-food-portion";
 import {
   deleteDiaryEntry,
   DiaryEntryDeletionNotFoundError

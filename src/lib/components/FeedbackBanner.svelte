@@ -8,19 +8,26 @@
     class: className = "",
   }: {
     message: string;
-    tone?: "success" | "danger";
+    tone?: "success" | "danger" | "neutral";
     action?: Snippet;
     class?: string;
   } = $props();
 
   let role = $derived(tone === "danger" ? "alert" : "status");
-  let toneClass = $derived(
-    tone === "danger"
-      ? `border-[var(--app-danger-border)] bg-[var(--app-danger-bg)]
-        text-[var(--app-danger-text)]`
-      : `border-[var(--app-success-border)] bg-[var(--app-success-bg)]
-        text-[var(--app-success-text)]`,
-  );
+  let toneClass = $derived.by(() => {
+    if (tone === "danger") {
+      return `border-[var(--app-danger-border)] bg-[var(--app-danger-bg)]
+        text-[var(--app-danger-text)]`;
+    }
+
+    if (tone === "neutral") {
+      return `border-[var(--app-border)] bg-[var(--app-panel)]
+        text-[var(--app-text)]`;
+    }
+
+    return `border-[var(--app-success-border)] bg-[var(--app-success-bg)]
+      text-[var(--app-success-text)]`;
+  });
 </script>
 
 <div

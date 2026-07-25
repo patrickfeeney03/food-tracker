@@ -87,6 +87,113 @@ test('opens account details from settings and signs out', async ({ app }) => {
   expect(revoked?.revoked_at).not.toBeNull();
 });
 
+test('warns before sign out permanently discards an unsynced offline change', async ({ app }) => {
+  const { page, db, userId } = app;
+  const clientMutationId = randomUUID();
+
+  await page.goto(`/?date=${diaryDate}`, { waitUntil: 'networkidle' });
+  await expect.poll(() =>
+    page.evaluate(async () => {
+      if (!(await indexedDB.databases()).some(
+        (database) => database.name === 'calorie-tracker-offline'
+      )) {
+        return null;
+      }
+
+      return new Promise<string | null>((resolve) => {
+        const request = indexedDB.open('calorie-tracker-offline');
+        request.onerror = () => resolve(null);
+        request.onsuccess = () => {
+          const database = request.result;
+          const activeUser = database
+            .transaction('metadata', 'readonly')
+            .objectStore('metadata')
+            .get('active-user-id');
+          activeUser.onsuccess = () => {
+            database.close();
+            resolve(activeUser.result?.value ?? null);
+          };
+          activeUser.onerror = () => {
+            database.close();
+            resolve(null);
+          };
+        };
+      });
+    })
+  ).toBe(userId);
+
+  await page.evaluate(
+    ({ userId, clientMutationId, diaryDate }) =>
+      new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open('calorie-tracker-offline');
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const database = request.result;
+          const transaction = database.transaction('outbox', 'readwrite');
+          transaction.objectStore('outbox').put({
+            userId,
+            clientMutationId,
+            kind: 'log-existing-food',
+            foodId: crypto.randomUUID(),
+            input: {
+              clientMutationId,
+              portionKind: 'hundred',
+              portionCount: '1',
+              diaryDate,
+              mealSlot: 'breakfast'
+            },
+            createdAt: Date.now(),
+            state: 'pending'
+          });
+          transaction.oncomplete = () => {
+            database.close();
+            resolve();
+          };
+          transaction.onerror = () => {
+            database.close();
+            reject(transaction.error);
+          };
+        };
+      }),
+    { userId, clientMutationId, diaryDate }
+  );
+
+  await page.goto('/settings/account', { waitUntil: 'networkidle' });
+
+  const warning = new Promise<string>((resolve) => {
+    page.once('dialog', async (dialog) => {
+      resolve(dialog.message());
+      await dialog.dismiss();
+    });
+  });
+  await page.getByRole('button', { name: 'Sign out' }).click();
+
+  await expect(warning).resolves.toContain(
+    'Signing out will permanently discard them.'
+  );
+  await expect(page).toHaveURL(/\/settings\/account$/);
+  await expect(page.getByRole('button', { name: 'Sign out' })).toBeEnabled();
+  expect(
+    (
+      db.prepare(
+        'SELECT revoked_at FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
+      ).get(userId) as { revoked_at: number | null }
+    ).revoked_at
+  ).toBeNull();
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Sign out' }).click();
+
+  await expect(page).toHaveURL(/\/sign-in$/);
+  expect(
+    (
+      db.prepare(
+        'SELECT revoked_at FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
+      ).get(userId) as { revoked_at: number | null }
+    ).revoked_at
+  ).not.toBeNull();
+});
+
 test('redirects unauthenticated account access to sign in', async ({ page }) => {
   await page.goto('/settings/account');
   await expect(page).toHaveURL(/\/sign-in$/);
@@ -697,4 +804,57 @@ test('does not expose or log archived and cross-user foods', async ({ app }) => 
   }
 
   expect(app.diaryRows()).toEqual([]);
+});
+
+test('navigates locally online without network requests for route data and handles back/forward', async ({ app }) => {
+  const { page } = app;
+  const foodName = 'Local Navigation Test Oatmeal';
+  app.createFood({ name: foodName });
+  const diaryDate = '2026-07-24';
+  const nextDate = '2026-07-25';
+
+  await page.goto(`/?date=${diaryDate}`, { waitUntil: 'networkidle' });
+  await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
+
+  const trackerRouteRequests: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (
+      url.pathname.includes('/__data.json') ||
+      (request.isNavigationRequest() &&
+        (url.pathname === '/' || url.pathname === '/foods' || url.pathname.includes('/log')))
+    ) {
+      trackerRouteRequests.push(url.pathname + url.search);
+    }
+  });
+
+  await page.route('**/__data.json*', (route) => route.abort());
+
+  await page.getByRole('link', { name: 'Add food' }).first().click();
+  await expect(page).toHaveURL(/\/foods\?/);
+  await expect(page.getByRole('heading', { name: 'Add food' })).toBeVisible();
+  await expect(page.getByLabel('Search foods')).toBeVisible();
+
+  await page.getByLabel('Search foods').fill(foodName);
+  await page.getByRole('heading', { name: foodName }).click();
+  await expect(page).toHaveURL(/\/foods\/[^/]+\/log\?/);
+  await expect(page.getByRole('heading', { name: `Add ${foodName}` })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Back to diary' }).click();
+  await expect(page).toHaveURL(/\/\?date=2026-07-24/);
+  await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Next day' }).click();
+  await expect(page).toHaveURL(/\/\?date=2026-07-25/);
+  await expect(page.getByText(nextDate)).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/\?date=2026-07-24/);
+  await expect(page.getByText('Today')).toBeVisible();
+
+  await page.goForward();
+  await expect(page).toHaveURL(/\/\?date=2026-07-25/);
+  await expect(page.getByText(nextDate)).toBeVisible();
+
+  expect(trackerRouteRequests).toEqual([]);
 });
