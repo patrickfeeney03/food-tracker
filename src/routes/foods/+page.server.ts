@@ -186,6 +186,10 @@ export const load: PageServerLoad = ({
     }
 
     return {
+      user: {
+        id: user.id,
+        name: user.name
+      },
       destination: destinationResult.data,
       tab: 'foods' as const,
       added: false,
@@ -214,6 +218,10 @@ export const load: PageServerLoad = ({
     : [];
 
   return {
+    user: {
+      id: user.id,
+      name: user.name
+    },
     destination: destinationResult.data,
     tab,
     added: tab === 'foods' && url.searchParams.get('added') === '1',

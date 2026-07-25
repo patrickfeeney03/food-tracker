@@ -179,6 +179,7 @@ export const load: PageServerLoad = ({
   return {
     today,
     user: {
+      id: user.id,
       name: user.name
     },
     diary,
