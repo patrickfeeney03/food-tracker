@@ -236,6 +236,7 @@
   let activeTab = $state<'foods' | 'shortcuts'>(boot.route.tab);
   let pendingFoodId = $state<string | null>(null);
   let queueError = $state<string | null>(null);
+  let diaryLoadError = $state<string | null>(null);
   let scannerOpen = $state(false);
   let lastSyncPhase = $state($offlineSyncStatus.phase);
   const quickAddMutationIds = new SvelteMap<string, string>();
@@ -288,7 +289,17 @@
     }
 
     void applyRefreshedCache(centerDate)
-      .catch(() => {})
+      .then(() => {
+        if (centerDate === selectedDate) {
+          diaryLoadError = null;
+        }
+      })
+      .catch(() => {
+        // Only surface center-day failures; neighbor prefetch stays silent.
+        if (centerDate === selectedDate) {
+          diaryLoadError = 'Couldn’t load this day. Check your connection and try again.';
+        }
+      })
       .finally(() => {
         for (let offset = -5; offset <= 5; offset += 1) {
           if (offset === 0) {
@@ -366,10 +377,17 @@
     activeTab = route.tab;
 
     if (route.requestedDate !== null) {
+      if (selectedDate !== route.requestedDate) {
+        diaryLoadError = null;
+      }
       selectedDate = route.requestedDate;
     } else if (route.view === 'diary') {
       // Bare `/` means today (same as the server diary load).
-      selectedDate = todayInDublin();
+      const today = todayInDublin();
+      if (selectedDate !== today) {
+        diaryLoadError = null;
+      }
+      selectedDate = today;
     }
 
     if (activeView === 'amount' && cache !== null) {
@@ -878,6 +896,25 @@
               message={offlineCapabilityMessage}
               tone="neutral"
             />
+          {/if}
+
+          {#if
+            diaryLoadError !== null &&
+            (cache === null || cache.diaryDays[selectedDate] === undefined)}
+            <FeedbackBanner class="mb-5" message={diaryLoadError} tone="danger">
+              {#snippet action()}
+                <button
+                  type="button"
+                  onclick={() => refreshCacheWindow(selectedDate)}
+                  class="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-bold
+                    text-[var(--app-danger-text)] underline underline-offset-2
+                    focus-visible:outline-2 focus-visible:outline-offset-2
+                    focus-visible:outline-[var(--app-danger-text)]"
+                >
+                  Retry
+                </button>
+              {/snippet}
+            </FeedbackBanner>
           {/if}
 
           <DiaryDayView
