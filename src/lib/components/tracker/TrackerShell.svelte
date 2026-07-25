@@ -1044,19 +1044,21 @@
         </div>
       </AppPageShell>
     {:else if activeView === 'amount' && amountFood !== null && amountValues !== null}
-      <AmountAdjuster
-        food={amountFood}
-        context={{
-          date: selectedDate,
-          mealSlot: destinationMealSlot,
-          q: foodQuery
-        }}
-        portionOptions={portionOptionsForFood(amountFood)}
-        initialValues={amountValues}
-        errors={amountErrors}
-        enhanceSubmit={enhanceOfflineLog}
-        editFoodHref={editFoodHref(amountFood.id)}
-      />
+      {#key amountFoodId}
+        <AmountAdjuster
+          food={amountFood}
+          context={{
+            date: selectedDate,
+            mealSlot: destinationMealSlot,
+            q: foodQuery
+          }}
+          portionOptions={portionOptionsForFood(amountFood)}
+          initialValues={amountValues}
+          errors={amountErrors}
+          enhanceSubmit={enhanceOfflineLog}
+          editFoodHref={editFoodHref(amountFood.id)}
+        />
+      {/key}
     {:else}
       <main
         class="flex min-h-dvh items-center justify-center bg-[var(--app-canvas)] px-6
