@@ -51,10 +51,10 @@
 
   export type AmountAdjusterValues = {
     clientMutationId: string;
-    portionKind: PortionKind | string;
+    portionKind: PortionKind;
     portionCount: string | number;
     diaryDate: string;
-    mealSlot: MealSlot | string;
+    mealSlot: MealSlot;
   };
 
   export type AmountAdjusterFieldErrors = Partial<
