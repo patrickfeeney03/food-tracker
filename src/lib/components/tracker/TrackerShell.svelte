@@ -65,6 +65,10 @@
   type ViewMode = 'diary' | 'foods' | 'amount';
   type LoadStatus = 'loading' | 'ready' | 'empty' | 'error';
 
+  type EntryFeedback =
+    | { kind: 'deleted'; entryId: string; foodName: string; deletedAt: number }
+    | { kind: 'restored'; foodName: string };
+
   interface InitialData {
     diary?: unknown;
     foods?: unknown[];
@@ -80,7 +84,7 @@
     tab?: 'foods' | 'shortcuts';
     query?: string;
     shortcutEligibility?: Record<MealSlot, boolean>;
-    entryFeedback?: unknown;
+    entryFeedback?: EntryFeedback | null;
     shortcutFeedback?: unknown;
     quickAddFeedback?: unknown;
   }
@@ -237,6 +241,7 @@
   let amountValues = $state<AmountAdjusterValues | null>(boot.amountValues);
   let amountErrors = $state<AmountAdjusterFieldErrors>({});
   let foodQuery = $state(boot.route.query);
+  let isComposingSearch = $state(false);
   let activeTab = $state<'foods' | 'shortcuts'>(boot.route.tab);
   let pendingFoodId = $state<string | null>(null);
   let queueError = $state<string | null>(null);
@@ -569,6 +574,8 @@
     ) as Record<MealSlot, boolean>;
   });
 
+  let entryFeedback = $derived(initialData?.entryFeedback ?? null);
+
   function diaryDateHref(date: string | null): string | null {
     return date === null
       ? null
@@ -723,7 +730,19 @@
   };
 
   function handleSearchInput(event: Event) {
-    foodQuery = (event.currentTarget as HTMLInputElement).value;
+    if (isComposingSearch) {
+      return;
+    }
+
+    updateFoodSearch((event.currentTarget as HTMLInputElement).value);
+  }
+
+  function updateFoodSearch(value: string) {
+    if (foodQuery === value) {
+      return;
+    }
+
+    foodQuery = value;
     const targetUrl = resolve(
       withQuery('/foods', {
         date: selectedDate,
@@ -735,17 +754,9 @@
     replaceState(targetUrl, {});
   }
 
-  function clearFoodSearch(event: MouseEvent) {
-    event.preventDefault();
-    foodQuery = '';
-    const targetUrl = resolve(
-      withQuery('/foods', {
-        date: selectedDate,
-        mealSlot: destinationMealSlot,
-        tab: activeTab
-      })
-    );
-    pushState(targetUrl, {});
+  function finishSearchComposition(event: CompositionEvent) {
+    isComposingSearch = false;
+    updateFoodSearch((event.currentTarget as HTMLInputElement).value);
   }
 
   $effect(() => {
@@ -934,6 +945,34 @@
             </FeedbackBanner>
           {/if}
 
+          {#if entryFeedback?.kind === 'deleted'}
+            <FeedbackBanner
+              class="mb-5"
+              message={`${entryFeedback.foodName} was removed from this diary.`}
+            >
+              {#snippet action()}
+                <form method="POST" action="?/undoEntryDelete">
+                  <input type="hidden" name="entryId" value={entryFeedback.entryId} />
+                  <input type="hidden" name="deletedAt" value={entryFeedback.deletedAt} />
+                  <button
+                    type="submit"
+                    class="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-bold
+                      text-[var(--app-success-text)] underline underline-offset-2
+                      focus-visible:outline-2 focus-visible:outline-offset-2
+                      focus-visible:outline-[var(--app-success-text)]"
+                  >
+                    Undo
+                  </button>
+                </form>
+              {/snippet}
+            </FeedbackBanner>
+          {:else if entryFeedback?.kind === 'restored'}
+            <FeedbackBanner
+              class="mb-5"
+              message={`${entryFeedback.foodName} was restored to this diary.`}
+            />
+          {/if}
+
           <DiaryDayView
             {diary}
             {shortcutEligibility}
@@ -988,6 +1027,8 @@
                   type="search"
                   value={foodQuery}
                   oninput={handleSearchInput}
+                  oncompositionstart={() => (isComposingSearch = true)}
+                  oncompositionend={finishSearchComposition}
                   placeholder="Search foods"
                   autocomplete="off"
                   class="!min-h-12 !rounded-xl !border-[var(--app-border)] !bg-[var(--app-panel)]
@@ -995,16 +1036,21 @@
                     focus:!border-[var(--app-accent)] focus:!ring-[var(--app-accent)]/15"
                 />
                 {#if foodQuery}
-                  <button
-                    type="button"
+                  <a
+                    href={resolve(
+                      withQuery('/foods', {
+                        date: selectedDate,
+                        mealSlot: destinationMealSlot,
+                        tab: activeTab
+                      })
+                    )}
                     aria-label="Clear search"
-                    onclick={clearFoodSearch}
                     class="absolute top-1/2 right-1 inline-flex size-10 -translate-y-1/2
                       items-center justify-center rounded-lg text-[var(--app-muted)]
                       transition hover:bg-[var(--app-panel-hover)]"
                   >
                     <CloseIcon class="size-4" />
-                  </button>
+                  </a>
                 {/if}
               </div>
               <button

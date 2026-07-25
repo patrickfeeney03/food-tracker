@@ -2,7 +2,7 @@ import type { Page } from 'playwright/test';
 import { expect, test } from './fixtures';
 
 const diaryDate = '2026-07-18';
-const earlierDiaryDate = '2026-07-16';
+const earlierDiaryDate = '2026-07-17';
 const foodName = 'Offline test porridge';
 
 async function waitForServiceWorkerControl(page: Page) {
@@ -239,7 +239,7 @@ test('asserts zero document/__data requests and tight latency bounds on local of
 
     // 3. Amount Adjuster back to Foods
     start = Date.now();
-    await page.getByRole('link', { name: 'Back to foods' }).click();
+    await page.getByRole('link', { name: 'Back to food catalogue' }).click();
     await expect(page).toHaveURL(/\/foods\?/);
     const amountToFoods = Date.now() - start;
     expect(amountToFoods).toBeLessThan(1000);
