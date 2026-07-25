@@ -40,6 +40,51 @@ function expectSearchParameters(page: Page, expected: Record<string, string>) {
   }
 }
 
+async function queuedDiaryLogCount(page: Page, userId: string): Promise<number> {
+  return page.evaluate(
+    (userId) => new Promise<number>((resolve) => {
+      const request = indexedDB.open('calorie-tracker-offline');
+      request.onerror = () => resolve(-1);
+      request.onsuccess = () => {
+        const database = request.result;
+        const transaction = database.transaction('outbox', 'readonly');
+        const queued = transaction.objectStore('outbox').getAll();
+
+        transaction.oncomplete = () => {
+          database.close();
+          resolve(queued.result.filter(
+            (mutation: { userId?: string }) => mutation.userId === userId
+          ).length);
+        };
+        transaction.onerror = () => {
+          database.close();
+          resolve(-1);
+        };
+      };
+    }),
+    userId
+  );
+}
+
+async function holdDiaryLogSync(page: Page) {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let notifyStarted!: () => void;
+  const started = new Promise<void>((resolve) => {
+    notifyStarted = resolve;
+  });
+
+  await page.route('**/api/offline/diary-logs', async (route) => {
+    notifyStarted();
+    await held;
+    await route.continue();
+  });
+
+  return { release, started };
+}
+
 function nextCalendarDate(date: string): string {
   const [year, month, day] = date.split('-').map(Number);
   const next = new Date(Date.UTC(year, month - 1, day + 1));
@@ -553,7 +598,7 @@ test('rejects a changed Create Food retry that reuses a mutation ID', async ({ a
   ]);
 });
 
-test('navigates from the catalogue, logs an existing food, then edits its diary snapshot', async ({ app }) => {
+test('locally logs a catalogue food, then edits its persisted diary snapshot online', async ({ app }) => {
   const foodId = app.createFood({ name: 'Greek yoghurt' });
   const { page } = app;
   await page.goto(`/foods?date=${diaryDate}&mealSlot=breakfast&q=Greek`);
@@ -567,9 +612,22 @@ test('navigates from the catalogue, logs an existing food, then edits its diary 
   await page.getByRole('button', { name: 'Add to diary' }).click();
   await expect(page).toHaveURL(/\/foods\?/);
 
-  expectSearchParameters(page, { date: diaryDate, mealSlot: 'dinner' });
-  expect(new URL(page.url()).searchParams.get('q')).toBe('Greek');
-  await expect.poll(() => app.diaryRows()).toHaveLength(1);
+  expectSearchParameters(page, {
+    date: diaryDate,
+    mealSlot: 'dinner',
+    q: 'Greek'
+  });
+  expect(new URL(page.url()).searchParams.get('added')).toBeNull();
+  await expect.poll(() => app.diaryRows()).toEqual([
+    expect.objectContaining({
+      foodId,
+      mealSlot: 'dinner',
+      portionKind: 'serving',
+      portionCountMilli: 2_000,
+      resolvedAmount: 250_000,
+      energyMkcal: 155_000
+    })
+  ]);
 
   await page.goto(`/?date=${diaryDate}`);
   const dinner = page.locator('section[aria-labelledby="dinner-heading"]');
@@ -715,14 +773,39 @@ test('validates an existing-food log locally before queueing it', async ({ app }
 
   await expect(page.getByText('Must be a valid mutation ID')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add to diary' })).toBeEnabled();
-
   await page.getByLabel('Number of portions').fill('');
   await expect(page.getByRole('button', { name: 'Add to diary' })).toBeDisabled();
 });
 
-test('queues the latest portion with current nutrition', async ({ app }) => {
+test('queues an existing-food log while sync is pending and keeps invalid amounts disabled', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Pending yoghurt' });
+  const { page, userId } = app;
+  const sync = await holdDiaryLogSync(page);
+
+  await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`);
+  await page.waitForLoadState('networkidle');
+
+  await page.getByLabel('Number of portions').fill('');
+  await expect(page.getByRole('button', { name: 'Add to diary' })).toBeDisabled();
+
+  await page.getByLabel('Number of portions').fill('1');
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+
+  await expect(page).toHaveURL(/\/foods\?/);
+  await expect(sync.started).resolves.toBeUndefined();
+  await expect(page.getByText('Syncing 1 change…')).toBeVisible();
+  await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(1);
+
+  sync.release();
+  await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(0);
+  await expect.poll(() => app.diaryRows()).toEqual([
+    expect.objectContaining({ foodId, mealSlot: 'breakfast', resolvedAmount: 100_000 })
+  ]);
+});
+
+test('quick adds the latest portion with current nutrition through the local queue', async ({ app }) => {
   const foodId = app.createFood({ name: 'Quick yoghurt' });
-  const { page, db } = app;
+  const { page, db, userId } = app;
   await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`);
   await chooseRadio(page, 'Serving');
   await page.getByLabel('Number of portions').fill('2');
@@ -739,14 +822,19 @@ test('queues the latest portion with current nutrition', async ({ app }) => {
   await page.waitForLoadState('networkidle');
   await expect(page.getByText('Last: 250 g · 155 kcal')).toBeVisible();
 
+  const sync = await holdDiaryLogSync(page);
   await page.getByRole('button', {
     name: 'Quick add Quick yoghurt to lunch using the last amount'
   }).click();
 
-  expectSearchParameters(page, { date: diaryDate, mealSlot: 'lunch' });
-  expect(new URL(page.url()).searchParams.get('q')).toBe('Quick');
-  await expect.poll(() => app.diaryRows()).toHaveLength(2);
-  expect(app.diaryRows()).toEqual(expect.arrayContaining([
+  expectSearchParameters(page, { date: diaryDate, mealSlot: 'lunch', q: 'Quick' });
+  await expect(sync.started).resolves.toBeUndefined();
+  await expect(page.getByText('Syncing 1 change…')).toBeVisible();
+  await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(1);
+
+  sync.release();
+  await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(0);
+  await expect.poll(() => app.diaryRows()).toEqual(expect.arrayContaining([
     expect.objectContaining({
       foodId,
       mealSlot: 'breakfast',
@@ -951,7 +1039,7 @@ test('does not expose or log archived and cross-user foods', async ({ app }) => 
   expect(app.diaryRows()).toEqual([]);
 });
 
-test('navigates locally online without network requests for route data and handles back/forward', async ({ app }) => {
+test('navigates locally without document or __data requests and handles back/forward', async ({ app }) => {
   const { page } = app;
   const foodName = 'Local Navigation Test Oatmeal';
   app.createFood({ name: foodName });
@@ -960,15 +1048,14 @@ test('navigates locally online without network requests for route data and handl
   await page.goto(`/?date=${diaryDate}`, { waitUntil: 'networkidle' });
   await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
 
-  const trackerRouteRequests: string[] = [];
+  const documentOrDataRequests: string[] = [];
   page.on('request', (request) => {
     const url = new URL(request.url());
     if (
-      url.pathname.includes('/__data.json') ||
-      (request.isNavigationRequest() &&
-        (url.pathname === '/' || url.pathname === '/foods' || url.pathname.includes('/log')))
+      request.resourceType() === 'document' ||
+      url.pathname.includes('/__data.json')
     ) {
-      trackerRouteRequests.push(url.pathname + url.search);
+      documentOrDataRequests.push(url.pathname + url.search);
     }
   });
 
@@ -982,7 +1069,6 @@ test('navigates locally online without network requests for route data and handl
   await page.getByLabel('Search foods').fill(foodName);
   await page.getByRole('heading', { name: foodName }).click();
   await expect(page).toHaveURL(/\/foods\/[^/]+\/log\?/);
-  await expect(page.getByRole('heading', { name: 'Add food' })).toBeVisible();
   await expect(page.getByRole('heading', { name: foodName })).toBeVisible();
 
   await page.getByRole('link', { name: 'Back to food catalogue' }).click();
@@ -993,12 +1079,15 @@ test('navigates locally online without network requests for route data and handl
 
   await page.getByRole('link', { name: 'Next day' }).click();
   await expect(page).toHaveURL(/\/\?date=2026-07-25/);
+  await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
 
   await page.goBack();
   await expect(page).toHaveURL(/\/\?date=2026-07-24/);
+  await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
 
   await page.goForward();
   await expect(page).toHaveURL(/\/\?date=2026-07-25/);
+  await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
 
-  expect(trackerRouteRequests).toEqual([]);
+  expect(documentOrDataRequests).toEqual([]);
 });
