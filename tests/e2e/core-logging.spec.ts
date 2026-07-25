@@ -192,6 +192,174 @@ test('warns before sign out permanently discards an unsynced offline change', as
       ).get(userId) as { revoked_at: number | null }
     ).revoked_at
   ).not.toBeNull();
+  await expect.poll(() =>
+    page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          const request = indexedDB.open('calorie-tracker-offline');
+          request.onerror = () => resolve(-1);
+          request.onsuccess = () => {
+            const database = request.result;
+            const transaction = database.transaction(
+              ['users', 'outbox', 'metadata'],
+              'readonly'
+            );
+            const users = transaction.objectStore('users').getAll();
+            const outbox = transaction.objectStore('outbox').getAll();
+            const metadata = transaction.objectStore('metadata').getAll();
+            transaction.oncomplete = () => {
+              database.close();
+              resolve(
+                (users.result?.length ?? 0) +
+                  (outbox.result?.length ?? 0) +
+                  (metadata.result?.length ?? 0)
+              );
+            };
+            transaction.onerror = () => {
+              database.close();
+              resolve(-1);
+            };
+          };
+        })
+    )
+  ).toBe(0);
+});
+
+test('settings footer sign out also warns and clears offline data', async ({ app }) => {
+  const { page, db, userId } = app;
+  const clientMutationId = randomUUID();
+
+  await page.goto(`/?date=${diaryDate}`, { waitUntil: 'networkidle' });
+  await expect.poll(() =>
+    page.evaluate(async () => {
+      if (!(await indexedDB.databases()).some(
+        (database) => database.name === 'calorie-tracker-offline'
+      )) {
+        return null;
+      }
+
+      return new Promise<string | null>((resolve) => {
+        const request = indexedDB.open('calorie-tracker-offline');
+        request.onerror = () => resolve(null);
+        request.onsuccess = () => {
+          const database = request.result;
+          const activeUser = database
+            .transaction('metadata', 'readonly')
+            .objectStore('metadata')
+            .get('active-user-id');
+          activeUser.onsuccess = () => {
+            database.close();
+            resolve(activeUser.result?.value ?? null);
+          };
+          activeUser.onerror = () => {
+            database.close();
+            resolve(null);
+          };
+        };
+      });
+    })
+  ).toBe(userId);
+
+  await page.evaluate(
+    ({ userId, clientMutationId, diaryDate }) =>
+      new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open('calorie-tracker-offline');
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const database = request.result;
+          const transaction = database.transaction('outbox', 'readwrite');
+          transaction.objectStore('outbox').put({
+            userId,
+            clientMutationId,
+            kind: 'log-existing-food',
+            foodId: crypto.randomUUID(),
+            input: {
+              clientMutationId,
+              portionKind: 'hundred',
+              portionCount: '1',
+              diaryDate,
+              mealSlot: 'breakfast'
+            },
+            createdAt: Date.now(),
+            state: 'pending'
+          });
+          transaction.oncomplete = () => {
+            database.close();
+            resolve();
+          };
+          transaction.onerror = () => {
+            database.close();
+            reject(transaction.error);
+          };
+        };
+      }),
+    { userId, clientMutationId, diaryDate }
+  );
+
+  await page.goto('/settings', { waitUntil: 'networkidle' });
+
+  const warning = new Promise<string>((resolve) => {
+    page.once('dialog', async (dialog) => {
+      resolve(dialog.message());
+      await dialog.dismiss();
+    });
+  });
+  await page.getByRole('button', { name: 'Sign out' }).click();
+
+  await expect(warning).resolves.toContain(
+    'Signing out will permanently discard them.'
+  );
+  await expect(page).toHaveURL(/\/settings$/);
+  expect(
+    (
+      db.prepare(
+        'SELECT revoked_at FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
+      ).get(userId) as { revoked_at: number | null }
+    ).revoked_at
+  ).toBeNull();
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Sign out' }).click();
+
+  await expect(page).toHaveURL(/\/sign-in$/);
+  expect(
+    (
+      db.prepare(
+        'SELECT revoked_at FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
+      ).get(userId) as { revoked_at: number | null }
+    ).revoked_at
+  ).not.toBeNull();
+  await expect.poll(() =>
+    page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          const request = indexedDB.open('calorie-tracker-offline');
+          request.onerror = () => resolve(-1);
+          request.onsuccess = () => {
+            const database = request.result;
+            const transaction = database.transaction(
+              ['users', 'outbox', 'metadata'],
+              'readonly'
+            );
+            const users = transaction.objectStore('users').getAll();
+            const outbox = transaction.objectStore('outbox').getAll();
+            const metadata = transaction.objectStore('metadata').getAll();
+            transaction.oncomplete = () => {
+              database.close();
+              resolve(
+                (users.result?.length ?? 0) +
+                  (outbox.result?.length ?? 0) +
+                  (metadata.result?.length ?? 0)
+              );
+            };
+            transaction.onerror = () => {
+              database.close();
+              resolve(-1);
+            };
+          };
+        })
+    )
+  ).toBe(0);
 });
 
 test('redirects unauthenticated account access to sign in', async ({ page }) => {

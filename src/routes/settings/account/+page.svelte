@@ -2,9 +2,8 @@
   import { resolve } from '$app/paths';
   import AppPageShell from '$lib/components/AppPageShell.svelte';
   import BackPageHeader from '$lib/components/BackPageHeader.svelte';
-  import { clearOfflineCacheForSignOut } from '$lib/offline/client';
-  import { hasActiveOfflineMutations } from '$lib/offline/indexed-db';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
+  import { handleOfflineAwareSignOut } from '$lib/offline/sign-out';
   import { formatDate } from '$lib/nutrition/format';
   import type { PageProps } from './$types';
 
@@ -12,39 +11,16 @@
   let isSigningOut = $state(false);
 
   async function handleSignOut(event: SubmitEvent) {
-    event.preventDefault();
-
     if (isSigningOut) {
       return;
     }
 
     isSigningOut = true;
-    const form = event.currentTarget as HTMLFormElement;
-    let hasUnsyncedChanges = false;
+    const result = await handleOfflineAwareSignOut(event);
 
-    try {
-      hasUnsyncedChanges = await hasActiveOfflineMutations();
-    } catch {
-      // Signing out must still complete if browser storage is unavailable.
-    }
-
-    if (
-      hasUnsyncedChanges &&
-      !window.confirm(
-        'You have unsynced changes saved only on this device. Signing out will permanently discard them. Sign out anyway?'
-      )
-    ) {
+    if (result === 'cancelled') {
       isSigningOut = false;
-      return;
     }
-
-    try {
-      await clearOfflineCacheForSignOut();
-    } catch {
-      // Signing out must still complete if browser storage is unavailable.
-    }
-
-    form.submit();
   }
 </script>
 

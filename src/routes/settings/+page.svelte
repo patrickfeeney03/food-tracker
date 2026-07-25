@@ -14,6 +14,7 @@
     pwaServiceWorkerStatus,
     type PwaServiceWorkerStatus
   } from '$lib/pwa';
+  import { handleOfflineAwareSignOut } from '$lib/offline/sign-out';
   import type { PageProps } from './$types';
 
   const serviceWorkerStatusLabels: Record<PwaServiceWorkerStatus, string> = {
@@ -26,6 +27,7 @@
   };
 
   let { data, form }: PageProps = $props();
+  let isSigningOut = $state(false);
 
   let goalSummary = $derived(
     data.currentGoal === null
@@ -40,6 +42,19 @@
         ? 'Always use dark mode'
         : 'Always use light mode'
   );
+
+  async function handleSignOut(event: SubmitEvent) {
+    if (isSigningOut) {
+      return;
+    }
+
+    isSigningOut = true;
+    const result = await handleOfflineAwareSignOut(event);
+
+    if (result === 'cancelled') {
+      isSigningOut = false;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -258,15 +273,17 @@
     <footer class="mt-8 flex items-center justify-between gap-4 px-0.5 pb-2">
       <p class="text-xs text-[var(--app-muted)]">Version {data.version}</p>
 
-      <form method="POST" action={resolve('/logout')}>
+      <form method="POST" action={resolve('/logout')} onsubmit={handleSignOut}>
         <button
           type="submit"
+          disabled={isSigningOut}
           class="inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm
             font-medium text-[var(--app-danger-text)] transition hover:bg-[var(--app-danger-bg)]
             focus-visible:outline-2 focus-visible:outline-offset-2
-            focus-visible:outline-[var(--app-danger-text)]"
+            focus-visible:outline-[var(--app-danger-text)] disabled:cursor-not-allowed
+            disabled:opacity-60"
         >
-          Sign out
+          {isSigningOut ? 'Signing out…' : 'Sign out'}
         </button>
       </form>
     </footer>
