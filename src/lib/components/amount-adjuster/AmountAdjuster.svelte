@@ -88,11 +88,13 @@
   } = $props();
 
   let portionKind = $state<PortionKind>(
-    untrack(() => initialValues.portionKind),
+    untrack(() => initialValues.portionKind as PortionKind),
   );
   let portionCount = $state(untrack(() => initialValues.portionCount));
   let diaryDate = $state(untrack(() => initialValues.diaryDate));
-  let mealSlot = $state<MealSlot>(untrack(() => initialValues.mealSlot));
+  let mealSlot = $state<MealSlot>(
+    untrack(() => initialValues.mealSlot as MealSlot),
+  );
   let isSubmitting = $state(false);
   let resolvedEditFoodHref = $derived(
     editFoodHref === undefined
