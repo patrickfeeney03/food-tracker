@@ -108,7 +108,7 @@ function balance(consumed: number, target: number): OfflineNutritionBalance {
       };
 }
 
-function emptyDiaryDay(date: string): OfflineDiaryDay {
+export function emptyDiaryDay(date: string): OfflineDiaryDay {
   return {
     date,
     goal: null,

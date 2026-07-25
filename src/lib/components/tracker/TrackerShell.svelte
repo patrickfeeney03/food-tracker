@@ -42,7 +42,10 @@
     readActiveOfflineData,
     type CachedOfflineData
   } from '$lib/offline/indexed-db';
-  import { applyPendingDiaryLogs } from '$lib/offline/optimistic-diary';
+  import {
+    applyPendingDiaryLogs,
+    emptyDiaryDay
+  } from '$lib/offline/optimistic-diary';
   import {
     initOfflineSync,
     offlineSyncStatus,
@@ -89,23 +92,6 @@
   const offlineCapabilityMessage =
     'You can add saved foods offline. Editing diary entries, foods and meal shortcuts is available when online.';
 
-  let isOffline = $state(untrack(() => isOfflinePage));
-  let status = $state<LoadStatus>('loading');
-  let cache = $state<CachedOfflineData | null>(null);
-  let activeView = $state<ViewMode>('diary');
-  let selectedDate = $state('');
-  let destinationMealSlot = $state<MealSlot>('breakfast');
-  let amountFoodId = $state<string | null>(null);
-  let amountValues = $state<AmountAdjusterValues | null>(null);
-  let amountErrors = $state<AmountAdjusterFieldErrors>({});
-  let foodQuery = $state('');
-  let activeTab = $state<'foods' | 'shortcuts'>('foods');
-  let pendingFoodId = $state<string | null>(null);
-  let queueError = $state<string | null>(null);
-  let scannerOpen = $state(false);
-  let lastSyncPhase = $state($offlineSyncStatus.phase);
-  const quickAddMutationIds = new SvelteMap<string, string>();
-
   function parseRouteFromUrl(): {
     view: ViewMode;
     requestedDate: string | null;
@@ -117,12 +103,37 @@
     if (typeof window === 'undefined') {
       const initialDiary = initialData?.diary as { date?: string } | undefined;
       const initialFood = initialData?.food as { id?: string } | undefined;
+      const context = initialData?.context as {
+        date?: string;
+        mealSlot?: MealSlot;
+        q?: string;
+      } | undefined;
+      const destination = initialData?.destination;
+
+      let view: ViewMode = 'diary';
+      if (initialFood !== undefined) {
+        view = 'amount';
+      } else if (
+        initialData?.foods !== undefined ||
+        initialData?.shortcuts !== undefined ||
+        destination !== undefined
+      ) {
+        view = 'foods';
+      }
+
       return {
-        view: 'diary',
-        requestedDate: initialDiary?.date ?? initialData?.destination?.date ?? null,
-        mealSlot: initialData?.destination?.mealSlot ?? 'breakfast',
+        view,
+        requestedDate:
+          initialDiary?.date ??
+          destination?.date ??
+          context?.date ??
+          null,
+        mealSlot:
+          destination?.mealSlot ??
+          context?.mealSlot ??
+          'breakfast',
         foodId: initialFood?.id ?? null,
-        query: initialData?.query ?? '',
+        query: initialData?.query ?? context?.q ?? '',
         tab: initialData?.tab ?? 'foods'
       };
     }
@@ -171,6 +182,64 @@
     };
   }
 
+  function canRenderFromInitial(view: ViewMode): boolean {
+    if (initialData === undefined) {
+      return false;
+    }
+
+    if (view === 'diary') {
+      return initialData.diary !== undefined;
+    }
+
+    if (view === 'amount') {
+      return initialData.food !== undefined && initialData.values !== undefined;
+    }
+
+    // Foods catalogue: SSR payload is enough even when the list is empty.
+    return true;
+  }
+
+  const boot = untrack(() => {
+    const route = parseRouteFromUrl();
+    const initialDiary = initialData?.diary as { date?: string } | undefined;
+    const context = initialData?.context as { date?: string } | undefined;
+
+    return {
+      route,
+      selectedDate:
+        route.requestedDate ??
+        initialDiary?.date ??
+        initialData?.destination?.date ??
+        context?.date ??
+        '',
+      canRender: canRenderFromInitial(route.view),
+      amountValues:
+        route.view === 'amount' && initialData?.values
+          ? initialData.values
+          : null,
+      initialFoods: Array.isArray(initialData?.foods)
+        ? (initialData.foods as OfflineFood[])
+        : null
+    };
+  });
+
+  let isOffline = $state(untrack(() => isOfflinePage));
+  let status = $state<LoadStatus>(boot.canRender ? 'ready' : 'loading');
+  let cache = $state<CachedOfflineData | null>(null);
+  let activeView = $state<ViewMode>(boot.route.view);
+  let selectedDate = $state(boot.selectedDate);
+  let destinationMealSlot = $state<MealSlot>(boot.route.mealSlot);
+  let amountFoodId = $state<string | null>(boot.route.foodId);
+  let amountValues = $state<AmountAdjusterValues | null>(boot.amountValues);
+  let amountErrors = $state<AmountAdjusterFieldErrors>({});
+  let foodQuery = $state(boot.route.query);
+  let activeTab = $state<'foods' | 'shortcuts'>(boot.route.tab);
+  let pendingFoodId = $state<string | null>(null);
+  let queueError = $state<string | null>(null);
+  let scannerOpen = $state(false);
+  let lastSyncPhase = $state($offlineSyncStatus.phase);
+  const quickAddMutationIds = new SvelteMap<string, string>();
+
   function seedQuickAddMutationIds(foods: OfflineFood[]): void {
     quickAddMutationIds.clear();
 
@@ -182,6 +251,11 @@
         quickAddMutationIds.set(food.id, crypto.randomUUID());
       }
     }
+  }
+
+  // Paint SSR foods with working quick-add ids before IndexedDB hydrates.
+  if (boot.initialFoods !== null) {
+    seedQuickAddMutationIds(boot.initialFoods);
   }
 
   function initialAmountValues(food: OfflineFood): AmountAdjusterValues {
@@ -196,6 +270,36 @@
       diaryDate: selectedDate,
       mealSlot: destinationMealSlot
     };
+  }
+
+  async function applyRefreshedCache(
+    date: string,
+    options?: { silent?: boolean }
+  ): Promise<void> {
+    const fresh = await refreshOfflineCache(date, options);
+    const mutations = await listOfflineDiaryLogMutations(fresh.user.id);
+    cache = applyPendingDiaryLogs(fresh, mutations);
+  }
+
+  /** Refresh center day, then quietly prefetch ±5 so nearby days stay local. */
+  function refreshCacheWindow(centerDate: string): void {
+    if (typeof window === 'undefined' || !navigator.onLine || centerDate === '') {
+      return;
+    }
+
+    void applyRefreshedCache(centerDate)
+      .catch(() => {})
+      .finally(() => {
+        for (let offset = -5; offset <= 5; offset += 1) {
+          if (offset === 0) {
+            continue;
+          }
+
+          void applyRefreshedCache(shiftDate(centerDate, offset), {
+            silent: true
+          }).catch(() => {});
+        }
+      });
   }
 
   async function loadSavedData(preserveMutationIds = false): Promise<void> {
@@ -215,15 +319,7 @@
         status = 'ready';
         const initialDiary = initialData.diary as { date?: string } | undefined;
         selectedDate = route.requestedDate ?? initialDiary?.date ?? initialData.destination?.date ?? todayInDublin();
-        if (typeof window !== 'undefined' && navigator.onLine && selectedDate !== '') {
-          void refreshOfflineCache(selectedDate).then(async () => {
-            const reloaded = await readActiveOfflineData();
-            if (reloaded) {
-              const mutations = await listOfflineDiaryLogMutations(reloaded.user.id);
-              cache = applyPendingDiaryLogs(reloaded, mutations);
-            }
-          }).catch(() => {});
-        }
+        refreshCacheWindow(selectedDate);
         return;
       }
       status = 'empty';
@@ -258,18 +354,7 @@
     }
 
     status = 'ready';
-
-    if (typeof window !== 'undefined' && navigator.onLine && selectedDate !== '') {
-      void refreshOfflineCache(selectedDate)
-        .then(async () => {
-          const fresh = await readActiveOfflineData();
-          if (fresh) {
-            const freshMutations = await listOfflineDiaryLogMutations(fresh.user.id);
-            cache = applyPendingDiaryLogs(fresh, freshMutations);
-          }
-        })
-        .catch(() => {});
-    }
+    refreshCacheWindow(selectedDate);
   }
 
   function updateFromCurrentUrl() {
@@ -294,17 +379,8 @@
       }
     }
 
-    if (typeof window !== 'undefined' && navigator.onLine && selectedDate !== '') {
-      void refreshOfflineCache(selectedDate)
-        .then(async () => {
-          const reloaded = await readActiveOfflineData();
-          if (reloaded) {
-            const mutations = await listOfflineDiaryLogMutations(reloaded.user.id);
-            cache = applyPendingDiaryLogs(reloaded, mutations);
-          }
-        })
-        .catch(() => {});
-    }
+    // Navigation stays local; network only tops up cache in the background.
+    refreshCacheWindow(selectedDate);
   }
 
   function handleTrackerLinkClick(event: MouseEvent) {
@@ -347,12 +423,29 @@
   }
 
   let diary = $derived.by(() => {
-    if (cache !== null && selectedDate !== '') {
-      return (cache.diaryDays[selectedDate] as unknown as DiaryDayViewData) ?? null;
+    if (selectedDate === '') {
+      return null;
     }
+
+    if (cache !== null) {
+      const cachedDay = cache.diaryDays[selectedDate];
+      if (cachedDay !== undefined) {
+        return cachedDay as unknown as DiaryDayViewData;
+      }
+    }
+
     if (initialData?.diary) {
-      return (initialData.diary as unknown as DiaryDayViewData) ?? null;
+      const initialDiary = initialData.diary as DiaryDayViewData & { date?: string };
+      if (initialDiary.date === selectedDate) {
+        return initialDiary as DiaryDayViewData;
+      }
     }
+
+    // Keep the diary shell visible while a missing day is fetched.
+    if (!isOffline) {
+      return emptyDiaryDay(selectedDate) as unknown as DiaryDayViewData;
+    }
+
     return null;
   });
 
@@ -678,7 +771,7 @@
   data-sveltekit-preload-code="off"
   class="contents"
 >
-  {#if status === 'loading' && !initialData?.diary}
+  {#if status === 'loading' && !boot.canRender}
     <main
       class="flex min-h-dvh items-center justify-center bg-[var(--app-canvas)] px-6
         text-[var(--app-text)]"
@@ -687,7 +780,7 @@
         Opening tracker…
       </p>
     </main>
-  {:else if (status === 'ready' || initialData?.diary) && (diary !== null || activeView === 'foods' || activeView === 'amount')}
+  {:else if (status === 'ready' || boot.canRender) && (diary !== null || activeView === 'foods' || activeView === 'amount')}
     {#if activeView === 'diary' && diary !== null}
       {@const previousHref = diaryDateHref(previousDate)}
       {@const nextHref = diaryDateHref(nextDate)}

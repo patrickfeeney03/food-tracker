@@ -73,7 +73,10 @@ async function performRefresh(
   return cached;
 }
 
-export function refreshOfflineCache(date: string): Promise<CachedOfflineData> {
+export function refreshOfflineCache(
+  date: string,
+  options?: { silent?: boolean }
+): Promise<CachedOfflineData> {
   const existing = refreshesByDate.get(date);
 
   if (existing !== undefined) {
@@ -83,7 +86,9 @@ export function refreshOfflineCache(date: string): Promise<CachedOfflineData> {
   const controller = new AbortController();
   const refresh = performRefresh(date, controller.signal)
     .catch((error) => {
-      cacheStatusState.set('error');
+      if (options?.silent !== true) {
+        cacheStatusState.set('error');
+      }
       throw error;
     })
     .finally(() => {
