@@ -686,7 +686,7 @@ test('searches the food catalogue automatically while typing', async ({ app }) =
 
   await search.fill('Automatic');
   await expect(page).toHaveURL((url) => url.searchParams.get('q') === 'Automatic');
-  await page.getByRole('button', { name: 'Clear search' }).click();
+  await page.getByRole('link', { name: 'Clear search' }).click();
   await expect(search).toHaveValue('');
   await page.goBack();
   await expect(search).toHaveValue('Automatic');
