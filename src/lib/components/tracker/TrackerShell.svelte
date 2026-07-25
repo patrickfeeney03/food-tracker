@@ -492,6 +492,10 @@
     return null;
   });
 
+  let foodsCatalogueReady = $derived(
+    cache !== null || Array.isArray(initialData?.foods)
+  );
+
   let filteredFoods = $derived.by(() => {
     const list = (cache?.foods ?? initialData?.foods ?? (initialData?.food ? [initialData.food] : [])) as OfflineFood[];
     const query = foodQuery.trim().toLocaleLowerCase();
@@ -993,19 +997,28 @@
           </div>
         </div>
 
-        <FoodResultList
-          foods={foodResults}
-          activeQuery={foodQuery.trim()}
-          mealSlot={destinationMealSlot}
-          emptyQueryMessage="No saved foods match this search."
-          emptyCatalogueMessage="No foods are saved on this device yet."
-          actions={{
-            foodHref,
-            editHref: editFoodHref,
-            quickAdd,
-            pendingFoodId
-          }}
-        />
+        {#if !foodsCatalogueReady}
+          <p
+            role="status"
+            class="mt-8 text-center text-sm font-semibold text-[var(--app-muted)]"
+          >
+            Loading foods…
+          </p>
+        {:else}
+          <FoodResultList
+            foods={foodResults}
+            activeQuery={foodQuery.trim()}
+            mealSlot={destinationMealSlot}
+            emptyQueryMessage="No saved foods match this search."
+            emptyCatalogueMessage="No foods are saved on this device yet."
+            actions={{
+              foodHref,
+              editHref: editFoodHref,
+              quickAdd,
+              pendingFoodId
+            }}
+          />
+        {/if}
 
         <div
           class="sticky bottom-0 mt-8 bg-gradient-to-t from-[var(--app-surface)]
