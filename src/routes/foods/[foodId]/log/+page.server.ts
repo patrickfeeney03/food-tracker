@@ -94,6 +94,10 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
   }
 
   return {
+    user: {
+      id: user.id,
+      name: user.name
+    },
     context: contextResult.data,
     food,
     portionOptions,

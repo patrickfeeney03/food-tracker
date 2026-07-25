@@ -52,6 +52,10 @@
     queueOfflineDiaryLog
   } from '$lib/offline/sync';
   import { refreshOfflineCache } from '$lib/offline/client';
+  import {
+    clearStaleOfflineUserIfNeeded,
+    discardStaleOfflineUser
+  } from '$lib/offline/active-user-guard';
   import type { OfflineFood } from '$lib/offline/types';
   import type { SubmitFunction } from '@sveltejs/kit';
   import { onMount, untrack } from 'svelte';
@@ -66,7 +70,7 @@
     foods?: unknown[];
     shortcuts?: unknown[];
     food?: unknown;
-    user?: { id?: string; name: string };
+    user?: { id?: string; name?: string };
     today?: string;
     feedback?: unknown;
     destination?: { date: string; mealSlot: MealSlot };
@@ -312,7 +316,16 @@
     foodQuery = route.query;
     activeTab = route.tab;
 
-    const saved = await readActiveOfflineData();
+    const sessionUserId = initialData?.user?.id;
+    await clearStaleOfflineUserIfNeeded(sessionUserId);
+
+    let saved = await readActiveOfflineData();
+    if (
+      saved !== null &&
+      (await discardStaleOfflineUser(sessionUserId, saved.user.id))
+    ) {
+      saved = null;
+    }
 
     if (saved === null) {
       if (initialData) {
