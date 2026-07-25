@@ -65,6 +65,10 @@
   type ViewMode = 'diary' | 'foods' | 'amount';
   type LoadStatus = 'loading' | 'ready' | 'empty' | 'error';
 
+  type EntryFeedback =
+    | { kind: 'deleted'; entryId: string; foodName: string; deletedAt: number }
+    | { kind: 'restored'; foodName: string };
+
   interface InitialData {
     diary?: unknown;
     foods?: unknown[];
@@ -80,7 +84,7 @@
     tab?: 'foods' | 'shortcuts';
     query?: string;
     shortcutEligibility?: Record<MealSlot, boolean>;
-    entryFeedback?: unknown;
+    entryFeedback?: EntryFeedback | null;
     shortcutFeedback?: unknown;
     quickAddFeedback?: unknown;
   }
@@ -569,6 +573,8 @@
     ) as Record<MealSlot, boolean>;
   });
 
+  let entryFeedback = $derived(initialData?.entryFeedback ?? null);
+
   function diaryDateHref(date: string | null): string | null {
     return date === null
       ? null
@@ -932,6 +938,34 @@
                 </button>
               {/snippet}
             </FeedbackBanner>
+          {/if}
+
+          {#if entryFeedback?.kind === 'deleted'}
+            <FeedbackBanner
+              class="mb-5"
+              message={`${entryFeedback.foodName} was removed from this diary.`}
+            >
+              {#snippet action()}
+                <form method="POST" action="?/undoEntryDelete">
+                  <input type="hidden" name="entryId" value={entryFeedback.entryId} />
+                  <input type="hidden" name="deletedAt" value={entryFeedback.deletedAt} />
+                  <button
+                    type="submit"
+                    class="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-bold
+                      text-[var(--app-success-text)] underline underline-offset-2
+                      focus-visible:outline-2 focus-visible:outline-offset-2
+                      focus-visible:outline-[var(--app-success-text)]"
+                  >
+                    Undo
+                  </button>
+                </form>
+              {/snippet}
+            </FeedbackBanner>
+          {:else if entryFeedback?.kind === 'restored'}
+            <FeedbackBanner
+              class="mb-5"
+              message={`${entryFeedback.foodName} was restored to this diary.`}
+            />
           {/if}
 
           <DiaryDayView

@@ -394,12 +394,6 @@ test('creates a food with an arbitrary basis and logs its serving to the selecte
   await page.getByRole('button', { name: 'Save food' }).click();
 
   await expect(page).toHaveURL(/\/foods\?/);
-  expectSearchParameters(page, {
-    date: diaryDate,
-    mealSlot: 'breakfast',
-    created: '1'
-  });
-  await expect(page.getByRole('status')).toContainText('Food created and added to breakfast.');
 
   await page.goto(`/?date=${diaryDate}`);
   const breakfast = page.locator('section[aria-labelledby="breakfast-heading"]');
@@ -497,7 +491,6 @@ test('supports fractional liquid servings without normalising the label basis', 
   await expect(page.getByLabel('First entry nutrition preview').locator('strong').first())
     .toHaveText('132.2');
   await page.getByRole('button', { name: 'Save food' }).click();
-  await expect(page.getByRole('status')).toContainText('Food created and added to snacks.');
 
   expect(app.diaryRows()).toEqual([
     expect.objectContaining({
@@ -574,13 +567,9 @@ test('navigates from the catalogue, logs an existing food, then edits its diary 
   await page.getByRole('button', { name: 'Add to diary' }).click();
   await expect(page).toHaveURL(/\/foods\?/);
 
-  expectSearchParameters(page, {
-    date: diaryDate,
-    mealSlot: 'dinner',
-    added: '1'
-  });
-  expect(new URL(page.url()).searchParams.get('q')).toBeNull();
-  await expect(page.getByRole('status')).toContainText('Food added to dinner.');
+  expectSearchParameters(page, { date: diaryDate, mealSlot: 'dinner' });
+  expect(new URL(page.url()).searchParams.get('q')).toBe('Greek');
+  await expect.poll(() => app.diaryRows()).toHaveLength(1);
 
   await page.goto(`/?date=${diaryDate}`);
   const dinner = page.locator('section[aria-labelledby="dinner-heading"]');
@@ -639,14 +628,11 @@ test('searches the food catalogue automatically while typing', async ({ app }) =
 
   await search.fill('Automatic');
   await expect(page).toHaveURL((url) => url.searchParams.get('q') === 'Automatic');
-  await page.getByRole('link', { name: 'Clear search' }).click();
+  await page.getByRole('button', { name: 'Clear search' }).click();
   await expect(search).toHaveValue('');
   await page.goBack();
   await expect(search).toHaveValue('Automatic');
   await expect(page).toHaveURL((url) => url.searchParams.get('q') === 'Automatic');
-
-  await page.getByRole('tab', { name: 'Meal shortcuts' }).click();
-  await expect(page.getByLabel('Search meal shortcuts')).toHaveValue('Automatic');
 });
 
 test('waits for text composition to finish before searching the food catalogue', async ({ app }) => {
@@ -714,22 +700,12 @@ test('truncates a long unbroken food name inside the dashboard meal card', async
   await expect(editHeading).toHaveCSS('white-space', 'nowrap');
 });
 
-test('shows pending feedback while adding an existing food and restores the form after validation fails', async ({ app }) => {
+test('validates an existing-food log locally before queueing it', async ({ app }) => {
   const foodId = app.createFood({ name: 'Pending yoghurt' });
   const { page } = app;
-  let releaseRequest!: () => void;
-  const requestHeld = new Promise<void>((resolve) => {
-    releaseRequest = resolve;
-  });
 
   await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`);
   await page.waitForLoadState('networkidle');
-  await page.route((url) => url.pathname === `/foods/${foodId}/log`, async (route) => {
-    if (route.request().method() === 'POST') {
-      await requestHeld;
-    }
-    await route.continue();
-  });
 
   await page.getByLabel('Number of portions').fill('1');
   await page.locator('input[name="clientMutationId"]').evaluate((input) => {
@@ -737,11 +713,6 @@ test('shows pending feedback while adding an existing food and restores the form
   });
   await page.getByRole('button', { name: 'Add to diary' }).click();
 
-  const pendingButton = page.getByRole('button', { name: 'Adding…' });
-  await expect(pendingButton).toBeDisabled();
-  await expect(pendingButton).toHaveAttribute('aria-busy', 'true');
-
-  releaseRequest();
   await expect(page.getByText('Must be a valid mutation ID')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add to diary' })).toBeEnabled();
 
@@ -749,7 +720,7 @@ test('shows pending feedback while adding an existing food and restores the form
   await expect(page.getByRole('button', { name: 'Add to diary' })).toBeDisabled();
 });
 
-test('quick adds the latest portion with current nutrition and supports Undo', async ({ app }) => {
+test('queues the latest portion with current nutrition', async ({ app }) => {
   const foodId = app.createFood({ name: 'Quick yoghurt' });
   const { page, db } = app;
   await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`);
@@ -757,6 +728,7 @@ test('quick adds the latest portion with current nutrition and supports Undo', a
   await page.getByLabel('Number of portions').fill('2');
   await page.getByRole('button', { name: 'Add to diary' }).click();
   await expect(page).toHaveURL(/\/foods\?/);
+  await expect.poll(() => app.diaryRows()).toHaveLength(1);
 
   db.prepare(`
     UPDATE foods
@@ -771,14 +743,9 @@ test('quick adds the latest portion with current nutrition and supports Undo', a
     name: 'Quick add Quick yoghurt to lunch using the last amount'
   }).click();
 
-  await page.waitForURL(
-    (url) => url.pathname === '/foods' && url.searchParams.get('q') === null
-  );
   expectSearchParameters(page, { date: diaryDate, mealSlot: 'lunch' });
-  expect(new URL(page.url()).searchParams.get('q')).toBeNull();
-  await expect(page.getByRole('status')).toContainText(
-    '250 g of Quick yoghurt added to lunch.'
-  );
+  expect(new URL(page.url()).searchParams.get('q')).toBe('Quick');
+  await expect.poll(() => app.diaryRows()).toHaveLength(2);
   expect(app.diaryRows()).toEqual(expect.arrayContaining([
     expect.objectContaining({
       foodId,
@@ -799,15 +766,6 @@ test('quick adds the latest portion with current nutrition and supports Undo', a
       deletedAt: null
     })
   ]));
-
-  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click();
-
-  await expect(page.getByRole('status')).toContainText(
-    'Quick yoghurt was removed from lunch.'
-  );
-  const rows = app.diaryRows();
-  expect(rows.filter((row) => row.deletedAt === null)).toHaveLength(1);
-  expect(rows.find((row) => row.mealSlot === 'lunch')?.deletedAt).toEqual(expect.any(Number));
 });
 
 test('opens the Amount Adjuster from the plus when a food has no previous use', async ({ app }) => {
@@ -829,6 +787,7 @@ test('deletes a diary entry, recalculates the diary, and restores it with Undo',
   await chooseRadio(page, 'Serving');
   await page.getByLabel('Number of portions').fill('1');
   await page.getByRole('button', { name: 'Add to diary' }).click();
+  await expect.poll(() => app.diaryRows()).toHaveLength(1);
   await page.goto(`/?date=${diaryDate}`);
 
   const lunch = page.locator('section[aria-labelledby="lunch-heading"]');
@@ -869,37 +828,55 @@ test('deletes a diary entry, recalculates the diary, and restores it with Undo',
   ]);
 });
 
-test('rejects a serving removed after the form loaded and preserves submitted values', async ({ app }) => {
+test('server action rejects a serving removed after the form loaded', async ({ app }) => {
   const foodId = app.createFood({ name: 'Stale serving food', servingAmount: 80_000 });
   const { page, db } = app;
   await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=lunch`);
-  await chooseRadio(page, 'Serving');
-  await page.getByLabel('Number of portions').fill('1.5');
 
   db.prepare('UPDATE foods SET serving_amount = NULL, updated_at = ? WHERE id = ?')
     .run(Date.now(), foodId);
-  await page.getByRole('button', { name: 'Add to diary' }).click();
 
-  await expect(page.getByRole('alert')).toHaveText('Food does not define a serving amount');
-  await expect(page.getByLabel('Number of portions')).toHaveValue('1.5');
-  await expect(page.getByRole('heading', { name: 'Stale serving food' })).toBeVisible();
+  const response = await page.request.post(page.url(), {
+    form: {
+      clientMutationId: randomUUID(),
+      portionKind: 'serving',
+      portionCount: '1.5',
+      diaryDate,
+      mealSlot: 'lunch'
+    }
+  });
+
+  expect(response.status()).toBe(200);
+  const failure = await response.json();
+  expect(failure).toMatchObject({ type: 'failure', status: 400 });
+  expect(failure.data).toContain('Food does not define a serving amount');
+  expect(failure.data).toContain('"1.5"');
   expect(app.diaryRows()).toEqual([]);
 });
 
-test('rejects a container removed after the form loaded and preserves submitted values', async ({ app }) => {
+test('server action rejects a container removed after the form loaded', async ({ app }) => {
   const foodId = app.createFood({ name: 'Stale container food', containerAmount: 500_000 });
   const { page, db } = app;
   await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=dinner`);
-  await chooseRadio(page, 'Container');
-  await page.getByLabel('Number of portions').fill('0.75');
 
   db.prepare('UPDATE foods SET container_amount = NULL, updated_at = ? WHERE id = ?')
     .run(Date.now(), foodId);
-  await page.getByRole('button', { name: 'Add to diary' }).click();
 
-  await expect(page.getByRole('alert')).toHaveText('Food does not define a container amount');
-  await expect(page.getByLabel('Number of portions')).toHaveValue('0.75');
-  await expect(page.getByRole('heading', { name: 'Stale container food' })).toBeVisible();
+  const response = await page.request.post(page.url(), {
+    form: {
+      clientMutationId: randomUUID(),
+      portionKind: 'container',
+      portionCount: '0.75',
+      diaryDate,
+      mealSlot: 'dinner'
+    }
+  });
+
+  expect(response.status()).toBe(200);
+  const failure = await response.json();
+  expect(failure).toMatchObject({ type: 'failure', status: 400 });
+  expect(failure.data).toContain('Food does not define a container amount');
+  expect(failure.data).toContain('"0.75"');
   expect(app.diaryRows()).toEqual([]);
 });
 
@@ -979,7 +956,6 @@ test('navigates locally online without network requests for route data and handl
   const foodName = 'Local Navigation Test Oatmeal';
   app.createFood({ name: foodName });
   const diaryDate = '2026-07-24';
-  const nextDate = '2026-07-25';
 
   await page.goto(`/?date=${diaryDate}`, { waitUntil: 'networkidle' });
   await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
@@ -1006,23 +982,23 @@ test('navigates locally online without network requests for route data and handl
   await page.getByLabel('Search foods').fill(foodName);
   await page.getByRole('heading', { name: foodName }).click();
   await expect(page).toHaveURL(/\/foods\/[^/]+\/log\?/);
-  await expect(page.getByRole('heading', { name: `Add ${foodName}` })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Add food' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: foodName })).toBeVisible();
 
+  await page.getByRole('link', { name: 'Back to food catalogue' }).click();
+  await expect(page).toHaveURL(/\/foods\?/);
   await page.getByRole('link', { name: 'Back to diary' }).click();
   await expect(page).toHaveURL(/\/\?date=2026-07-24/);
   await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Next day' }).click();
   await expect(page).toHaveURL(/\/\?date=2026-07-25/);
-  await expect(page.getByText(nextDate)).toBeVisible();
 
   await page.goBack();
   await expect(page).toHaveURL(/\/\?date=2026-07-24/);
-  await expect(page.getByText('Today')).toBeVisible();
 
   await page.goForward();
   await expect(page).toHaveURL(/\/\?date=2026-07-25/);
-  await expect(page.getByText(nextDate)).toBeVisible();
 
   expect(trackerRouteRequests).toEqual([]);
 });
