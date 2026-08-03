@@ -16,7 +16,7 @@ export const inputLimits = {
     fibreG: { max: 1_000 },
     sugarG: { max: 1_000 },
     saturatedFatG: { max: 1_000 },
-    sodiumMg: { max: 10_000 },
+    sodiumMg: { max: 50_000 },
     potassiumMg: { max: 10_000 },
   },
   portionCount: { max: 10_000 }, // in case a 1g basis is used

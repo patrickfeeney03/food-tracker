@@ -236,7 +236,7 @@ describe('createFoodSchema', () => {
       fibreG: '1000',
       sugarG: '1000',
       saturatedFatG: '1000',
-      sodiumMg: '10000',
+      sodiumMg: '50000',
       potassiumMg: '10000',
       notes: 'n'.repeat(2000)
     }).success).toBe(true);
@@ -246,7 +246,7 @@ describe('createFoodSchema', () => {
     ['basisAmount', '10000.001'],
     ['energyKcal', '10000.001'],
     ['proteinG', '1000.001'],
-    ['sodiumMg', '10001'],
+    ['sodiumMg', '50001'],
     ['brand', 'b'.repeat(201)],
     ['barcode', '1'.repeat(201)],
     ['notes', 'n'.repeat(2001)]

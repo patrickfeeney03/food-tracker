@@ -18,7 +18,7 @@ describe('FoodFormFields', () => {
     await expect.element(page.getByLabelText('Serving')).toHaveAttribute('max', '10000');
     await expect.element(page.getByLabelText('Calories')).toHaveAttribute('max', '10000');
     await expect.element(page.getByLabelText('Protein')).toHaveAttribute('max', '1000');
-    await expect.element(page.getByLabelText('Sodium')).toHaveAttribute('max', '10000');
+    await expect.element(page.getByLabelText('Sodium')).toHaveAttribute('max', '50000');
     await expect.element(page.getByLabelText('Barcode (optional)')).toHaveAttribute('maxlength', '200');
     await expect.element(page.getByLabelText('Notes')).toHaveAttribute('maxlength', '2000');
   });
