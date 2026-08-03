@@ -839,19 +839,28 @@ test('quick adds the latest portion with current nutrition through the local que
   await page.goto(`/foods?date=${diaryDate}&mealSlot=lunch&q=Quick`);
   await page.waitForLoadState('networkidle');
   await expect(page.getByText('Last: 250 g · 155 kcal')).toBeVisible();
+  const search = page.getByLabel('Search foods');
+  await search.fill('  Quick  ');
+  await expect(page).toHaveURL((url) => url.searchParams.get('q') === 'Quick');
+  await expect(search).toHaveValue('  Quick  ');
 
   const sync = await holdDiaryLogSync(page);
-  await page.getByRole('button', {
+  const quickAddButton = page.getByRole('button', {
     name: 'Quick add Quick yoghurt to lunch using the last amount'
-  }).click();
+  });
+  await quickAddButton.click();
 
   expectSearchParameters(page, { date: diaryDate, mealSlot: 'lunch', q: 'Quick' });
   await expect(sync.started).resolves.toBeUndefined();
   await expect(page.getByText('Syncing 1 change…')).toHaveCount(0);
   await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(1);
+  await expect(quickAddButton).toBeEnabled();
+  await expect(search).toHaveValue('  Quick  ');
 
   sync.release();
   await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(0);
+  await expect(page.getByText('All changes synced.')).toBeVisible();
+  await expect(search).toHaveValue('  Quick  ');
   await expect.poll(() => app.diaryRows()).toEqual(expect.arrayContaining([
     expect.objectContaining({
       foodId,

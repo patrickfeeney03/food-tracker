@@ -6,7 +6,7 @@ import {
   ExistingFoodNotFoundError,
   logExistingFood
 } from '$lib/server/nutrition/log-existing-food';
-import { buildOfflineBootstrap } from '$lib/server/offline/bootstrap';
+import { buildTrackerSnapshot } from '$lib/server/tracker/snapshot';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import z from 'zod';
 
@@ -71,7 +71,7 @@ export const POST: RequestHandler = async ({
       schemaVersion: 1,
       acknowledgedMutationId:
         payload.data.input.clientMutationId,
-      bootstrap: buildOfflineBootstrap(
+      snapshot: buildTrackerSnapshot(
         db,
         user,
         payload.data.input.diaryDate

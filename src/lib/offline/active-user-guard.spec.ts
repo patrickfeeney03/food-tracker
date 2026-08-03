@@ -10,9 +10,9 @@ import {
   readActiveOfflineData,
   readActiveUserId,
   readOfflineData,
-  saveOfflineBootstrap
+  saveTrackerSnapshot
 } from './indexed-db';
-import type { OfflineBootstrap } from './types';
+import type { TrackerSnapshot } from './types';
 
 const staleUserId = 'user-a';
 const offline = vi.hoisted(() => ({
@@ -58,30 +58,30 @@ vi.mock('./indexed-db', () => ({
       : offline.data.get(offline.activeUserId) ?? null,
   readActiveUserId: async () => offline.activeUserId,
   readOfflineData: async (userId: string) => offline.data.get(userId) ?? null,
-  saveOfflineBootstrap: async (bootstrap: OfflineBootstrap) => {
-    const existing = offline.data.get(bootstrap.user.id);
-    offline.data.set(bootstrap.user.id, {
-      schemaVersion: bootstrap.schemaVersion,
-      user: bootstrap.user,
-      savedAt: bootstrap.savedAt,
+  saveTrackerSnapshot: async (snapshot: TrackerSnapshot) => {
+    const existing = offline.data.get(snapshot.user.id);
+    offline.data.set(snapshot.user.id, {
+      schemaVersion: snapshot.schemaVersion,
+      user: snapshot.user,
+      savedAt: snapshot.savedAt,
       diaryDays: {
         ...existing?.diaryDays,
-        [bootstrap.diary.date]: bootstrap.diary
+        ...snapshot.diaryDays
       },
-      foods: bootstrap.foods
+      foods: snapshot.foods
     });
-    offline.activeUserId = bootstrap.user.id;
+    offline.activeUserId = snapshot.user.id;
   }
 }));
 
-function bootstrap(date: string): OfflineBootstrap {
+function trackerSnapshot(date: string): TrackerSnapshot {
   return {
     schemaVersion: 1,
     user: { id: staleUserId, name: 'User A' },
     savedAt: 1,
-    diary: { date },
+    diaryDays: { [date]: { date } },
     foods: []
-  } as unknown as OfflineBootstrap;
+  } as unknown as TrackerSnapshot;
 }
 
 beforeEach(async () => {
@@ -109,8 +109,8 @@ describe('isStaleOfflineUser', () => {
   });
 
   it('clears the stale active cache, diary days, and outbox', async () => {
-    await saveOfflineBootstrap(bootstrap('2026-07-23'));
-    await saveOfflineBootstrap(bootstrap('2026-07-24'));
+    await saveTrackerSnapshot(trackerSnapshot('2026-07-23'));
+    await saveTrackerSnapshot(trackerSnapshot('2026-07-24'));
     await enqueueOfflineDiaryLog(staleUserId, 'food-1', {
       clientMutationId: '550e8400-e29b-41d4-a716-446655440016',
       portionKind: 'hundred',

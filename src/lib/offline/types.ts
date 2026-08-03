@@ -119,14 +119,14 @@ export interface OfflineFood {
   latestUse: OfflineLatestFoodUse | null;
 }
 
-export interface OfflineBootstrap {
+export interface TrackerSnapshot {
   schemaVersion: 1;
   user: {
     id: string;
     name: string;
   };
   savedAt: number;
-  diary: OfflineDiaryDay;
+  diaryDays: Record<string, OfflineDiaryDay>;
   foods: OfflineFood[];
 }
 

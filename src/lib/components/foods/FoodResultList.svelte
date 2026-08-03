@@ -14,7 +14,7 @@
       resolvedAmount: number;
       energyMkcal: number;
     } | null;
-    quickAddMutationId: string | null;
+    canQuickAdd: boolean;
   }
 
   export interface FoodResultListActions {
@@ -162,7 +162,7 @@
                 >Edit</span>
               {/if}
 
-              {#if food.quickAddMutationId !== null}
+              {#if food.canQuickAdd}
                 {#if actions?.quickAdd !== undefined}
                   <button
                     type="button"

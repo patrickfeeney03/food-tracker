@@ -159,7 +159,7 @@ describe('POST /api/offline/diary-logs', () => {
     });
   });
 
-  it('acknowledges a queued log and returns the refreshed offline bootstrap', async () => {
+  it('acknowledges a queued log and returns the refreshed tracker snapshot', async () => {
     await withMigratedDatabase(async (connection) => {
       const user = insertUser(
         connection,
@@ -187,22 +187,24 @@ describe('POST /api/offline/diary-logs', () => {
         schemaVersion: 1,
         acknowledgedMutationId:
           payload.input.clientMutationId,
-        bootstrap: {
+        snapshot: {
           schemaVersion: 1,
           user: {
             id: user.id,
             name: user.name
           },
-          diary: {
-            date: '2026-07-24'
+          diaryDays: {
+            '2026-07-24': {
+              date: '2026-07-24'
+            }
           }
         }
       });
       expect(
-        result.bootstrap.diary.meals.breakfast.entries
+        result.snapshot.diaryDays['2026-07-24'].meals.breakfast.entries
       ).toHaveLength(1);
       expect(
-        result.bootstrap.diary.meals.breakfast.entries[0]
+        result.snapshot.diaryDays['2026-07-24'].meals.breakfast.entries[0]
       ).toMatchObject({
         foodId: food.id,
         foodName: 'Queued oats',

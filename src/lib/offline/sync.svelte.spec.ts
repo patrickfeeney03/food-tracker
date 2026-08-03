@@ -1,19 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { shiftDate } from '$lib/date';
 import {
   clearAllOfflineData,
   enqueueOfflineDiaryLog,
   listOfflineDiaryLogMutations,
-  saveOfflineBootstrap
+  saveTrackerSnapshot
 } from './indexed-db';
 import {
   discardFailedOfflineChanges,
   offlineSyncStatus,
-  queueOfflineDiaryLog,
+  queueDiaryLog,
   resetOfflineSyncStatus,
   retryOfflineChanges,
   syncOfflineChanges
 } from './sync';
-import type { OfflineBootstrap } from './types';
+import type { TrackerSnapshot } from './types';
 import { get } from 'svelte/store';
 
 const userId = '550e8400-e29b-41d4-a716-446655440000';
@@ -29,7 +30,24 @@ function input(clientMutationId: string) {
   };
 }
 
-function bootstrap(savedAt: number): OfflineBootstrap {
+function trackerSnapshot(savedAt: number): TrackerSnapshot {
+  const centerDate = '2026-07-24';
+  const diaryDays = Object.fromEntries(
+    Array.from({ length: 11 }, (_, index) => {
+      const date = shiftDate(centerDate, index - 5);
+      return [date, {
+        date,
+        meals: {
+          breakfast: { slot: 'breakfast', entries: [], totals: {} },
+          lunch: { slot: 'lunch', entries: [], totals: {} },
+          dinner: { slot: 'dinner', entries: [], totals: {} },
+          snacks: { slot: 'snacks', entries: [], totals: {} }
+        },
+        totals: {}
+      }];
+    })
+  );
+
   return {
     schemaVersion: 1,
     user: {
@@ -37,23 +55,15 @@ function bootstrap(savedAt: number): OfflineBootstrap {
       name: 'Patrick'
     },
     savedAt,
-    diary: {
-      date: '2026-07-24',
-      meals: {
-        breakfast: { slot: 'breakfast', entries: [], totals: {} },
-        lunch: { slot: 'lunch', entries: [], totals: {} },
-        dinner: { slot: 'dinner', entries: [], totals: {} },
-        snacks: { slot: 'snacks', entries: [], totals: {} }
-      }
-    },
+    diaryDays,
     foods: []
-  } as unknown as OfflineBootstrap;
+  } as unknown as TrackerSnapshot;
 }
 
 beforeEach(async () => {
   await clearAllOfflineData();
   resetOfflineSyncStatus();
-  await saveOfflineBootstrap(bootstrap(1));
+  await saveTrackerSnapshot(trackerSnapshot(1));
 });
 
 afterEach(() => {
@@ -61,6 +71,45 @@ afterEach(() => {
 });
 
 describe('offline sync scheduling', () => {
+  it('keeps a successfully queued intent when the status refresh fails', async () => {
+    const clientMutationId = '550e8400-e29b-41d4-a716-446655440009';
+    const transaction = IDBDatabase.prototype.transaction;
+    let statusReadFailed = false;
+    const statusRead = vi.spyOn(IDBDatabase.prototype, 'transaction')
+      .mockImplementation(function (this: IDBDatabase, storeNames, mode, options) {
+        const names = typeof storeNames === 'string'
+          ? [storeNames]
+          : Array.from(storeNames);
+
+        if (
+          !statusReadFailed &&
+          mode === 'readonly' &&
+          names.includes('metadata')
+        ) {
+          statusReadFailed = true;
+          throw new Error('Status unavailable');
+        }
+
+        return transaction.call(this, storeNames, mode, options);
+      });
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new TypeError('Network unavailable');
+    }));
+
+    await expect(
+      queueDiaryLog(userId, foodId, input(clientMutationId))
+    ).resolves.toBeUndefined();
+    statusRead.mockRestore();
+    await syncOfflineChanges();
+
+    expect(await listOfflineDiaryLogMutations(userId)).toEqual([
+      expect.objectContaining({
+        clientMutationId,
+        state: 'pending'
+      })
+    ]);
+  });
+
   it('sends the queued user and marks an identity mismatch failed', async () => {
     const clientMutationId = '550e8400-e29b-41d4-a716-446655440010';
     let postedBody: unknown;
@@ -127,7 +176,7 @@ describe('offline sync scheduling', () => {
         JSON.stringify({
           schemaVersion: 1,
           acknowledgedMutationId: body.input.clientMutationId,
-          bootstrap: bootstrap(callCount + 1)
+          snapshot: trackerSnapshot(callCount + 1)
         }),
         {
           headers: {
@@ -143,7 +192,7 @@ describe('offline sync scheduling', () => {
     await vi.waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
-    await queueOfflineDiaryLog(userId, foodId, input(secondId));
+    await queueDiaryLog(userId, foodId, input(secondId));
     releaseFirst?.();
     await activeSync;
 
@@ -208,7 +257,7 @@ describe('offline sync scheduling', () => {
         JSON.stringify({
           schemaVersion: 1,
           acknowledgedMutationId: body.input.clientMutationId,
-          bootstrap: bootstrap(2)
+          snapshot: trackerSnapshot(2)
         }),
         {
           headers: {

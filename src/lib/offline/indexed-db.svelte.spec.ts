@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { OfflineBootstrap } from './types';
+import type { TrackerSnapshot } from './types';
 import {
   acknowledgeOfflineDiaryLog,
   clearAllOfflineData,
@@ -14,7 +14,7 @@ import {
   readActiveUserId,
   readOfflineData,
   retryOfflineDiaryLog,
-  saveOfflineBootstrap
+  saveTrackerSnapshot
 } from './indexed-db';
 
 const mutationInput = {
@@ -25,13 +25,14 @@ const mutationInput = {
   mealSlot: 'breakfast' as const
 };
 
-function bootstrap({
+function trackerSnapshot({
   userId = 'user-1',
   userName = 'Patrick',
   date = '2026-07-24',
   savedAt = 1,
   foodName = 'Apple',
-  diaryMarker = date
+  diaryMarker = date,
+  days
 }: {
   userId?: string;
   userName?: string;
@@ -39,7 +40,8 @@ function bootstrap({
   savedAt?: number;
   foodName?: string;
   diaryMarker?: string;
-} = {}): OfflineBootstrap {
+  days?: Record<string, string>;
+} = {}): TrackerSnapshot {
   return {
     schemaVersion: 1,
     user: {
@@ -47,17 +49,18 @@ function bootstrap({
       name: userName
     },
     savedAt,
-    diary: {
-      date,
-      marker: diaryMarker
-    },
+    diaryDays: Object.fromEntries(
+      Object.entries(days ?? { [date]: diaryMarker }).map(
+        ([diaryDate, marker]) => [diaryDate, { date: diaryDate, marker }]
+      )
+    ),
     foods: [
       {
         id: `food-${foodName}`,
         name: foodName
       }
     ]
-  } as unknown as OfflineBootstrap;
+  } as unknown as TrackerSnapshot;
 }
 
 describe('offline IndexedDB repository', () => {
@@ -65,18 +68,18 @@ describe('offline IndexedDB repository', () => {
     await clearAllOfflineData();
   });
 
-  it('returns no active data before a bootstrap is saved', async () => {
+  it('returns no active data before a tracker snapshot is saved', async () => {
     await expect(readActiveUserId()).resolves.toBeNull();
     await expect(readActiveOfflineData()).resolves.toBeNull();
   });
 
   it('retains diary dates while replacing the catalogue with the latest snapshot', async () => {
-    await saveOfflineBootstrap(bootstrap({
+    await saveTrackerSnapshot(trackerSnapshot({
       date: '2026-07-23',
       savedAt: 10,
       foodName: 'Apple'
     }));
-    await saveOfflineBootstrap(bootstrap({
+    await saveTrackerSnapshot(trackerSnapshot({
       date: '2026-07-24',
       savedAt: 20,
       foodName: 'Banana'
@@ -98,12 +101,12 @@ describe('offline IndexedDB repository', () => {
   });
 
   it('does not let an older response overwrite newer user or diary data', async () => {
-    await saveOfflineBootstrap(bootstrap({
+    await saveTrackerSnapshot(trackerSnapshot({
       savedAt: 20,
       foodName: 'Banana',
       diaryMarker: 'new'
     }));
-    await saveOfflineBootstrap(bootstrap({
+    await saveTrackerSnapshot(trackerSnapshot({
       savedAt: 10,
       foodName: 'Apple',
       diaryMarker: 'old'
@@ -118,13 +121,35 @@ describe('offline IndexedDB repository', () => {
     ).toBe('new');
   });
 
+  it('saves every diary day in a snapshot', async () => {
+    await saveTrackerSnapshot(trackerSnapshot({
+      savedAt: 20,
+      foodName: 'Apple',
+      days: {
+        '2026-07-23': 'first',
+        '2026-07-24': 'second'
+      }
+    }));
+
+    const cached = await readActiveOfflineData();
+
+    expect(cached?.foods[0]?.name).toBe('Apple');
+    expect(Object.keys(cached?.diaryDays ?? {})).toEqual([
+      '2026-07-23',
+      '2026-07-24'
+    ]);
+    expect(
+      (cached?.diaryDays['2026-07-23'] as unknown as { marker: string }).marker
+    ).toBe('first');
+  });
+
   it('isolates users and tracks the most recently saved user as active', async () => {
-    await saveOfflineBootstrap(bootstrap({
+    await saveTrackerSnapshot(trackerSnapshot({
       userId: 'user-1',
       userName: 'Patrick',
       foodName: 'Apple'
     }));
-    await saveOfflineBootstrap(bootstrap({
+    await saveTrackerSnapshot(trackerSnapshot({
       userId: 'user-2',
       userName: 'Other',
       foodName: 'Banana'
@@ -136,8 +161,8 @@ describe('offline IndexedDB repository', () => {
   });
 
   it('clears one user without clearing another user', async () => {
-    await saveOfflineBootstrap(bootstrap({ userId: 'user-1' }));
-    await saveOfflineBootstrap(bootstrap({ userId: 'user-2' }));
+    await saveTrackerSnapshot(trackerSnapshot({ userId: 'user-1' }));
+    await saveTrackerSnapshot(trackerSnapshot({ userId: 'user-2' }));
 
     await clearOfflineUser('user-1');
 
@@ -147,7 +172,7 @@ describe('offline IndexedDB repository', () => {
   });
 
   it('removes the active marker when the active user is cleared', async () => {
-    await saveOfflineBootstrap(bootstrap());
+    await saveTrackerSnapshot(trackerSnapshot());
 
     await clearOfflineUser('user-1');
 
@@ -156,8 +181,8 @@ describe('offline IndexedDB repository', () => {
   });
 
   it('stores a structured clone instead of retaining caller-owned objects', async () => {
-    const input = bootstrap();
-    await saveOfflineBootstrap(input);
+    const input = trackerSnapshot();
+    await saveTrackerSnapshot(input);
 
     (input.foods[0] as { name: string }).name = 'Changed after saving';
 
@@ -165,19 +190,19 @@ describe('offline IndexedDB repository', () => {
   });
 
   it('reports values that cannot be structured-cloned as storage errors', async () => {
-    const input = bootstrap() as OfflineBootstrap & {
+    const input = trackerSnapshot() as TrackerSnapshot & {
       unsupported?: () => void;
     };
     input.unsupported = () => undefined;
 
-    await expect(saveOfflineBootstrap(input)).rejects.toBeInstanceOf(
+    await expect(saveTrackerSnapshot(input)).rejects.toBeInstanceOf(
       OfflineStorageError
     );
   });
 
   it('clears all users and active-user metadata', async () => {
-    await saveOfflineBootstrap(bootstrap({ userId: 'user-1' }));
-    await saveOfflineBootstrap(bootstrap({ userId: 'user-2' }));
+    await saveTrackerSnapshot(trackerSnapshot({ userId: 'user-1' }));
+    await saveTrackerSnapshot(trackerSnapshot({ userId: 'user-2' }));
 
     await clearAllOfflineData();
 
@@ -221,7 +246,7 @@ describe('offline IndexedDB repository', () => {
   });
 
   it('detects pending and failed mutations only for the active user', async () => {
-    await saveOfflineBootstrap(bootstrap({ userId: 'user-1' }));
+    await saveTrackerSnapshot(trackerSnapshot({ userId: 'user-1' }));
     await enqueueOfflineDiaryLog(
       'user-2',
       'food-2',
@@ -312,17 +337,20 @@ describe('offline IndexedDB repository', () => {
   });
 
   it('atomically saves an acknowledged snapshot and removes its diary log', async () => {
-    await saveOfflineBootstrap(bootstrap({
+    await saveTrackerSnapshot(trackerSnapshot({
       userId: 'user-1',
       savedAt: 10,
       foodName: 'Apple'
     }));
     await enqueueOfflineDiaryLog('user-1', 'food-1', mutationInput);
-    const acknowledged = bootstrap({
+    const acknowledged = trackerSnapshot({
       userId: 'user-1',
       savedAt: 20,
       foodName: 'Banana',
-      diaryMarker: 'acknowledged'
+      days: {
+        '2026-07-24': 'acknowledged',
+        '2026-07-25': 'neighbor'
+      }
     });
 
     await acknowledgeOfflineDiaryLog(
@@ -338,30 +366,36 @@ describe('offline IndexedDB repository', () => {
           ?.diaryDays['2026-07-24'] as unknown as { marker: string }
       ).marker
     ).toBe('acknowledged');
+    expect(
+      (
+        (await readOfflineData('user-1'))
+          ?.diaryDays['2026-07-25'] as unknown as { marker: string }
+      ).marker
+    ).toBe('neighbor');
   });
 
   it('does not let an equal-time ordinary refresh overwrite an acknowledged diary', async () => {
     const secondMutationId = '550e8400-e29b-41d4-a716-446655440009';
-    const stale = bootstrap({
+    const stale = trackerSnapshot({
       userId: 'user-1',
       savedAt: 20,
       foodName: 'Before sync',
       diaryMarker: 'before-sync'
     });
-    const acknowledged = bootstrap({
+    const acknowledged = trackerSnapshot({
       userId: 'user-1',
       savedAt: 20,
       foodName: 'After sync',
       diaryMarker: 'acknowledged'
     });
-    const secondAcknowledgement = bootstrap({
+    const secondAcknowledgement = trackerSnapshot({
       userId: 'user-1',
       savedAt: 20,
       foodName: 'After second sync',
       diaryMarker: 'second-acknowledgement'
     });
 
-    await saveOfflineBootstrap(stale);
+    await saveTrackerSnapshot(stale);
     await enqueueOfflineDiaryLog('user-1', 'food-1', mutationInput);
     await enqueueOfflineDiaryLog(
       'user-1',
@@ -379,7 +413,7 @@ describe('offline IndexedDB repository', () => {
       secondAcknowledgement,
       secondMutationId
     );
-    await saveOfflineBootstrap(stale);
+    await saveTrackerSnapshot(stale);
 
     const cached = await readOfflineData('user-1');
 
