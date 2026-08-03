@@ -1,7 +1,7 @@
 import { calendarDateString } from '$lib/nutrition/portion-input';
 import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
-import { buildOfflineBootstrap } from '$lib/server/offline/bootstrap';
+import { buildTrackerSnapshot } from '$lib/server/tracker/snapshot';
 import { error, json, type RequestHandler } from '@sveltejs/kit';
 
 export const GET: RequestHandler = ({
@@ -9,19 +9,19 @@ export const GET: RequestHandler = ({
   url
 }) => {
   const user = requireUser(locals);
-  const dateResult = calendarDateString.safeParse(
+  const date = calendarDateString.safeParse(
     url.searchParams.get('date')
   );
 
-  if (!dateResult.success) {
+  if (!date.success) {
     return error(400, 'Invalid diary date');
   }
 
   return json(
-    buildOfflineBootstrap(
+    buildTrackerSnapshot(
       db,
       user,
-      dateResult.data
+      date.data
     ),
     {
       headers: {

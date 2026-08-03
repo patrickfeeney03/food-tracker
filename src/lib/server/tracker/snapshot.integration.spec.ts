@@ -16,13 +16,13 @@ import {
   type User
 } from '$lib/server/db/schema';
 import { buildDiaryLogValues } from '$lib/server/nutrition/diary-entry';
-import { buildOfflineBootstrap } from './bootstrap';
+import { buildTrackerSnapshot } from './snapshot';
 
 function withMigratedDatabase(
   run: (connection: DatabaseConnection) => void
 ): void {
   const directory = mkdtempSync(
-    join(tmpdir(), 'calories-offline-bootstrap-')
+    join(tmpdir(), 'calories-tracker-snapshot-')
   );
   const connection = createDatabase(
     join(directory, 'test.db')
@@ -115,7 +115,7 @@ function insertDiaryEntry(
     .run();
 }
 
-describe('buildOfflineBootstrap', () => {
+describe('buildTrackerSnapshot', () => {
   it('returns a complete user-scoped diary and every active food', () => {
     withMigratedDatabase((connection) => {
       const user = insertUser(
@@ -184,7 +184,7 @@ describe('buildOfflineBootstrap', () => {
         deletedAt: new Date('2026-07-25T09:00:00.000Z')
       });
 
-      const result = buildOfflineBootstrap(
+      const result = buildTrackerSnapshot(
         connection.db,
         user,
         '2026-07-24',
@@ -198,22 +198,41 @@ describe('buildOfflineBootstrap', () => {
           name: 'Patrick'
         },
         savedAt: savedAt.getTime(),
-        diary: {
-          date: '2026-07-24',
-          goal: {
-            effectiveFrom: '2026-07-01',
-            targetEnergyMkcal: 2_500_000
-          },
-          totals: {
-            energyMkcal: 342_000,
-            proteinMg: 52_500,
-            carbsMg: 1_000,
-            fatMg: 12_500
+        diaryDays: {
+          '2026-07-24': {
+            date: '2026-07-24',
+            goal: {
+              effectiveFrom: '2026-07-01',
+              targetEnergyMkcal: 2_500_000
+            },
+            totals: {
+              energyMkcal: 342_000,
+              proteinMg: 52_500,
+              carbsMg: 1_000,
+              fatMg: 12_500
+            }
           }
         }
       });
-      expect(result.diary.meals.breakfast.entries).toHaveLength(1);
-      expect(result.diary.meals.breakfast.entries[0]).toMatchObject({
+      expect(Object.keys(result.diaryDays)).toEqual([
+        '2026-07-19',
+        '2026-07-20',
+        '2026-07-21',
+        '2026-07-22',
+        '2026-07-23',
+        '2026-07-24',
+        '2026-07-25',
+        '2026-07-26',
+        '2026-07-27',
+        '2026-07-28',
+        '2026-07-29'
+      ]);
+      expect(
+        result.diaryDays['2026-07-24'].meals.breakfast.entries
+      ).toHaveLength(1);
+      expect(
+        result.diaryDays['2026-07-24'].meals.breakfast.entries[0]
+      ).toMatchObject({
         foodId: usedFood.id,
         foodName: 'Used food',
         portionKind: 'serving',
@@ -230,7 +249,12 @@ describe('buildOfflineBootstrap', () => {
         },
         loggedAt: '2026-07-24T08:00:00.000Z'
       });
-      expect(result.diary.meals.lunch.entries).toEqual([]);
+      expect(
+        result.diaryDays['2026-07-20'].meals.breakfast.entries
+      ).toHaveLength(1);
+      expect(
+        result.diaryDays['2026-07-24'].meals.lunch.entries
+      ).toEqual([]);
       expect(result.foods).toHaveLength(52);
       expect(result.foods.map((food) => food.name)).not.toContain(
         'Archived food'

@@ -1,5 +1,5 @@
 import type {
-  OfflineBootstrap,
+  TrackerSnapshot,
   OfflineLogExistingFoodMutation,
   OfflineMutation,
   OfflineMutationFailure
@@ -18,11 +18,11 @@ const ACTIVE_USER_KEY = 'active-user-id';
 
 interface CachedUserRecord {
   userId: string;
-  schemaVersion: OfflineBootstrap['schemaVersion'];
-  user: OfflineBootstrap['user'];
+  schemaVersion: TrackerSnapshot['schemaVersion'];
+  user: TrackerSnapshot['user'];
   savedAt: number;
   snapshotPriority?: number;
-  foods: OfflineBootstrap['foods'];
+  foods: TrackerSnapshot['foods'];
 }
 
 interface CachedDiaryDayRecord {
@@ -30,7 +30,7 @@ interface CachedDiaryDayRecord {
   date: string;
   savedAt: number;
   snapshotPriority?: number;
-  diary: OfflineBootstrap['diary'];
+  diary: TrackerSnapshot['diaryDays'][string];
 }
 
 interface MetadataRecord {
@@ -38,13 +38,7 @@ interface MetadataRecord {
   value: string;
 }
 
-export interface CachedOfflineData {
-  schemaVersion: OfflineBootstrap['schemaVersion'];
-  user: OfflineBootstrap['user'];
-  savedAt: number;
-  diaryDays: Record<string, OfflineBootstrap['diary']>;
-  foods: OfflineBootstrap['foods'];
-}
+export type CachedOfflineData = TrackerSnapshot;
 
 export class OfflineStorageUnsupportedError extends Error {
   constructor() {
@@ -206,8 +200,56 @@ function cloneForStorage<T>(value: T): T {
   }
 }
 
-export async function saveOfflineBootstrap(bootstrap: OfflineBootstrap): Promise<void> {
-  const safeBootstrap = cloneForStorage(bootstrap);
+async function putTrackerSnapshot(
+  users: IDBObjectStore,
+  diaryDays: IDBObjectStore,
+  snapshot: TrackerSnapshot,
+  snapshotPriority: number
+): Promise<void> {
+  const diaryEntries = Object.entries(snapshot.diaryDays);
+  const [existingUser, existingDiaries] = await Promise.all([
+    requestResult<CachedUserRecord | undefined>(users.get(snapshot.user.id)),
+    Promise.all(
+      diaryEntries.map(([date]) =>
+        requestResult<CachedDiaryDayRecord | undefined>(
+          diaryDays.get([snapshot.user.id, date])
+        )
+      )
+    )
+  ]);
+
+  if (shouldReplaceSnapshot(existingUser, snapshot.savedAt, snapshotPriority)) {
+    users.put({
+      userId: snapshot.user.id,
+      schemaVersion: snapshot.schemaVersion,
+      user: snapshot.user,
+      savedAt: snapshot.savedAt,
+      snapshotPriority,
+      foods: snapshot.foods
+    } satisfies CachedUserRecord);
+  }
+
+  diaryEntries.forEach(([date, diary], index) => {
+    if (!shouldReplaceSnapshot(
+      existingDiaries[index],
+      snapshot.savedAt,
+      snapshotPriority
+    )) {
+      return;
+    }
+
+    diaryDays.put({
+      userId: snapshot.user.id,
+      date,
+      savedAt: snapshot.savedAt,
+      snapshotPriority,
+      diary
+    } satisfies CachedDiaryDayRecord);
+  });
+}
+
+export async function saveTrackerSnapshot(snapshot: TrackerSnapshot): Promise<void> {
+  const safeSnapshot = cloneForStorage(snapshot);
   let database: IDBDatabase | undefined;
 
   try {
@@ -221,38 +263,11 @@ export async function saveOfflineBootstrap(bootstrap: OfflineBootstrap): Promise
     const diaryDays = transaction.objectStore(DIARY_DAYS_STORE);
     const metadata = transaction.objectStore(METADATA_STORE);
 
-    const existingUser = await requestResult<CachedUserRecord | undefined>(
-      users.get(safeBootstrap.user.id)
-    );
-    const diaryKey = [safeBootstrap.user.id, safeBootstrap.diary.date];
-    const existingDiary = await requestResult<CachedDiaryDayRecord | undefined>(
-      diaryDays.get(diaryKey)
-    );
-
-    if (shouldReplaceSnapshot(existingUser, safeBootstrap.savedAt, 0)) {
-      users.put({
-        userId: safeBootstrap.user.id,
-        schemaVersion: safeBootstrap.schemaVersion,
-        user: safeBootstrap.user,
-        savedAt: safeBootstrap.savedAt,
-        snapshotPriority: 0,
-        foods: safeBootstrap.foods
-      } satisfies CachedUserRecord);
-    }
-
-    if (shouldReplaceSnapshot(existingDiary, safeBootstrap.savedAt, 0)) {
-      diaryDays.put({
-        userId: safeBootstrap.user.id,
-        date: safeBootstrap.diary.date,
-        savedAt: safeBootstrap.savedAt,
-        snapshotPriority: 0,
-        diary: safeBootstrap.diary
-      } satisfies CachedDiaryDayRecord);
-    }
+    await putTrackerSnapshot(users, diaryDays, safeSnapshot, 0);
 
     metadata.put({
       key: ACTIVE_USER_KEY,
-      value: safeBootstrap.user.id
+      value: safeSnapshot.user.id
     } satisfies MetadataRecord);
 
     await completion;
@@ -538,13 +553,13 @@ export function discardOfflineDiaryLog(
 export async function acknowledgeOfflineMutation(
   userId: string,
   clientMutationId: string,
-  bootstrap: OfflineBootstrap
+  snapshot: TrackerSnapshot
 ): Promise<void> {
-  if (bootstrap.user.id !== userId) {
+  if (snapshot.user.id !== userId) {
     throw new OfflineMutationConflictError();
   }
 
-  const safeBootstrap = cloneForStorage(bootstrap);
+  const safeSnapshot = cloneForStorage(snapshot);
   let database: IDBDatabase | undefined;
 
   try {
@@ -558,34 +573,7 @@ export async function acknowledgeOfflineMutation(
     const diaryDays = transaction.objectStore(DIARY_DAYS_STORE);
     const metadata = transaction.objectStore(METADATA_STORE);
     const outbox = transaction.objectStore(OUTBOX_STORE);
-    const existingUser = await requestResult<CachedUserRecord | undefined>(
-      users.get(userId)
-    );
-    const diaryKey = [userId, safeBootstrap.diary.date];
-    const existingDiary = await requestResult<CachedDiaryDayRecord | undefined>(
-      diaryDays.get(diaryKey)
-    );
-
-    if (shouldReplaceSnapshot(existingUser, safeBootstrap.savedAt, 1)) {
-      users.put({
-        userId,
-        schemaVersion: safeBootstrap.schemaVersion,
-        user: safeBootstrap.user,
-        savedAt: safeBootstrap.savedAt,
-        snapshotPriority: 1,
-        foods: safeBootstrap.foods
-      } satisfies CachedUserRecord);
-    }
-
-    if (shouldReplaceSnapshot(existingDiary, safeBootstrap.savedAt, 1)) {
-      diaryDays.put({
-        userId,
-        date: safeBootstrap.diary.date,
-        savedAt: safeBootstrap.savedAt,
-        snapshotPriority: 1,
-        diary: safeBootstrap.diary
-      } satisfies CachedDiaryDayRecord);
-    }
+    await putTrackerSnapshot(users, diaryDays, safeSnapshot, 1);
 
     metadata.put({
       key: ACTIVE_USER_KEY,
@@ -602,13 +590,13 @@ export async function acknowledgeOfflineMutation(
 }
 
 export function acknowledgeOfflineDiaryLog(
-  bootstrap: OfflineBootstrap,
+  snapshot: TrackerSnapshot,
   clientMutationId: string
 ): Promise<void> {
   return acknowledgeOfflineMutation(
-    bootstrap.user.id,
+    snapshot.user.id,
     clientMutationId,
-    bootstrap
+    snapshot
   );
 }
 

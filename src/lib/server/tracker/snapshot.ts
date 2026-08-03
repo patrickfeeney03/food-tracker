@@ -1,10 +1,11 @@
 import type {
-  OfflineBootstrap,
+  TrackerSnapshot,
   OfflineDiaryDay,
   OfflineDiaryEntry,
   OfflineFood,
   OfflineLatestFoodUse
 } from '$lib/offline/types';
+import { shiftDate } from '$lib/date';
 import { mealSlots } from '$lib/nutrition/constants';
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 import type { AppDatabase } from '$lib/server/db/connection';
@@ -91,6 +92,14 @@ function mapDiaryDay(summary: DiaryDaySummary): OfflineDiaryDay {
   };
 }
 
+export function buildTrackerDiaryDay(
+  db: AppDatabase,
+  userId: string,
+  date: string
+): OfflineDiaryDay {
+  return mapDiaryDay(loadDiaryDay(db, userId, date));
+}
+
 function listLatestFoodUses(
   db: AppDatabase,
   userId: string
@@ -166,7 +175,7 @@ function listLatestFoodUses(
   return latestUseByFood;
 }
 
-export function listFoodsForBootstrap(
+export function listFoodsForTrackerSnapshot(
   db: AppDatabase,
   userId: string
 ): OfflineFood[] {
@@ -221,12 +230,17 @@ export function listFoodsForBootstrap(
     });
 }
 
-export function buildOfflineBootstrap(
+export function buildTrackerSnapshot(
   db: AppDatabase,
   user: Pick<User, 'id' | 'name'>,
   date: string,
   savedAt = new Date()
-): OfflineBootstrap {
+): TrackerSnapshot {
+  const dates = Array.from(
+    { length: 11 },
+    (_, index) => shiftDate(date, index - 5)
+  );
+
   return {
     schemaVersion: 1,
     user: {
@@ -234,9 +248,12 @@ export function buildOfflineBootstrap(
       name: user.name
     },
     savedAt: savedAt.getTime(),
-    diary: mapDiaryDay(
-      loadDiaryDay(db, user.id, date)
+    diaryDays: Object.fromEntries(
+      dates.map((diaryDate) => [
+        diaryDate,
+        buildTrackerDiaryDay(db, user.id, diaryDate)
+      ])
     ),
-    foods: listFoodsForBootstrap(db, user.id)
+    foods: listFoodsForTrackerSnapshot(db, user.id)
   };
 }

@@ -12,10 +12,10 @@ import {
   retryOfflineDiaryLog
 } from './indexed-db';
 import type {
-  OfflineBootstrap,
-  OfflineLogExistingFoodMutation
+  OfflineLogExistingFoodMutation,
+  TrackerSnapshot
 } from './types';
-import { isOfflineBootstrap } from './validators';
+import { isTrackerSnapshot } from './validators';
 
 export type OfflineSyncPhase =
   | 'idle'
@@ -54,7 +54,7 @@ function clearSyncedTimer(): void {
 function isSyncResponse(value: unknown): value is {
   schemaVersion: 1;
   acknowledgedMutationId: string;
-  bootstrap: OfflineBootstrap;
+  snapshot: TrackerSnapshot;
 } {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -63,12 +63,12 @@ function isSyncResponse(value: unknown): value is {
   const candidate = value as {
     schemaVersion?: unknown;
     acknowledgedMutationId?: unknown;
-    bootstrap?: unknown;
+    snapshot?: unknown;
   };
 
   return candidate.schemaVersion === 1 &&
     typeof candidate.acknowledgedMutationId === 'string' &&
-    isOfflineBootstrap(candidate.bootstrap);
+    isTrackerSnapshot(candidate.snapshot);
 }
 
 function counts(mutations: OfflineLogExistingFoodMutation[]): {
@@ -152,7 +152,7 @@ async function postMutation(
     }
 
     await acknowledgeOfflineDiaryLog(
-      body.bootstrap,
+      body.snapshot,
       mutation.clientMutationId
     );
     return 'acknowledged';
@@ -279,18 +279,23 @@ export function syncOfflineChanges(): Promise<void> {
   return syncPromise;
 }
 
-export async function queueOfflineDiaryLog(
+export async function queueDiaryLog(
   userId: string,
   foodId: string,
   input: LogFoodInput
 ): Promise<void> {
   clearSyncedTimer();
   await enqueueOfflineDiaryLog(userId, foodId, input);
-  await setStatusFromQueue('pending');
-
-  if (navigator.onLine) {
-    void syncOfflineChanges();
+  try {
+    await setStatusFromQueue('pending');
+  } catch {
+    // The user intent is already durable in the outbox. A secondary status
+    // read must not make the caller retry it with a different mutation ID.
   }
+
+  // `navigator.onLine` is only a hint and can be stale on installed PWAs.
+  // Attempt immediately; a real offline failure leaves the mutation queued.
+  void syncOfflineChanges();
 }
 
 export async function retryOfflineChanges(): Promise<void> {

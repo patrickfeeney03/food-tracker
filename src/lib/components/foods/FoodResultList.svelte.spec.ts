@@ -17,7 +17,7 @@ const food: FoodResultView = {
     resolvedAmount: 150_000,
     energyMkcal: 135_000,
   },
-  quickAddMutationId: null,
+  canQuickAdd: false,
 };
 
 describe("FoodResultList", () => {
@@ -44,7 +44,7 @@ describe("FoodResultList", () => {
 
   it("renders unavailable controls as disabled without action callbacks", async () => {
     render(FoodResultList, {
-      foods: [{ ...food, quickAddMutationId: "mutation-1" }],
+      foods: [{ ...food, canQuickAdd: true }],
       activeQuery: "Greek",
       mealSlot: "lunch",
     });

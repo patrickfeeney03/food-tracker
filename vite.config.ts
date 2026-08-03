@@ -5,6 +5,24 @@ import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 
+function boundedNetworkOnlyPlugin() {
+  return {
+    requestWillFetch: async ({ request }: { request: Request }) => {
+      if (
+        typeof self !== 'undefined' &&
+        self.navigator &&
+        self.navigator.onLine === false
+      ) {
+        throw new TypeError('Offline');
+      }
+
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 2_000);
+      return new Request(request, { signal: controller.signal });
+    }
+  };
+}
+
 export default defineConfig({
   plugins: [
     tailwindcss(),
@@ -107,18 +125,14 @@ export default defineConfig({
               precacheFallback: {
                 fallbackURL: '/offline'
               },
-              plugins: [
-                {
-                  requestWillFetch: async ({ request }) => {
-                    if (typeof self !== 'undefined' && self.navigator && self.navigator.onLine === false) {
-                      throw new TypeError('Offline');
-                    }
-                    const controller = new AbortController();
-                    setTimeout(() => controller.abort(), 500);
-                    return new Request(request, { signal: controller.signal });
-                  }
-                }
-              ]
+              plugins: [boundedNetworkOnlyPlugin()]
+            }
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.endsWith('/__data.json'),
+            handler: 'NetworkOnly',
+            options: {
+              plugins: [boundedNetworkOnlyPlugin()]
             }
           }
         ]

@@ -315,7 +315,7 @@ test('retries an offline food log after a transient sync failure', async ({ app 
 
     await page.context().setOffline(false);
     await expect(page.getByText('Couldn’t sync 1 change.')).toBeVisible();
-    await page.getByRole('button', { name: 'Retry' }).click();
+    await page.getByRole('button', { name: 'Retry', exact: true }).click();
 
     await expect(page.getByText('All changes synced.')).toBeVisible();
     await expect.poll(() => queuedChangeCount(page, userId)).toBe(0);

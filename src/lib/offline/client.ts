@@ -3,14 +3,14 @@ import { readonly, writable } from 'svelte/store';
 import {
   clearAllOfflineData,
   readOfflineData,
-  saveOfflineBootstrap,
+  saveTrackerSnapshot,
   type CachedOfflineData
 } from './indexed-db';
 import {
   cancelOfflineSync,
   resetOfflineSyncStatus
 } from './sync';
-import { isOfflineBootstrap } from './validators';
+import { isTrackerSnapshot } from './validators';
 
 export type OfflineCacheStatus =
   | 'idle'
@@ -35,7 +35,7 @@ async function performRefresh(
   cacheStatusState.set('refreshing');
 
   const url = new URL(
-    resolve('/api/offline/bootstrap'),
+    resolve('/api/offline/snapshot'),
     window.location.origin
   );
   url.searchParams.set('date', date);
@@ -51,20 +51,20 @@ async function performRefresh(
     !response.ok ||
     !response.headers.get('content-type')?.includes('application/json')
   ) {
-    throw new Error(`Offline bootstrap failed with status ${response.status}.`);
+    throw new Error(`Offline cache refresh failed with status ${response.status}.`);
   }
 
-  const bootstrap: unknown = await response.json();
+  const snapshot: unknown = await response.json();
 
-  if (!isOfflineBootstrap(bootstrap)) {
-    throw new Error('Offline bootstrap returned an unsupported response.');
+  if (!isTrackerSnapshot(snapshot)) {
+    throw new Error('Offline cache refresh returned an unsupported response.');
   }
 
-  await saveOfflineBootstrap(bootstrap);
-  const cached = await readOfflineData(bootstrap.user.id);
+  await saveTrackerSnapshot(snapshot);
+  const cached = await readOfflineData(snapshot.user.id);
 
   if (cached === null) {
-    throw new Error('Offline bootstrap was not available after saving.');
+    throw new Error('Offline cache was not available after saving.');
   }
 
   lastSavedAtState.set(cached.savedAt);
@@ -111,9 +111,7 @@ export async function clearOfflineCacheForSignOut(): Promise<void> {
     controller.abort();
   }
 
-  await Promise.allSettled(
-    pendingRefreshes.map(({ promise }) => promise)
-  );
+  await Promise.allSettled(pendingRefreshes.map(({ promise }) => promise));
   await clearAllOfflineData();
   cacheStatusState.set('idle');
   lastSavedAtState.set(null);
