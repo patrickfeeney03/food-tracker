@@ -1,5 +1,6 @@
 <script lang="ts">
   import { inputLimits } from "$lib/nutrition/input-limits";
+  import { untrack } from "svelte";
   import NutrientInput from "./NutrientInput.svelte";
 
   export type FoodFieldValues = {
@@ -57,6 +58,24 @@
     { id: "sodiumMg", label: "Sodium", unit: "mg", step: "1", max: inputLimits.food.sodiumMg.max },
     { id: "potassiumMg", label: "Potassium", unit: "mg", step: "1", max: inputLimits.food.potassiumMg.max },
   ] as const;
+
+  let additionalNutritionOpen = $state(
+    untrack(() =>
+      additionalNutrition.some(({ id }) => Boolean(values[id] || errors[id]?.length)),
+    ),
+  );
+  let notesOpen = $state(
+    untrack(() => Boolean(values.notes || errors.notes?.length)),
+  );
+
+  $effect(() => {
+    if (additionalNutrition.some(({ id }) => Boolean(errors[id]?.length))) {
+      additionalNutritionOpen = true;
+    }
+    if (errors.notes?.length) {
+      notesOpen = true;
+    }
+  });
 </script>
 
 <div
@@ -233,7 +252,7 @@
 
   <details
     class="group"
-    open={Boolean(errors.fibreG || errors.sugarG || errors.saturatedFatG || errors.sodiumMg || errors.potassiumMg)}
+    bind:open={additionalNutritionOpen}
   >
     <summary
       class="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-lg
@@ -258,7 +277,7 @@
     </div>
   </details>
 
-  <details class="group" open={Boolean(values.notes || errors.notes)}>
+  <details class="group" bind:open={notesOpen}>
     <summary
       class="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-lg
         text-[13px] font-semibold text-[var(--app-accent)] focus-visible:outline-2
