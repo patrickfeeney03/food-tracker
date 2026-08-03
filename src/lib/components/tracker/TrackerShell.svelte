@@ -454,8 +454,15 @@
 
     if (isTrackerRoute) {
       event.preventDefault();
+
+      const previousView = activeView;
+
       pushState(anchor.href, {});
       updateFromCurrentUrl();
+
+      if (activeView !== previousView) {
+        window.scrollTo(0, 0); // Since we are programatically changing the content we have to simulate scrolling back up
+      }
     }
   }
 
