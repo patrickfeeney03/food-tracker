@@ -811,7 +811,7 @@ test('queues an existing-food log while sync is pending and keeps invalid amount
 
   await expect(page).toHaveURL(/\/foods\?/);
   await expect(sync.started).resolves.toBeUndefined();
-  await expect(page.getByText('Syncing 1 change…')).toBeVisible();
+  await expect(page.getByText('Syncing 1 change…')).toHaveCount(0);
   await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(1);
 
   sync.release();
@@ -847,7 +847,7 @@ test('quick adds the latest portion with current nutrition through the local que
 
   expectSearchParameters(page, { date: diaryDate, mealSlot: 'lunch', q: 'Quick' });
   await expect(sync.started).resolves.toBeUndefined();
-  await expect(page.getByText('Syncing 1 change…')).toBeVisible();
+  await expect(page.getByText('Syncing 1 change…')).toHaveCount(0);
   await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(1);
 
   sync.release();

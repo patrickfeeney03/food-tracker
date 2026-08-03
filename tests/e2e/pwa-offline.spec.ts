@@ -226,8 +226,8 @@ test('keeps the familiar UI and syncs offline food logs on reconnect', async ({ 
     expect(failedAppAssetRequests).toEqual([]);
 
     await page.context().setOffline(false);
-    await expect(page.getByText('All changes synced.')).toBeVisible();
     await expect.poll(() => queuedChangeCount(page, userId)).toBe(0);
+    await expect(page.getByText('All changes synced.')).toHaveCount(0);
     await expect.poll(() => app.diaryRows().length).toBe(3);
 
     await page.reload({ waitUntil: 'networkidle' });
@@ -317,8 +317,8 @@ test('retries an offline food log after a transient sync failure', async ({ app 
     await expect(page.getByText('Couldn’t sync 1 change.')).toBeVisible();
     await page.getByRole('button', { name: 'Retry' }).click();
 
-    await expect(page.getByText('All changes synced.')).toBeVisible();
     await expect.poll(() => queuedChangeCount(page, userId)).toBe(0);
+    await expect(page.getByText('All changes synced.')).toHaveCount(0);
     await expect.poll(() => app.diaryRows()).toEqual([
       expect.objectContaining({
         foodId,

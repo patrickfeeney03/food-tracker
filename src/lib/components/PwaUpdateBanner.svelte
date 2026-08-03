@@ -47,17 +47,6 @@
       />
     </div>
   </div>
-{:else if $offlineSyncStatus.phase === 'syncing'}
-  <div
-    class="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-[calc(0.75rem+env(safe-area-inset-top))]"
-  >
-    <div class="pointer-events-auto w-full max-w-[430px]">
-      <FeedbackBanner
-        message={`Syncing ${queuedLabel}…`}
-        tone="neutral"
-      />
-    </div>
-  </div>
 {:else if
   $offlineSyncStatus.phase === 'error' ||
   $offlineSyncStatus.phase === 'attention'}
@@ -98,14 +87,6 @@
           </div>
         {/snippet}
       </FeedbackBanner>
-    </div>
-  </div>
-{:else if $offlineSyncStatus.phase === 'synced'}
-  <div
-    class="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-[calc(0.75rem+env(safe-area-inset-top))]"
-  >
-    <div class="pointer-events-auto w-full max-w-[430px]">
-      <FeedbackBanner message="All changes synced." />
     </div>
   </div>
 {:else if $pwaNeedRefresh}
