@@ -821,6 +821,34 @@ test('queues an existing-food log while sync is pending and keeps invalid amount
   ]);
 });
 
+test('shows a queued diary entry on the diary after navigating back before the sync completes', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Back to diary yoghurt' });
+  const { page, userId } = app;
+  const sync = await holdDiaryLogSync(page);
+
+  await page.goto(`/foods/${foodId}/log?date=${diaryDate}&mealSlot=breakfast`);
+  await page.waitForLoadState('networkidle');
+
+  await page.getByLabel('Number of portions').fill('1');
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+
+  await expect(page).toHaveURL(/\/foods\?/);
+  await expect(sync.started).resolves.toBeUndefined();
+  await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(1);
+
+  await page.getByRole('link', { name: 'Back to diary', exact: true }).click();
+  await expect(page).toHaveURL(/\/\?date=/);
+  const breakfast = page.locator('section[aria-labelledby="breakfast-heading"]');
+  await expect(breakfast.getByRole('heading', { name: 'Back to diary yoghurt' })).toBeVisible();
+  await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(1);
+
+  sync.release();
+  await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(0);
+  await expect.poll(() => app.diaryRows()).toEqual([
+    expect.objectContaining({ foodId, mealSlot: 'breakfast', resolvedAmount: 100_000 })
+  ]);
+});
+
 test('quick adds the latest portion with current nutrition through the local queue', async ({ app }) => {
   const foodId = app.createFood({ name: 'Quick yoghurt' });
   const { page, db, userId } = app;

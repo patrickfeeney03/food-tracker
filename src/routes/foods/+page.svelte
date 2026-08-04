@@ -112,7 +112,7 @@
           mealSlot: destinationMealSlot
         })
       );
-      void reloadTrackerStore(tracker);
+      await reloadTrackerStore(tracker);
     } catch {
       queueError = 'This change could not be saved on this device.';
     } finally {

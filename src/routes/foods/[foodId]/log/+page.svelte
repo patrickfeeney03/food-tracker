@@ -120,7 +120,7 @@
 
     try {
       await queueDiaryLog(userId, food.id, result.data);
-      void reloadTrackerStore(tracker);
+      await reloadTrackerStore(tracker);
       await goto(resolve(withQuery('/foods', {
         date: result.data.diaryDate,
         mealSlot: result.data.mealSlot,
