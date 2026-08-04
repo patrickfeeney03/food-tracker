@@ -4,6 +4,7 @@ import { playwright } from '@vitest/browser-playwright';
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { SvelteKitPWA } from '@vite-pwa/sveltekit';
+import { SHARED_LOCAL_DIR } from './shared-local.ts';
 
 function boundedNetworkOnlyPlugin() {
   return {
@@ -24,6 +25,7 @@ function boundedNetworkOnlyPlugin() {
 }
 
 export default defineConfig({
+  envDir: SHARED_LOCAL_DIR,
   plugins: [
     tailwindcss(),
     sveltekit({
@@ -31,6 +33,9 @@ export default defineConfig({
       // deeply nested routes, so its client assets must stay root-relative.
       paths: {
         relative: false
+      },
+      env: {
+        dir: SHARED_LOCAL_DIR
       },
       compilerOptions: {
         // Force runes mode for the project, except for libraries. Can be removed in svelte 6.

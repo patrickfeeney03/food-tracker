@@ -1,5 +1,6 @@
 import { loadEnvFile } from 'node:process';
 import { randomUUID } from 'node:crypto';
+import { SHARED_ENV_FILE } from '../../../../shared-local.ts';
 import { createDatabase } from './connection';
 import type { MealSlot, PortionKind } from '../../nutrition/constants';
 import {
@@ -16,7 +17,7 @@ import { scaleNutritionValue, divideRoundHalfUp } from '../../nutrition/math';
 import { eq } from 'drizzle-orm';
 
 try {
-  loadEnvFile();
+  loadEnvFile(SHARED_ENV_FILE);
 } catch (error) {
   if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
 }

@@ -1,8 +1,9 @@
 import { defineConfig } from 'drizzle-kit';
 import { loadEnvFile } from 'node:process';
+import { SHARED_ENV_FILE } from './shared-local.ts';
 
 try {
-	loadEnvFile();
+	loadEnvFile(SHARED_ENV_FILE);
 } catch (error) {
 	if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
 }
