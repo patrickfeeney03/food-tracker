@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
+  import { afterNavigate, goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import AmountAdjuster, {
@@ -25,6 +25,13 @@
   import { z } from 'zod';
 
   const tracker = useTrackerStore();
+  let cameFromFoodSearch = $state(false);
+
+  afterNavigate(({ from }) => {
+    if (from?.url.pathname === '/foods') {
+      cameFromFoodSearch = true;
+    }
+  });
   const initialFoodId = untrack(() => page.params.foodId);
   const initialContextResult = contextSchema.safeParse({
     date: untrack(() => page.url.searchParams.get('date')),
@@ -121,7 +128,8 @@
     try {
       await queueDiaryLog(userId, food.id, result.data);
       await reloadTrackerStore(tracker);
-      await goto(resolve(withQuery('/foods', {
+
+      const targetHref = resolve(withQuery('/foods', {
         date: result.data.diaryDate,
         mealSlot: result.data.mealSlot,
         q: context.q.trim() || undefined
@@ -131,7 +139,7 @@
         result.data.diaryDate === context.date &&
         result.data.mealSlot === context.mealSlot;
 
-      if (isSameDestination && typeof window !== 'undefined' && window.history.length > 1) {
+      if (isSameDestination && cameFromFoodSearch && typeof window !== 'undefined' && window.history.length > 1) {
         history.back();
       } else {
         await goto(targetHref, { replaceState: true });
