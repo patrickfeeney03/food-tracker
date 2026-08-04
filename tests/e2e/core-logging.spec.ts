@@ -821,6 +821,32 @@ test('queues an existing-food log while sync is pending and keeps invalid amount
   ]);
 });
 
+test('navigating back after logging a food returns to diary home page instead of log page', async ({ app }) => {
+  const foodId = app.createFood({ name: 'Back Navigation Yoghurt' });
+  const { page } = app;
+
+  await page.goto(`/?date=${diaryDate}`, { waitUntil: 'networkidle' });
+  await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Add food' }).first().click();
+  await expect(page).toHaveURL(/\/foods\?/);
+
+  await page.getByLabel('Search foods').fill('Back Navigation Yoghurt');
+  await page.getByRole('heading', { name: 'Back Navigation Yoghurt' }).click();
+  await expect(page).toHaveURL(new RegExp(`/foods/${foodId}/log\\?`));
+
+  await chooseRadio(page, '100 g');
+  await page.getByLabel('Number of portions').fill('1');
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+
+  await expect(page).toHaveURL(/\/foods\?/);
+
+  await page.goBack();
+
+  await expect(page).toHaveURL(new RegExp(`/\\?date=${diaryDate}`));
+  await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
+});
+
 test('quick adds the latest portion with current nutrition through the local queue', async ({ app }) => {
   const foodId = app.createFood({ name: 'Quick yoghurt' });
   const { page, db, userId } = app;

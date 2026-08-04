@@ -120,12 +120,23 @@
 
     try {
       await queueDiaryLog(userId, food.id, result.data);
-      void reloadTrackerStore(tracker);
-      await goto(resolve(withQuery('/foods', {
+      await reloadTrackerStore(tracker);
+
+      const targetHref = resolve(withQuery('/foods', {
         date: result.data.diaryDate,
         mealSlot: result.data.mealSlot,
         q: context.q.trim() || undefined
-      })));
+      }));
+
+      const isSameDestination =
+        result.data.diaryDate === context.date &&
+        result.data.mealSlot === context.mealSlot;
+
+      if (isSameDestination && typeof window !== 'undefined' && window.history.length > 1) {
+        history.back();
+      } else {
+        await goto(targetHref, { replaceState: true });
+      }
     } catch {
       amountErrors = { form: ['This change could not be saved on this device.'] };
     }

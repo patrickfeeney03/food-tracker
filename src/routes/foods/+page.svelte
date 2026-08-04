@@ -157,7 +157,7 @@
           mealSlot: destinationMealSlot,
           q: barcode
         }));
-    void goto(target);
+    void goto(target, { replaceState: true });
   }
 
   afterNavigate(({ to }) => {

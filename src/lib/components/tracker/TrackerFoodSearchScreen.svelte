@@ -212,6 +212,7 @@
     {:else}
       <a
         href={createFoodHref}
+        data-sveltekit-replacestate
         class="inline-flex min-h-12 w-full items-center justify-center rounded-xl
           bg-[var(--app-action)] px-5 text-sm font-bold text-white shadow-sm transition
           hover:bg-[var(--app-action-hover)] focus-visible:outline-2
