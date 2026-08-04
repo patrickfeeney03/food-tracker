@@ -121,8 +121,7 @@
     try {
       await queueDiaryLog(userId, food.id, result.data);
       await reloadTrackerStore(tracker);
-
-      const targetHref = resolve(withQuery('/foods', {
+      await goto(resolve(withQuery('/foods', {
         date: result.data.diaryDate,
         mealSlot: result.data.mealSlot,
         q: context.q.trim() || undefined

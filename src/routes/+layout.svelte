@@ -61,7 +61,7 @@
 		const phase = $offlineSyncStatus.phase;
 
 		if (
-			(phase === 'synced' || phase === 'attention') &&
+			(phase === 'synced' || phase === 'attention' || phase === 'pending' || phase === 'error') &&
 			tracker.lastSyncPhase !== phase
 		) {
 			void reloadTrackerStore(tracker);
