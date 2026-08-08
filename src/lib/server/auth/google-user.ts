@@ -59,6 +59,44 @@ export function findOrCreateGoogleUser(
       return existingUser;
     }
 
+    const seededUser = transaction
+      .select()
+      .from(users)
+      .where(eq(users.email, normalizedEmail))
+      .all()
+      .find((user) => {
+        const account = transaction
+          .select()
+          .from(authAccounts)
+          .where(
+            and(
+              eq(authAccounts.userId, user.id),
+              eq(authAccounts.provider, 'google')
+            )
+          )
+          .get();
+
+        return account?.providerSubject === `google-${user.id}`;
+      });
+
+    if (seededUser !== undefined) {
+      transaction
+        .update(authAccounts)
+        .set({
+          providerSubject: identity.subject,
+          emailAtLink: normalizedEmail
+        })
+        .where(
+          and(
+            eq(authAccounts.userId, seededUser.id),
+            eq(authAccounts.provider, 'google')
+          )
+        )
+        .run();
+
+      return seededUser;
+    }
+
     const user = transaction
       .insert(users)
       .values({

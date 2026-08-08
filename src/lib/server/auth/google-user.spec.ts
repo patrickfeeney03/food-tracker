@@ -90,6 +90,51 @@ describe('findOrCreateGoogleUser', () => {
     });
   });
 
+  it('claims a seeded placeholder account on first real login', () => {
+    withMigratedDatabase((connection) => {
+      const seededUser = connection.db
+        .insert(users)
+        .values({
+          name: 'Patrick',
+          email: 'patrick@example.com'
+        })
+        .returning()
+        .get();
+
+      connection.db
+        .insert(authAccounts)
+        .values({
+          userId: seededUser.id,
+          provider: 'google',
+          providerSubject: `google-${seededUser.id}`,
+          emailAtLink: seededUser.email
+        })
+        .run();
+
+      const user = findOrCreateGoogleUser(
+        connection.db,
+        {
+          subject: 'real-google-subject',
+          email: 'PATRICK@example.com',
+          name: 'Patrick'
+        },
+        ['patrick@example.com']
+      );
+
+      expect(user.id).toBe(seededUser.id);
+      expect(
+        connection.db.select().from(users).all()
+      ).toHaveLength(1);
+      expect(
+        connection.db.select().from(authAccounts).get()
+      ).toMatchObject({
+        userId: seededUser.id,
+        providerSubject: 'real-google-subject',
+        emailAtLink: 'patrick@example.com'
+      });
+    });
+  });
+
   it('rejects a non-allowlisted email without writing', () => {
     withMigratedDatabase((connection) => {
       expect(() =>
