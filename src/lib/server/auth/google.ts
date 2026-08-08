@@ -1,5 +1,8 @@
 import { env } from '$env/dynamic/private';
+import { dev } from '$app/environment';
 import { Google } from 'arctic';
+
+const GOOGLE_CALLBACK_PATH = '/auth/google/callback';
 
 function requireEnvironmentVariable(
   name: string,
@@ -12,7 +15,22 @@ function requireEnvironmentVariable(
   return value;
 }
 
-export function createGoogleOAuthClient(): Google {
+export function getGoogleRedirectUri(requestUrl?: URL): string {
+  if (dev) {
+    if (requestUrl === undefined) {
+      throw new Error('A request URL is required during development');
+    }
+
+    return new URL(GOOGLE_CALLBACK_PATH, requestUrl).toString();
+  }
+
+  return requireEnvironmentVariable(
+    'GOOGLE_REDIRECT_URI',
+    env.GOOGLE_REDIRECT_URI
+  );
+}
+
+export function createGoogleOAuthClient(requestUrl?: URL): Google {
   return new Google(
     requireEnvironmentVariable(
       'GOOGLE_CLIENT_ID',
@@ -22,10 +40,7 @@ export function createGoogleOAuthClient(): Google {
       'GOOGLE_CLIENT_SECRET',
       env.GOOGLE_CLIENT_SECRET
     ),
-    requireEnvironmentVariable(
-      'GOOGLE_REDIRECT_URI',
-      env.GOOGLE_REDIRECT_URI
-    )
+    getGoogleRedirectUri(requestUrl)
   );
 }
 

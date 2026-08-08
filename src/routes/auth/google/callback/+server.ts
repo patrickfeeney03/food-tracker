@@ -43,7 +43,7 @@ export const GET: RequestHandler = async ({
   }
 
   try {
-    const tokens = await createGoogleOAuthClient()
+    const tokens = await createGoogleOAuthClient(url)
       .validateAuthorizationCode(
         code,
         codeVerifier

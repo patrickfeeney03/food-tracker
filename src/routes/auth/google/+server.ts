@@ -5,7 +5,8 @@ import { generateCodeVerifier, generateState } from "arctic";
 
 export const GET: RequestHandler = ({
   cookies,
-  locals
+  locals,
+  url
 }) => {
   if (locals.user !== null) {
     return redirect(303, '/');
@@ -15,7 +16,7 @@ export const GET: RequestHandler = ({
   const codeVerifier = generateCodeVerifier();
 
   const authorizationUrl =
-    createGoogleOAuthClient()
+    createGoogleOAuthClient(url)
       .createAuthorizationURL(
         state,
         codeVerifier,
