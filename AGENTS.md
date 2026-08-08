@@ -12,3 +12,9 @@
 - No per-worktree '.env' symlink is needed.
 - The shared path is defined once in 'shared-local.ts'; vite's 'envDir', 'drizzle.config.ts', and 'src/lib/server/db/seed.ts' all load from there.
 - '.env' sets 'DATABASE_URL' to the absolute path '/home/patrick/code/calories-shared/local.db', so drizzle-kit, the dev server, and 'npm run db:seed' all resolve to the shared db from any worktree.
+
+# Worktrees
+
+- There may be multiple concurrent agents working on the same worktrees or different worktrees.
+- Each worktree would run its own dev server with its own port. To allow Google auth redirect, if needed, the range 5173-5179 inclusive is allowed in Google Auth Console.
+- These worktrees would share the same .env file and local.db file to make things easier.
