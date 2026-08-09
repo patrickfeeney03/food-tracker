@@ -13,6 +13,7 @@
   import { todayInDublin } from '$lib/date';
   import { withQuery } from '$lib/navigation';
   import type { MealSlot } from '$lib/nutrition/constants';
+  import { consumePendingFoodLogReturn } from '$lib/nutrition/food-log-navigation';
   import { replayLatestFoodPortion } from '$lib/nutrition/latest-food-portion';
   import { destinationSchema } from '$lib/nutrition/navigation-context';
   import { logFoodInputSchema } from '$lib/nutrition/portion-input';
@@ -56,6 +57,24 @@
   let foodResults = $derived(
     mapFoodResults(filterCatalogueFoods(catalogueFoods, foodQuery))
   );
+
+  function clearFoodSearchHref(): ResolvedPathname {
+    return resolve(withQuery('/foods', {
+      date: selectedDate,
+      mealSlot: destinationMealSlot,
+      tab: activeTab
+    }));
+  }
+
+  async function clearFoodSearch(): Promise<void> {
+    foodQueryDraft = '';
+    searchRevision += 1;
+    clearTimeout(searchTimer);
+    await goto(clearFoodSearchHref(), {
+      replaceState: true,
+      noScroll: true
+    });
+  }
 
   function foodHref(foodId: string): string {
     return resolve(withQuery(`/foods/${foodId}/log`, {
@@ -112,6 +131,7 @@
           mealSlot: destinationMealSlot
         })
       );
+      await clearFoodSearch();
       await reloadTrackerStore(tracker);
     } catch {
       queueError = 'This change could not be saved on this device.';
@@ -160,14 +180,32 @@
     void goto(target, { replaceState: true });
   }
 
-  afterNavigate(({ to }) => {
+  afterNavigate(({ from, to }) => {
     if (to === null) return;
+
+    const pendingReturn = to.url.pathname === '/foods' &&
+      from !== null &&
+      from.url.pathname.match(/^\/foods\/[^/]+\/log\/?$/) !== null
+      ? consumePendingFoodLogReturn()
+      : null;
 
     const savedDraft = searchDrafts.get(to.url.href);
     foodQueryDraft = savedDraft ??
       to.url.searchParams.get('q') ??
       to.url.searchParams.get('barcode') ??
       '';
+
+    if (pendingReturn !== null) {
+      foodQueryDraft = '';
+      searchRevision += 1;
+      clearTimeout(searchTimer);
+      // The return target was resolved before it was stored by the local log flow.
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
+      void goto(pendingReturn, {
+        replaceState: true,
+        noScroll: true
+      }).catch(() => {});
+    }
   });
 
   $effect(() => {
@@ -197,11 +235,7 @@
   {foodResults}
   offlineCapabilityMessage={OFFLINE_CAPABILITY_MESSAGE}
   backHref={resolve(withQuery('/', { date: selectedDate })) as ResolvedPathname}
-  clearHref={resolve(withQuery('/foods', {
-    date: selectedDate,
-    mealSlot: destinationMealSlot,
-    tab: activeTab
-  }))}
+  clearHref={clearFoodSearchHref()}
   createFoodHref={resolve(withQuery('/foods/new', {
     date: selectedDate,
     mealSlot: destinationMealSlot

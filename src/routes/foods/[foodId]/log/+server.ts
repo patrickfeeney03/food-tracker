@@ -90,8 +90,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 
   const location = resolve(withQuery('/foods', {
     date: result.data.diaryDate,
-    mealSlot: result.data.mealSlot,
-    q: formData.get('q')?.toString().trim() || undefined
+    mealSlot: result.data.mealSlot
   }));
 
   return expectsHtml(request)
