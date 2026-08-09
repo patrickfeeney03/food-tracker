@@ -2,12 +2,13 @@
 set -euo pipefail
 
 APP_DIR=/var/www/food-tracker/food-tracker
+SHARED_DIR=/var/www/food-tracker
 BRANCH=master
 
 export PATH=/opt/node/24.18.0/bin:/usr/bin:/bin
 # Production keeps its .env alongside the deployed checkout. Override the
 # developer-machine default in shared-local.ts so Drizzle and Vite load it.
-export CALORIES_SHARED_DIR="$APP_DIR"
+export CALORIES_SHARED_DIR="$SHARED_DIR"
 
 cd "$APP_DIR"
 
