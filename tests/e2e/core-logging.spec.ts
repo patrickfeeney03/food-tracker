@@ -622,9 +622,11 @@ test('locally logs a catalogue food, then edits its persisted diary snapshot onl
 
   expectSearchParameters(page, {
     date: diaryDate,
-    mealSlot: 'dinner',
-    q: 'Greek'
+    mealSlot: 'dinner'
   });
+  expect(new URL(page.url()).searchParams.get('q')).toBeNull();
+  await expect(page.getByLabel('Search foods')).toHaveValue('');
+  await expect(page.getByRole('heading', { name: 'Recent foods' })).toBeVisible();
   expect(new URL(page.url()).searchParams.get('added')).toBeNull();
   await expect.poll(() => app.diaryRows()).toEqual([
     expect.objectContaining({
@@ -868,6 +870,7 @@ test('navigating back after logging a food returns to diary home page instead of
   await page.getByRole('button', { name: 'Add to diary' }).click();
 
   await expect(page).toHaveURL(/\/foods\?/);
+  await expect(page.getByLabel('Search foods')).toHaveValue('');
 
   await page.goBack();
 
@@ -904,16 +907,19 @@ test('quick adds the latest portion with current nutrition through the local que
   });
   await quickAddButton.click();
 
-  expectSearchParameters(page, { date: diaryDate, mealSlot: 'lunch', q: 'Quick' });
+  await expect(page).toHaveURL((url) =>
+    url.pathname === '/foods' && url.searchParams.get('q') === null
+  );
+  expectSearchParameters(page, { date: diaryDate, mealSlot: 'lunch' });
   await expect(sync.started).resolves.toBeUndefined();
   await expect(page.getByText('Syncing 1 change…')).toHaveCount(0);
   await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(1);
   await expect(quickAddButton).toBeEnabled();
-  await expect(search).toHaveValue('  Quick  ');
+  await expect(search).toHaveValue('');
 
   sync.release();
   await expect.poll(() => queuedDiaryLogCount(page, userId)).toBe(0);
-  await expect(search).toHaveValue('  Quick  ');
+  await expect(search).toHaveValue('');
   await expect.poll(() => app.diaryRows()).toEqual(expect.arrayContaining([
     expect.objectContaining({
       foodId,

@@ -10,6 +10,7 @@
   import { todayInDublin } from '$lib/date';
   import { withQuery } from '$lib/navigation';
   import type { MealSlot } from '$lib/nutrition/constants';
+  import { rememberPendingFoodLogReturn } from '$lib/nutrition/food-log-navigation';
   import { replayLatestFoodPortion } from '$lib/nutrition/latest-food-portion';
   import { contextSchema } from '$lib/nutrition/navigation-context';
   import { logFoodInputSchema } from '$lib/nutrition/portion-input';
@@ -131,15 +132,11 @@
 
       const targetHref = resolve(withQuery('/foods', {
         date: result.data.diaryDate,
-        mealSlot: result.data.mealSlot,
-        q: context.q.trim() || undefined
+        mealSlot: result.data.mealSlot
       }));
 
-      const isSameDestination =
-        result.data.diaryDate === context.date &&
-        result.data.mealSlot === context.mealSlot;
-
-      if (isSameDestination && cameFromFoodSearch && typeof window !== 'undefined' && window.history.length > 1) {
+      if (cameFromFoodSearch && typeof window !== 'undefined' && window.history.length > 1) {
+        rememberPendingFoodLogReturn(targetHref);
         history.back();
       } else {
         await goto(targetHref, { replaceState: true });
