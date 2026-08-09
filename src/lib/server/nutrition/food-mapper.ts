@@ -31,9 +31,9 @@ export type MutableFoodValues = Pick<
   | 'servingAmount'
   | 'containerAmount'
   | 'energyMkcalPerBasis'
-  | 'proteinMgPerBasis'
-  | 'carbsMgPerBasis'
   | 'fatMgPerBasis'
+  | 'carbsMgPerBasis'
+  | 'proteinMgPerBasis'
   | 'additionalNutritionJson'
   | 'notes'
 >;
@@ -102,16 +102,16 @@ export function mapFoodInput(
       input.energyKcal, parseKcalToMkcal
     ),
 
-    proteinMgPerBasis: parseForStorage(
-      input.proteinG, parseGramsToMg
+    fatMgPerBasis: parseForStorage(
+      input.fatG, parseGramsToMg
     ),
 
     carbsMgPerBasis: parseForStorage(
       input.carbsG, parseGramsToMg
     ),
 
-    fatMgPerBasis: parseForStorage(
-      input.fatG, parseGramsToMg
+    proteinMgPerBasis: parseForStorage(
+      input.proteinG, parseGramsToMg
     ),
 
     additionalNutritionJson:

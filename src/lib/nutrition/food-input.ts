@@ -94,14 +94,12 @@ export const createFoodSchema = z.object({
   containerAmount: optionalPositiveDecimal(3, inputLimits.food.containerAmount.max),
 
   energyKcal: decimalString(3, inputLimits.food.energyKcal.max),
-  proteinG: decimalString(3, inputLimits.food.proteinG.max),
-  carbsG: decimalString(3, inputLimits.food.carbsG.max),
   fatG: decimalString(3, inputLimits.food.fatG.max),
-
-  fibreG: optionalDecimal(3, inputLimits.food.fibreG.max),
-  sugarG: optionalDecimal(3, inputLimits.food.sugarG.max),
   saturatedFatG: optionalDecimal(3, inputLimits.food.saturatedFatG.max),
-
+  carbsG: decimalString(3, inputLimits.food.carbsG.max),
+  sugarG: optionalDecimal(3, inputLimits.food.sugarG.max),
+  fibreG: optionalDecimal(3, inputLimits.food.fibreG.max),
+  proteinG: decimalString(3, inputLimits.food.proteinG.max),
   sodiumMg: optionalDecimal(0, inputLimits.food.sodiumMg.max),
   potassiumMg: optionalDecimal(0, inputLimits.food.potassiumMg.max),
 

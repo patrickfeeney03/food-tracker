@@ -12,12 +12,12 @@
     servingAmount: string;
     containerAmount: string;
     energyKcal: string;
-    proteinG: string;
-    carbsG: string;
     fatG: string;
-    fibreG: string;
-    sugarG: string;
     saturatedFatG: string;
+    carbsG: string;
+    sugarG: string;
+    fibreG: string;
+    proteinG: string;
     sodiumMg: string;
     potassiumMg: string;
     notes: string;
@@ -38,24 +38,27 @@
   } = $props();
   let displayUnit = $derived(amountUnit === "mg" ? "g" : "ml");
 
-  const requiredNutrition = [
-    { id: "energyKcal", label: "Calories", unit: "kcal", max: inputLimits.food.energyKcal.max },
-    { id: "proteinG", label: "Protein", unit: "g", max: inputLimits.food.proteinG.max },
-    { id: "carbsG", label: "Carbs", unit: "g", max: inputLimits.food.carbsG.max },
-    { id: "fatG", label: "Fat", unit: "g", max: inputLimits.food.fatG.max },
-  ] as const;
-
-  const additionalNutrition = [
-    { id: "fibreG", label: "Fibre", unit: "g", step: "0.001", max: inputLimits.food.fibreG.max },
-    { id: "sugarG", label: "Sugar", unit: "g", step: "0.001", max: inputLimits.food.sugarG.max },
+  // Keep the form order aligned with the order used on Irish nutrition labels.
+  // Optional fields remain optional; only their placement in the form changes.
+  const nutritionFields = [
+    { id: "energyKcal", label: "Calories", unit: "kcal", max: inputLimits.food.energyKcal.max, required: true },
+    { id: "fatG", label: "Fat", unit: "g", max: inputLimits.food.fatG.max, required: true },
     {
       id: "saturatedFatG",
       label: "Saturated fat",
       unit: "g",
       step: "0.001",
       max: inputLimits.food.saturatedFatG.max,
+      required: false,
     },
-    { id: "sodiumMg", label: "Sodium", unit: "mg", step: "1", max: inputLimits.food.sodiumMg.max },
+    { id: "carbsG", label: "Carbs", unit: "g", max: inputLimits.food.carbsG.max, required: true },
+    { id: "sugarG", label: "Sugar", unit: "g", step: "0.001", max: inputLimits.food.sugarG.max, required: false },
+    { id: "fibreG", label: "Fibre", unit: "g", step: "0.001", max: inputLimits.food.fibreG.max, required: false },
+    { id: "proteinG", label: "Protein", unit: "g", max: inputLimits.food.proteinG.max, required: true },
+    { id: "sodiumMg", label: "Sodium", unit: "mg", step: "1", max: inputLimits.food.sodiumMg.max, required: false },
+  ] as const;
+
+  const additionalNutrition = [
     { id: "potassiumMg", label: "Potassium", unit: "mg", step: "1", max: inputLimits.food.potassiumMg.max },
   ] as const;
 
@@ -236,14 +239,14 @@
       class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
     >Required nutrition</legend>
     <div class="grid grid-cols-2 gap-3">
-      {#each requiredNutrition as nutrient (nutrient.id)}
+      {#each nutritionFields as nutrient (nutrient.id)}
         <NutrientInput
           id={nutrient.id}
           label={nutrient.label}
           unit={nutrient.unit}
           max={nutrient.max}
           value={values[nutrient.id]}
-          required
+          required={nutrient.required}
           error={errors[nutrient.id]?.[0]}
         />
       {/each}
