@@ -12,7 +12,8 @@
     titleClass = "text-[21px] font-extrabold leading-tight tracking-[-0.025em]",
     descriptionClass = "mt-1 text-sm leading-5 text-[var(--app-muted)]",
     contentClass = "",
-    replaceState = false
+    replaceState = false,
+    onclick
   }: {
     href: ResolvedPathname;
     backLabel: string;
@@ -24,6 +25,7 @@
     descriptionClass?: string;
     contentClass?: string;
     replaceState?: boolean;
+    onclick?: (event: MouseEvent) => void;
   } = $props();
 </script>
 
@@ -33,6 +35,7 @@
     aria-label={backLabel}
     class={linkClass}
     data-sveltekit-replacestate={replaceState ? "" : undefined}
+    {onclick}
   >
     <ChevronLeftIcon class="size-5" />
   </a>

@@ -39,6 +39,14 @@ export type DiaryRow = {
   deletedAt: number | null;
 };
 
+type DiaryEntrySeed = {
+  foodId: string;
+  foodName?: string;
+  diaryDate: string;
+  mealSlot: string;
+  energyMkcal?: number;
+};
+
 type AuthenticatedApp = {
   page: Page;
   db: Database.Database;
@@ -46,6 +54,7 @@ type AuthenticatedApp = {
   createUser: () => string;
   signInAs: (userId: string) => Promise<void>;
   createFood: (seed?: FoodSeed) => string;
+  createDiaryEntry: (seed: DiaryEntrySeed) => string;
   diaryRows: () => DiaryRow[];
 };
 
@@ -120,6 +129,51 @@ function insertFood(db: Database.Database, ownerId: string, seed: FoodSeed = {})
   return foodId;
 }
 
+function insertDiaryEntry(
+  db: Database.Database,
+  ownerId: string,
+  seed: DiaryEntrySeed
+): string {
+  const entryId = randomUUID();
+  const now = Date.now();
+  const energyMkcal = seed.energyMkcal ?? 62_000;
+  db.prepare(`
+    INSERT INTO diary_logs (
+      id, user_id, food_id, diary_date, meal_slot,
+      client_mutation_id, client_request_fingerprint,
+      food_name, food_brand, amount_unit, basis_amount,
+      energy_mkcal_per_basis, protein_mg_per_basis,
+      carbs_mg_per_basis, fat_mg_per_basis,
+      additional_nutrition_per_basis_json,
+      portion_kind, portion_label, portion_amount, portion_count_milli,
+      resolved_amount, energy_mkcal, protein_mg, carbs_mg, fat_mg,
+      additional_nutrition_total_json, logged_at, created_at, updated_at, deleted_at
+    ) VALUES (
+      ?, ?, ?, ?, ?,
+      ?, '',
+      ?, 'E2E Dairy', 'mg', 100000,
+      62000, 10000, 4000, 500,
+      NULL,
+      'hundred', '100 g', 100000, 1000,
+      100000, ?, 10000, 4000, 500,
+      NULL, ?, ?, ?, NULL
+    )
+  `).run(
+    entryId,
+    ownerId,
+    seed.foodId,
+    seed.diaryDate,
+    seed.mealSlot,
+    randomUUID(),
+    seed.foodName ?? 'Filler food',
+    energyMkcal,
+    now,
+    now,
+    now
+  );
+  return entryId;
+}
+
 export const test = base.extend<Fixtures>({
   app: async ({ browser }, use) => {
     const db = new Database(DATABASE_PATH);
@@ -188,6 +242,7 @@ export const test = base.extend<Fixtures>({
         createUser: () => insertUser(db, trackedUserIds, false),
         signInAs,
         createFood: (seed) => insertFood(db, userId, seed),
+        createDiaryEntry: (seed) => insertDiaryEntry(db, userId, seed),
         diaryRows: () => db.prepare(`
           SELECT
             id,

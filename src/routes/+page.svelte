@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { afterNavigate, beforeNavigate } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import TrackerDiaryScreen from '$lib/components/tracker/TrackerDiaryScreen.svelte';
@@ -11,7 +12,11 @@
   } from '$lib/components/tracker/selectors';
   import { todayInDublin } from '$lib/date';
   import { withQuery } from '$lib/navigation';
-  import type { MealSlot } from '$lib/nutrition/constants';
+  import { mealSlots, type MealSlot } from '$lib/nutrition/constants';
+  import {
+    consumeDiaryScroll,
+    rememberDiaryScroll
+  } from '$lib/nutrition/food-log-navigation';
   import { calendarDateString } from '$lib/nutrition/portion-input';
   import {
     OFFLINE_CAPABILITY_MESSAGE,
@@ -19,7 +24,7 @@
   } from '$lib/tracker/tracker-service';
   import { useTrackerStore } from '$lib/tracker/tracker-store.svelte';
   import type { DiaryEntryFeedback } from '$lib/tracker/types';
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
@@ -70,6 +75,69 @@
           mealSlot: slot
         }));
   }
+
+  const actionReturnParams = [
+    'updated',
+    'entryDeleted',
+    'entryRestored',
+    'shortcutSaved'
+  ] as const;
+  let pendingScrollRestore = $state(true);
+
+  function mealSlotFromHash(hash: string): MealSlot | null {
+    const slot = hash.replace(/^#/, '');
+    return (mealSlots as readonly string[]).includes(slot)
+      ? slot as MealSlot
+      : null;
+  }
+
+  beforeNavigate(({ from, to }) => {
+    if (from?.url.pathname !== '/' || to === null || to.url.pathname === '/') {
+      return;
+    }
+
+    const dateResult = calendarDateString.safeParse(from.url.searchParams.get('date'));
+    rememberDiaryScroll(
+      dateResult.success ? dateResult.data : todayInDublin(),
+      window.scrollY
+    );
+  });
+
+  afterNavigate(({ to }) => {
+    if (to?.url.pathname === '/') {
+      pendingScrollRestore = true;
+    }
+  });
+
+  $effect(() => {
+    if (diary === null || !pendingScrollRestore) {
+      return;
+    }
+
+    const date = selectedDate;
+    const hash = mealSlotFromHash(page.url.hash);
+    const preferMealHash = hash !== null &&
+      actionReturnParams.some((parameter) => page.url.searchParams.has(parameter));
+
+    pendingScrollRestore = false;
+
+    void tick().then(() => {
+      if (preferMealHash && hash !== null) {
+        document.getElementById(hash)?.scrollIntoView();
+        return;
+      }
+
+      const scrollY = consumeDiaryScroll(date);
+      if (scrollY !== null) {
+        window.scrollTo(0, scrollY);
+        return;
+      }
+
+      if (hash !== null) {
+        document.getElementById(hash)?.scrollIntoView();
+      }
+    });
+  });
 
   $effect(() => {
     const date = selectedDate;

@@ -30,6 +30,7 @@
     createFoodHref,
     onSearchInput,
     onOpenScanner,
+    onBack,
     actions
   }: {
     selectedDate: string;
@@ -46,6 +47,7 @@
     createFoodHref: string;
     onSearchInput: (value: string) => void;
     onOpenScanner: () => void;
+    onBack?: (event: MouseEvent) => void;
     actions: FoodResultListActions;
   } = $props();
 
@@ -71,6 +73,7 @@
 >
   <BackPageHeader
     href={backHref}
+    onclick={onBack}
     backLabel="Back to diary"
     title="Add food"
     description={`${mealNames[destinationMealSlot]} · ${selectedDate === todayInDublin() ? 'Today' : formatDate(selectedDate, { year: false })}`}

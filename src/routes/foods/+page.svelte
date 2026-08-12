@@ -11,9 +11,13 @@
     mapFoodResults
   } from '$lib/components/tracker/selectors';
   import { todayInDublin } from '$lib/date';
-  import { withQuery } from '$lib/navigation';
+  import { isUnmodifiedPrimaryClick, withHash, withQuery } from '$lib/navigation';
   import type { MealSlot } from '$lib/nutrition/constants';
-  import { consumePendingFoodLogReturn } from '$lib/nutrition/food-log-navigation';
+  import {
+    consumePendingFoodLogReturn,
+    readFoodsCanPopToDiary,
+    rememberFoodsCanPopToDiary
+  } from '$lib/nutrition/food-log-navigation';
   import { replayLatestFoodPortion } from '$lib/nutrition/latest-food-portion';
   import { destinationSchema } from '$lib/nutrition/navigation-context';
   import { logFoodInputSchema } from '$lib/nutrition/portion-input';
@@ -23,6 +27,7 @@
     refreshTrackerSnapshot,
     reloadTrackerStore
   } from '$lib/tracker/tracker-service';
+  import { isFoodLogPath } from '$lib/tracker/routes';
   import { useTrackerStore } from '$lib/tracker/tracker-store.svelte';
   import { onDestroy } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
@@ -37,6 +42,7 @@
   let pendingFoodId = $state<string | null>(null);
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   let searchRevision = 0;
+  let canPopToDiary = $state(readFoodsCanPopToDiary());
 
   let destination = $derived.by(() => {
     const result = destinationSchema.safeParse({
@@ -180,12 +186,47 @@
     void goto(target, { replaceState: true });
   }
 
+  function handleBackToDiary(event: MouseEvent): void {
+    if (
+      !canPopToDiary ||
+      window.history.length <= 1 ||
+      !isUnmodifiedPrimaryClick(event)
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    rememberFoodsCanPopToDiary(false);
+    history.back();
+  }
+
   afterNavigate(({ from, to }) => {
     if (to === null) return;
 
+    if (to.url.pathname === '/') {
+      rememberFoodsCanPopToDiary(false);
+      canPopToDiary = false;
+    }
+
+    if (to.url.pathname === '/foods') {
+      if (from?.url.pathname === '/') {
+        const fromDate = from.url.searchParams.get('date') ?? todayInDublin();
+        canPopToDiary = fromDate === selectedDate;
+        rememberFoodsCanPopToDiary(canPopToDiary);
+      } else if (
+        from === null ||
+        (from.url.pathname !== '/foods' && !isFoodLogPath(from.url.pathname))
+      ) {
+        canPopToDiary = false;
+        rememberFoodsCanPopToDiary(false);
+      } else {
+        canPopToDiary = readFoodsCanPopToDiary();
+      }
+    }
+
     const pendingReturn = to.url.pathname === '/foods' &&
       from !== null &&
-      from.url.pathname.match(/^\/foods\/[^/]+\/log\/?$/) !== null
+      isFoodLogPath(from.url.pathname)
       ? consumePendingFoodLogReturn()
       : null;
 
@@ -234,7 +275,10 @@
   foodsCatalogueReady={tracker.cache !== null}
   {foodResults}
   offlineCapabilityMessage={OFFLINE_CAPABILITY_MESSAGE}
-  backHref={resolve(withQuery('/', { date: selectedDate })) as ResolvedPathname}
+  backHref={withHash(
+    resolve(withQuery('/', { date: selectedDate })),
+    destinationMealSlot
+  ) as ResolvedPathname}
   clearHref={clearFoodSearchHref()}
   createFoodHref={resolve(withQuery('/foods/new', {
     date: selectedDate,
@@ -242,6 +286,7 @@
   }))}
   onSearchInput={updateFoodSearch}
   onOpenScanner={() => (scannerOpen = true)}
+  onBack={handleBackToDiary}
   actions={{ foodHref, editHref: editFoodHref, quickAdd, pendingFoodId }}
 />
 

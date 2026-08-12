@@ -8,7 +8,7 @@
   } from '$lib/components/amount-adjuster/AmountAdjuster.svelte';
   import TrackerLoadingScreen from '$lib/components/tracker/TrackerLoadingScreen.svelte';
   import { todayInDublin } from '$lib/date';
-  import { withQuery } from '$lib/navigation';
+  import { isUnmodifiedPrimaryClick, withQuery } from '$lib/navigation';
   import type { MealSlot } from '$lib/nutrition/constants';
   import { rememberPendingFoodLogReturn } from '$lib/nutrition/food-log-navigation';
   import { replayLatestFoodPortion } from '$lib/nutrition/latest-food-portion';
@@ -92,6 +92,19 @@
     };
   }
 
+  function handleBackToCatalogue(event: MouseEvent): void {
+    if (
+      !cameFromFoodSearch ||
+      window.history.length <= 1 ||
+      !isUnmodifiedPrimaryClick(event)
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    history.back();
+  }
+
   function editFoodHref(foodId: string): string | null {
     return tracker.isOffline
       ? null
@@ -172,6 +185,7 @@
       errors={amountErrors}
       enhanceSubmit={enhanceLocalLog}
       editFoodHref={editFoodHref(food.id)}
+      onBack={handleBackToCatalogue}
     />
   {/key}
 {:else}

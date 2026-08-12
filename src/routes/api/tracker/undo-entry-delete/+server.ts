@@ -1,5 +1,5 @@
 import { resolve } from '$app/paths';
-import { withQuery } from '$lib/navigation';
+import { withHash, withQuery } from '$lib/navigation';
 import { readText } from '$lib/nutrition/food-form';
 import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
@@ -42,10 +42,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       mealSlot: entry.mealSlot
     });
 
-    redirect(303, resolve(withQuery('/', {
+    redirect(303, withHash(resolve(withQuery('/', {
       date: entry.diaryDate,
       entryRestored: entry.id
-    })));
+    })), entry.mealSlot));
   } catch (caught) {
     if (caught instanceof DiaryEntryDeletionNotFoundError) {
       error(404, 'Deleted diary entry not found');

@@ -1,5 +1,5 @@
 import { resolve } from "$app/paths";
-import { withQuery } from "$lib/navigation";
+import { withHash, withQuery } from "$lib/navigation";
 import type { PortionKind } from "$lib/nutrition/constants";
 import { readText } from "$lib/nutrition/food-form";
 import { editDiaryEntryInputSchema } from "$lib/nutrition/portion-input";
@@ -116,11 +116,14 @@ export const actions = {
 
       return redirect(
         303,
-        resolve(
-          withQuery('/', {
-            date: entry.diaryDate,
-            updated: 1
-          })
+        withHash(
+          resolve(
+            withQuery('/', {
+              date: entry.diaryDate,
+              updated: 1
+            })
+          ),
+          entry.mealSlot
         )
       );
     } catch (caught) {
@@ -161,11 +164,14 @@ export const actions = {
 
       return redirect(
         303,
-        resolve(
-          withQuery('/', {
-            date: entry.diaryDate,
-            entryDeleted: entry.id
-          })
+        withHash(
+          resolve(
+            withQuery('/', {
+              date: entry.diaryDate,
+              entryDeleted: entry.id
+            })
+          ),
+          entry.mealSlot
         )
       );
     } catch (caught) {

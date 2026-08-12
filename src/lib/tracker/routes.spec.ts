@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isLocalTrackerPath } from './routes';
+import { isFoodLogPath, isLocalTrackerPath } from './routes';
 
 describe('local tracker route policy', () => {
   it.each([
@@ -19,5 +19,10 @@ describe('local tracker route policy', () => {
     '/meal-shortcuts/new'
   ])('keeps %s server-backed', (pathname) => {
     expect(isLocalTrackerPath(pathname)).toBe(false);
+  });
+
+  it('identifies amount-adjuster log routes', () => {
+    expect(isFoodLogPath('/foods/food-id/log')).toBe(true);
+    expect(isFoodLogPath('/foods')).toBe(false);
   });
 });

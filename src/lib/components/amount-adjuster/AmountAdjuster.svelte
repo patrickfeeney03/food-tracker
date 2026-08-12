@@ -77,6 +77,7 @@
     errors = {},
     enhanceSubmit,
     editFoodHref,
+    onBack,
   }: {
     food: AmountAdjusterFood;
     context: AmountAdjusterContext;
@@ -85,6 +86,7 @@
     errors?: AmountAdjusterFieldErrors;
     enhanceSubmit?: SubmitFunction;
     editFoodHref?: string | null;
+    onBack?: (event: MouseEvent) => void;
   } = $props();
 
   let portionKind = $state<PortionKind>(
@@ -198,6 +200,7 @@
         q: context.q || undefined,
       }),
     )}
+    onclick={onBack}
     backLabel="Back to food catalogue"
     title="Add food"
     description={`${mealNames[mealSlot]} · ${diaryDate}`}

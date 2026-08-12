@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths';
 import { todayInDublin } from '$lib/date';
-import { withQuery } from '$lib/navigation';
+import { withHash, withQuery } from '$lib/navigation';
 import {
   readMealShortcutFormData,
   updateMealShortcutInputSchema
@@ -168,7 +168,10 @@ export const actions = {
 
     return redirect(
       303,
-      resolve(withQuery('/', { date: context.date, shortcutSaved: shortcut.id }))
+      withHash(
+        resolve(withQuery('/', { date: context.date, shortcutSaved: shortcut.id })),
+        context.mealSlot
+      )
     );
   },
 

@@ -1,5 +1,5 @@
 import { resolve } from '$app/paths';
-import { withQuery } from '$lib/navigation';
+import { withHash, withQuery } from '$lib/navigation';
 import {
   createMealShortcutInputSchema,
   mealShortcutDraftSourceSchema,
@@ -181,11 +181,14 @@ export const actions = {
 
     return redirect(
       303,
-      resolve(
-        withQuery('/', {
-          date: context.date,
-          shortcutSaved: shortcut.id
-        })
+      withHash(
+        resolve(
+          withQuery('/', {
+            date: context.date,
+            shortcutSaved: shortcut.id
+          })
+        ),
+        context.mealSlot
       )
     );
   }

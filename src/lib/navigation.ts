@@ -23,3 +23,18 @@ export function withQuery<TPath extends string>(
     ? path
     : `${path}?${query}`;
 }
+
+export function withHash<TPath extends string>(
+  path: TPath,
+  hash: string
+): `${TPath}#${string}` {
+  return `${path}#${hash}`;
+}
+
+export function isUnmodifiedPrimaryClick(event: MouseEvent): boolean {
+  return event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey;
+}

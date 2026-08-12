@@ -82,6 +82,10 @@ describe("DiaryDayView", () => {
     await expect.element(page.getByRole("link", {
       name: "Save as meal shortcut",
     })).toHaveAttribute("href", "/meal-shortcuts/new?mealSlot=breakfast");
+    await expect.element(page.getByRole("region", { name: "Breakfast" }))
+      .toHaveAttribute("id", "breakfast");
+    await expect.element(page.getByRole("region", { name: "Snacks" }))
+      .toHaveAttribute("id", "snacks");
   });
 
   it("keeps unsupported actions visible but disabled when callbacks are omitted", async () => {

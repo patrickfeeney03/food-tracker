@@ -651,6 +651,7 @@ test('locally logs a catalogue food, then edits its persisted diary snapshot onl
   await page.getByLabel('Number of portions').press('Enter');
 
   expectSearchParameters(page, { date: diaryDate, updated: '1' });
+  expect(new URL(page.url()).hash).toBe('#snacks');
   const snacks = page.locator('section[aria-labelledby="snacks-heading"]');
   await expect(snacks.getByRole('heading', { name: 'Greek yoghurt' })).toBeVisible();
   await expect(snacks.getByText('50 g · 31 kcal')).toBeVisible();
@@ -876,6 +877,55 @@ test('navigating back after logging a food returns to diary home page instead of
 
   await expect(page).toHaveURL(new RegExp(`/\\?date=${diaryDate}`));
   await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
+});
+
+test('returning to the diary after logging snacks keeps the previous scroll', async ({ app }) => {
+  const filler = app.createFood({ name: 'Filler porridge' });
+  const snackFood = app.createFood({ name: 'Scroll snack yoghurt' });
+  const { page } = app;
+
+  for (let index = 0; index < 8; index += 1) {
+    app.createDiaryEntry({
+      foodId: filler,
+      foodName: `Filler breakfast ${index + 1}`,
+      diaryDate,
+      mealSlot: 'breakfast'
+    });
+    app.createDiaryEntry({
+      foodId: filler,
+      foodName: `Filler lunch ${index + 1}`,
+      diaryDate,
+      mealSlot: 'lunch'
+    });
+  }
+
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.goto(`/?date=${diaryDate}`, { waitUntil: 'networkidle' });
+  await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
+
+  const snacks = page.locator('#snacks');
+  await snacks.scrollIntoViewIfNeeded();
+  const scrolledY = await page.evaluate(() => window.scrollY);
+  expect(scrolledY).toBeGreaterThan(0);
+
+  await snacks.getByRole('link', { name: 'Add food' }).click();
+  await expect(page).toHaveURL(/\/foods\?/);
+
+  await page.getByLabel('Search foods').fill('Scroll snack yoghurt');
+  await page.getByRole('heading', { name: 'Scroll snack yoghurt' }).click();
+  await expect(page).toHaveURL(new RegExp(`/foods/${snackFood}/log\\?`));
+
+  await chooseRadio(page, '100 g');
+  await page.getByLabel('Number of portions').fill('1');
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+  await expect(page).toHaveURL(/\/foods\?/);
+
+  await page.getByRole('link', { name: 'Back to diary', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Daily energy' })).toBeVisible();
+  await expect(page.locator('#snacks').getByRole('heading', { name: 'Scroll snack yoghurt' }))
+    .toBeVisible();
+  await expect.poll(async () => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await expect(page.locator('#snacks')).toBeInViewport();
 });
 
 test('quick adds the latest portion with current nutrition through the local queue', async ({ app }) => {

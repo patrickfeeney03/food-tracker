@@ -223,6 +223,7 @@
       {@const meal = diary.meals[slot]}
       {@const addFoodHref = actions?.addFoodHref?.(slot) ?? null}
       <section
+        id={slot}
         aria-labelledby={`${slot}-heading`}
         class="min-w-0"
       >
