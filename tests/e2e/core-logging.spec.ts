@@ -1227,3 +1227,111 @@ test('navigates locally without document or __data requests and handles back/for
 
   expect(documentOrDataRequests).toEqual([]);
 });
+
+test('opens the meal shortcut editor from the name, then adds it to the diary', async ({ app }) => {
+  const foodId = app.createFood({
+    name: 'Shortcut oats',
+    energyMkcalPerBasis: 100_000
+  });
+  app.createMealShortcut({
+    name: 'Chocolate',
+    items: [{ foodId, amount: 100_000 }]
+  });
+  const { page } = app;
+
+  await page.goto(`/foods?date=${diaryDate}&mealSlot=lunch`);
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('link', { name: 'Meal shortcuts' }).click();
+  await expect(page).toHaveURL(/tab=shortcuts/);
+
+  await page.getByRole('link', { name: 'Choose amounts for Chocolate' }).click();
+  await expect(page).toHaveURL(/\/meal-shortcuts\/[^/]+\/edit/);
+  await expect(page.getByLabel('Meal shortcut name')).toHaveValue('Chocolate');
+  await expect(page.getByLabel('Exact amount')).toBeVisible();
+  await page.getByLabel('Exact amount').fill('50');
+  await page.getByRole('button', { name: 'Add to diary' }).click();
+
+  await expect(page).not.toHaveURL(/\/meal-shortcuts\//);
+  expectSearchParameters(page, { date: diaryDate });
+  expect(new URL(page.url()).searchParams.get('shortcutApplied')).toMatch(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  );
+  await expect(page.getByRole('status')).toContainText(
+    'Chocolate was added to this diary.'
+  );
+  const lunch = page.locator('section[aria-labelledby="lunch-heading"]');
+  await expect(lunch.getByRole('heading', { name: 'Shortcut oats' })).toBeVisible();
+  expect(app.diaryRows()).toEqual([
+    expect.objectContaining({
+      foodId,
+      diaryDate,
+      mealSlot: 'lunch',
+      foodName: 'Shortcut oats',
+      resolvedAmount: 50_000,
+      deletedAt: null
+    })
+  ]);
+});
+
+test('applies a meal shortcut from Search/Add and undoes the whole batch', async ({ app }) => {
+  const foodId = app.createFood({
+    name: 'Shortcut oats',
+    energyMkcalPerBasis: 100_000
+  });
+  app.createMealShortcut({
+    name: 'Chocolate',
+    items: [{ foodId, amount: 100_000 }]
+  });
+  const { page } = app;
+
+  await page.goto(`/foods?date=${diaryDate}&mealSlot=lunch`);
+  await page.waitForLoadState('networkidle');
+
+  await page.getByRole('link', { name: 'Meal shortcuts' }).click();
+  await expect(page).toHaveURL(/tab=shortcuts/);
+  expectSearchParameters(page, {
+    date: diaryDate,
+    mealSlot: 'lunch',
+    tab: 'shortcuts'
+  });
+  await expect(page.getByRole('heading', { name: 'Chocolate' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Add Chocolate to lunch' }).click();
+
+  await expect(page).not.toHaveURL(/\/foods/);
+  expectSearchParameters(page, { date: diaryDate });
+  expect(new URL(page.url()).searchParams.get('shortcutApplied')).toMatch(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  );
+  await expect(page.getByRole('status')).toContainText(
+    'Chocolate was added to this diary.'
+  );
+
+  const lunch = page.locator('section[aria-labelledby="lunch-heading"]');
+  await expect(lunch.getByRole('heading', { name: 'Shortcut oats' })).toBeVisible();
+  expect(app.diaryRows()).toEqual([
+    expect.objectContaining({
+      foodId,
+      diaryDate,
+      mealSlot: 'lunch',
+      foodName: 'Shortcut oats',
+      deletedAt: null
+    })
+  ]);
+
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click();
+
+  expectSearchParameters(page, { date: diaryDate });
+  await expect(page.getByRole('status')).toContainText(
+    'Chocolate was removed from this diary.'
+  );
+  await expect(lunch.getByRole('heading', { name: 'Shortcut oats' })).toHaveCount(0);
+  expect(app.diaryRows()).toEqual([
+    expect.objectContaining({
+      foodId,
+      diaryDate,
+      mealSlot: 'lunch',
+      deletedAt: expect.any(Number)
+    })
+  ]);
+});

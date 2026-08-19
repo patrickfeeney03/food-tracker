@@ -4,10 +4,10 @@
   import BackPageHeader from "$lib/components/BackPageHeader.svelte";
   import BottomSubmitBar from "$lib/components/BottomSubmitBar.svelte";
   import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
-  import MealShortcutEditor, {
-    type MealShortcutEditorItem,
-  } from "$lib/components/meal-shortcuts/MealShortcutEditor.svelte";
+  import MealShortcutEditor from "$lib/components/meal-shortcuts/MealShortcutEditor.svelte";
+  import type { MealShortcutEditorItem } from "$lib/components/meal-shortcuts/types";
   import { withQuery } from "$lib/navigation";
+  import { mealNames } from "$lib/nutrition/constants";
   import { untrack } from "svelte";
   import type { PageProps } from "./$types";
 
@@ -46,7 +46,7 @@
 </script>
 
 <svelte:head>
-  <title>Edit meal shortcut | Calorie Tracker</title>
+  <title>Add meal shortcut | Calorie Tracker</title>
 </svelte:head>
 
 <AppPageShell class="relative flex flex-col overflow-hidden" size="wide">
@@ -59,8 +59,8 @@
         tab: "shortcuts",
       }))}
       backLabel="Back to meal shortcuts"
-      title="Edit meal shortcut"
-      description="Changes affect future uses only. Existing diary entries stay unchanged."
+      title="Add meal shortcut"
+      description={`Adjust amounts, then add this meal to ${mealNames[context.mealSlot].toLowerCase()}.`}
     />
 
     {#if form?.archiveError}
@@ -85,7 +85,7 @@
         itemsError={errors.items?.[0]}
       />
 
-      <BottomSubmitBar label="Save meal shortcut" disabled={!canSave} />
+      <BottomSubmitBar label="Add to diary" disabled={!canSave} />
     </form>
 
     <section

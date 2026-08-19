@@ -80,7 +80,9 @@
     'updated',
     'entryDeleted',
     'entryRestored',
-    'shortcutSaved'
+    'shortcutSaved',
+    'shortcutApplied',
+    'shortcutUndone'
   ] as const;
   let pendingScrollRestore = $state(true);
 
@@ -144,7 +146,9 @@
     const forceSnapshot =
       page.url.searchParams.has('updated') ||
       page.url.searchParams.has('entryDeleted') ||
-      page.url.searchParams.has('entryRestored');
+      page.url.searchParams.has('entryRestored') ||
+      page.url.searchParams.has('shortcutApplied') ||
+      page.url.searchParams.has('shortcutUndone');
 
     untrack(() => {
       refreshTrackerWindow(tracker, date, { forceSnapshot });
@@ -154,9 +158,16 @@
   $effect(() => {
     const entryDeleted = page.url.searchParams.get('entryDeleted');
     const entryRestored = page.url.searchParams.get('entryRestored');
+    const shortcutApplied = page.url.searchParams.get('shortcutApplied');
+    const shortcutUndone = page.url.searchParams.get('shortcutUndone');
     const date = selectedDate;
 
-    if (entryDeleted === null && entryRestored === null) {
+    if (
+      entryDeleted === null &&
+      entryRestored === null &&
+      shortcutApplied === null &&
+      shortcutUndone === null
+    ) {
       entryFeedback = null;
       return;
     }
@@ -166,6 +177,8 @@
     url.searchParams.set('date', date);
     if (entryDeleted !== null) url.searchParams.set('entryDeleted', entryDeleted);
     if (entryRestored !== null) url.searchParams.set('entryRestored', entryRestored);
+    if (shortcutApplied !== null) url.searchParams.set('shortcutApplied', shortcutApplied);
+    if (shortcutUndone !== null) url.searchParams.set('shortcutUndone', shortcutUndone);
 
     void fetch(url, { headers: { accept: 'application/json' } })
       .then((response) => response.ok ? response.json() : null)

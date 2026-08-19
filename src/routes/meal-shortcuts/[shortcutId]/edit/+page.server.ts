@@ -10,8 +10,10 @@ import { formatStoredValue } from '$lib/nutrition/math';
 import { requireUser } from '$lib/server/auth/require-user';
 import { db } from '$lib/server/db';
 import {
+  applyMealShortcut,
   archiveMealShortcut,
   getMealShortcut,
+  MealShortcutApplicationConflictError,
   MealShortcutBlockedError,
   MealShortcutEditConflictError,
   MealShortcutNotFoundError,
@@ -166,13 +168,52 @@ export const actions = {
       throw caught;
     }
 
-    return redirect(
-      303,
-      withHash(
-        resolve(withQuery('/', { date: context.date, shortcutSaved: shortcut.id })),
-        context.mealSlot
-      )
-    );
+    const savedValues = {
+      ...values,
+      expectedUpdatedAt: String(shortcut.updatedAt.getTime())
+    };
+
+    try {
+      const applied = applyMealShortcut(db, user.id, params.shortcutId, {
+        clientMutationId: crypto.randomUUID(),
+        diaryDate: context.date,
+        mealSlot: context.mealSlot
+      });
+
+      locals.log.info('meal_shortcut.applied', {
+        shortcutId: params.shortcutId,
+        applicationId: applied.application.id,
+        diaryDate: applied.application.diaryDate,
+        mealSlot: applied.application.mealSlot,
+        entryCount: applied.entries.length,
+        replayed: applied.replayed,
+        source: 'editor'
+      });
+
+      return redirect(
+        303,
+        withHash(
+          resolve(withQuery('/', {
+            date: context.date,
+            shortcutApplied: applied.application.id
+          })),
+          context.mealSlot
+        )
+      );
+    } catch (caught) {
+      if (
+        caught instanceof MealShortcutBlockedError ||
+        caught instanceof MealShortcutApplicationConflictError ||
+        caught instanceof RangeError
+      ) {
+        return fail(409, {
+          values: savedValues,
+          context,
+          errors: { form: [caught.message] }
+        });
+      }
+      throw caught;
+    }
   },
 
   archive: async ({ locals, params, request }) => {

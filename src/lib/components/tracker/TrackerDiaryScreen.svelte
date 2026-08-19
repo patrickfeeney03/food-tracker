@@ -178,6 +178,31 @@
       class="mb-5"
       message={`${entryFeedback.foodName} was restored to this diary.`}
     />
+  {:else if entryFeedback?.kind === 'shortcut-applied'}
+    <FeedbackBanner
+      class="mb-5"
+      message={`${entryFeedback.shortcutName} was added to this diary.`}
+    >
+      {#snippet action()}
+        <form method="POST" action={resolve('/api/tracker/undo-shortcut-application')}>
+          <input type="hidden" name="applicationId" value={entryFeedback.applicationId} />
+          <button
+            type="submit"
+            class="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-bold
+              text-[var(--app-success-text)] underline underline-offset-2
+              focus-visible:outline-2 focus-visible:outline-offset-2
+              focus-visible:outline-[var(--app-success-text)]"
+          >
+            Undo
+          </button>
+        </form>
+      {/snippet}
+    </FeedbackBanner>
+  {:else if entryFeedback?.kind === 'shortcut-undone'}
+    <FeedbackBanner
+      class="mb-5"
+      message={`${entryFeedback.shortcutName} was removed from this diary.`}
+    />
   {/if}
 
   <DiaryDayView

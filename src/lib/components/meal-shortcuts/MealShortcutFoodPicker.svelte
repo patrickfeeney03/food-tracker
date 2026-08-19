@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatStoredValue } from "$lib/nutrition/math";
-  import type { MealShortcutPickerFood } from "./MealShortcutEditor.svelte";
+  import type { MealShortcutPickerFood } from "./types";
 
   let {
     mode,

@@ -1,10 +1,11 @@
 import { page } from 'vitest/browser';
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import MealShortcutEditor, {
-  type MealShortcutEditorItem,
-  type MealShortcutPickerFood
-} from './MealShortcutEditor.svelte';
+import MealShortcutEditor from './MealShortcutEditor.svelte';
+import type {
+  MealShortcutEditorItem,
+  MealShortcutPickerFood
+} from './types';
 
 const foods: MealShortcutPickerFood[] = [
   {

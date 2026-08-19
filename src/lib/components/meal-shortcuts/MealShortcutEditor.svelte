@@ -2,27 +2,10 @@
   import { inputLimits } from "$lib/nutrition/input-limits";
   import { formatStoredValue } from "$lib/nutrition/math";
   import MealShortcutFoodPicker from "./MealShortcutFoodPicker.svelte";
-
-  export type MealShortcutEditorItem = {
-    key: string;
-    itemId?: string;
-    sourceEntryId?: string;
-    foodId: string | null;
-    foodName: string;
-    foodBrand: string | null;
-    amountUnit: "mg" | "ul" | null;
-    amount: string;
-    blocked: boolean;
-    blockedReason?: string;
-  };
-
-  export type MealShortcutPickerFood = {
-    id: string;
-    name: string;
-    brand: string | null;
-    amountUnit: "mg" | "ul";
-    suggestedAmount: number;
-  };
+  import type {
+    MealShortcutEditorItem,
+    MealShortcutPickerFood,
+  } from "./types";
 
   let {
     name = $bindable(),

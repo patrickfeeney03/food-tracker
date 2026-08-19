@@ -4,9 +4,8 @@
   import BackPageHeader from "$lib/components/BackPageHeader.svelte";
   import BottomSubmitBar from "$lib/components/BottomSubmitBar.svelte";
   import FeedbackBanner from "$lib/components/FeedbackBanner.svelte";
-  import MealShortcutEditor, {
-    type MealShortcutEditorItem,
-  } from "$lib/components/meal-shortcuts/MealShortcutEditor.svelte";
+  import MealShortcutEditor from "$lib/components/meal-shortcuts/MealShortcutEditor.svelte";
+  import type { MealShortcutEditorItem } from "$lib/components/meal-shortcuts/types";
   import { withQuery } from "$lib/navigation";
   import { untrack } from "svelte";
   import type { PageProps } from "./$types";

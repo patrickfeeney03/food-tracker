@@ -47,6 +47,14 @@ type DiaryEntrySeed = {
   energyMkcal?: number;
 };
 
+type MealShortcutSeed = {
+  name?: string;
+  items: {
+    foodId: string;
+    amount?: number;
+  }[];
+};
+
 type AuthenticatedApp = {
   page: Page;
   db: Database.Database;
@@ -55,6 +63,7 @@ type AuthenticatedApp = {
   signInAs: (userId: string) => Promise<void>;
   createFood: (seed?: FoodSeed) => string;
   createDiaryEntry: (seed: DiaryEntrySeed) => string;
+  createMealShortcut: (seed: MealShortcutSeed) => string;
   diaryRows: () => DiaryRow[];
 };
 
@@ -174,6 +183,42 @@ function insertDiaryEntry(
   return entryId;
 }
 
+function insertMealShortcut(
+  db: Database.Database,
+  ownerId: string,
+  seed: MealShortcutSeed
+): string {
+  const shortcutId = randomUUID();
+  const now = Date.now();
+  db.prepare(`
+    INSERT INTO meal_shortcuts (
+      id, user_id, name, client_mutation_id, created_at, updated_at, deleted_at
+    ) VALUES (?, ?, ?, NULL, ?, ?, NULL)
+  `).run(shortcutId, ownerId, seed.name ?? 'Saved meal', now, now);
+
+  seed.items.forEach((item, position) => {
+    const amount = item.amount ?? 100_000;
+    const portionCountMilli = Math.round((amount * 1000) / 100_000);
+    db.prepare(`
+      INSERT INTO meal_shortcut_items (
+        id, user_id, shortcut_id, food_id, amount_unit, position, default_amount,
+        default_portion_kind, default_portion_label, default_portion_amount,
+        default_portion_count_milli
+      ) VALUES (?, ?, ?, ?, 'mg', ?, ?, 'hundred', '100 g', 100000, ?)
+    `).run(
+      randomUUID(),
+      ownerId,
+      shortcutId,
+      item.foodId,
+      position,
+      amount,
+      portionCountMilli
+    );
+  });
+
+  return shortcutId;
+}
+
 export const test = base.extend<Fixtures>({
   app: async ({ browser }, use) => {
     const db = new Database(DATABASE_PATH);
@@ -243,6 +288,7 @@ export const test = base.extend<Fixtures>({
         signInAs,
         createFood: (seed) => insertFood(db, userId, seed),
         createDiaryEntry: (seed) => insertDiaryEntry(db, userId, seed),
+        createMealShortcut: (seed) => insertMealShortcut(db, userId, seed),
         diaryRows: () => db.prepare(`
           SELECT
             id,

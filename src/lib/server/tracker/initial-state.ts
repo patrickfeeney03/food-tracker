@@ -12,6 +12,10 @@ import {
   getActiveDiaryEntry,
   getDeletedDiaryEntry
 } from '$lib/server/nutrition/diary-entry-query';
+import {
+  getMealShortcutApplicationFeedback,
+  MealShortcutApplicationNotFoundError
+} from '$lib/server/nutrition/meal-shortcut';
 import { buildTrackerSnapshot } from '$lib/server/tracker/snapshot';
 import type { DiaryEntryFeedback } from '$lib/tracker/types';
 import type { TrackerSnapshot } from '$lib/offline/types';
@@ -60,6 +64,56 @@ export function loadDiaryEntryFeedback(
         kind: 'restored',
         foodName: entry.foodName
       };
+    }
+  }
+
+  const appliedId = entryIdSchema.safeParse(
+    url.searchParams.get('shortcutApplied')
+  );
+  if (appliedId.success) {
+    try {
+      const feedback = getMealShortcutApplicationFeedback(
+        db,
+        userId,
+        appliedId.data
+      );
+      if (
+        feedback.application.diaryDate === date &&
+        !feedback.undone
+      ) {
+        return {
+          kind: 'shortcut-applied',
+          applicationId: feedback.application.id,
+          shortcutName: feedback.application.shortcutName
+        };
+      }
+    } catch (caught) {
+      if (!(caught instanceof MealShortcutApplicationNotFoundError)) {
+        throw caught;
+      }
+    }
+  }
+
+  const undoneId = entryIdSchema.safeParse(
+    url.searchParams.get('shortcutUndone')
+  );
+  if (undoneId.success) {
+    try {
+      const feedback = getMealShortcutApplicationFeedback(
+        db,
+        userId,
+        undoneId.data
+      );
+      if (feedback.application.diaryDate === date && feedback.undone) {
+        return {
+          kind: 'shortcut-undone',
+          shortcutName: feedback.application.shortcutName
+        };
+      }
+    } catch (caught) {
+      if (!(caught instanceof MealShortcutApplicationNotFoundError)) {
+        throw caught;
+      }
     }
   }
 

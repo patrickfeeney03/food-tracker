@@ -6,7 +6,9 @@
   import BarcodeScanner from '$lib/components/BarcodeScanner.svelte';
   import type { FoodResultView } from '$lib/components/foods/FoodResultList.svelte';
   import TrackerFoodSearchScreen from '$lib/components/tracker/TrackerFoodSearchScreen.svelte';
+  import type { MealShortcutResult } from '$lib/components/meal-shortcuts/types';
   import {
+    CATALOGUE_RESULT_LIMIT,
     filterCatalogueFoods,
     mapFoodResults
   } from '$lib/components/tracker/selectors';
@@ -40,6 +42,9 @@
   );
   let queueError = $state<string | null>(null);
   let pendingFoodId = $state<string | null>(null);
+  let catalogueShortcuts = $state<MealShortcutResult[]>([]);
+  let shortcutsReady = $state(false);
+  let shortcutLoadRequest = 0;
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   let searchRevision = 0;
   let canPopToDiary = $state(readFoodsCanPopToDiary());
@@ -55,7 +60,7 @@
   });
   let selectedDate = $derived(destination.date);
   let destinationMealSlot = $derived(destination.mealSlot);
-  let activeTab = $derived(
+  let activeTab = $derived.by((): 'foods' | 'shortcuts' =>
     page.url.searchParams.get('tab') === 'shortcuts' ? 'shortcuts' : 'foods'
   );
   let foodQuery = $derived(foodQueryDraft);
@@ -63,6 +68,19 @@
   let foodResults = $derived(
     mapFoodResults(filterCatalogueFoods(catalogueFoods, foodQuery))
   );
+  let shortcutResults = $derived.by(() => {
+    const query = foodQuery.trim().toLocaleLowerCase();
+    const matches = query === ''
+      ? catalogueShortcuts
+      : catalogueShortcuts.filter((shortcut) =>
+          shortcut.name.toLocaleLowerCase().includes(query)
+        );
+
+    return (query === ''
+      ? matches
+      : [...matches].sort((left, right) => left.name.localeCompare(right.name))
+    ).slice(0, CATALOGUE_RESULT_LIMIT);
+  });
 
   function clearFoodSearchHref(): ResolvedPathname {
     return resolve(withQuery('/foods', {
@@ -98,6 +116,68 @@
           mealSlot: destinationMealSlot,
           q: foodQuery.trim() || undefined
         }));
+  }
+
+  function catalogueTabHref(tab: 'foods' | 'shortcuts'): string {
+    return resolve(withQuery('/foods', {
+      date: selectedDate,
+      mealSlot: destinationMealSlot,
+      tab,
+      q: foodQuery.trim() || undefined
+    }));
+  }
+
+  function editShortcutHref(shortcutId: string): string | null {
+    return tracker.isOffline
+      ? null
+      : resolve(withQuery(`/meal-shortcuts/${shortcutId}/edit`, {
+          date: selectedDate,
+          mealSlot: destinationMealSlot,
+          q: foodQuery.trim() || undefined
+        }));
+  }
+
+  function applyShortcutHref(shortcutId: string): string | null {
+    return tracker.isOffline
+      ? null
+      : resolve(`/meal-shortcuts/${shortcutId}/apply`);
+  }
+
+  async function loadShortcuts(): Promise<void> {
+    if (tracker.isOffline) {
+      return;
+    }
+
+    const requestId = ++shortcutLoadRequest;
+
+    try {
+      const response = await fetch(resolve('/api/tracker/meal-shortcuts'), {
+        headers: { accept: 'application/json' }
+      });
+      if (!response.ok) {
+        throw new Error('Meal shortcuts request failed');
+      }
+
+      const payload = await response.json() as {
+        shortcuts?: MealShortcutResult[];
+      };
+      if (requestId !== shortcutLoadRequest) {
+        return;
+      }
+
+      catalogueShortcuts = Array.isArray(payload.shortcuts)
+        ? payload.shortcuts
+        : [];
+      shortcutsReady = true;
+      if (queueError === 'Meal shortcuts could not be loaded.') {
+        queueError = null;
+      }
+    } catch {
+      if (requestId === shortcutLoadRequest) {
+        queueError = 'Meal shortcuts could not be loaded.';
+        shortcutsReady = true;
+      }
+    }
   }
 
   async function quickAdd(foodResult: FoodResultView): Promise<void> {
@@ -258,6 +338,14 @@
     }
   });
 
+  $effect(() => {
+    if (tracker.isOffline || activeTab !== 'shortcuts') {
+      return;
+    }
+
+    void loadShortcuts();
+  });
+
   onDestroy(() => clearTimeout(searchTimer));
 </script>
 
@@ -272,8 +360,14 @@
   {foodQuery}
   {queueError}
   created={page.url.searchParams.get('created') === '1'}
+  shortcutArchived={page.url.searchParams.get('shortcutArchived') === '1'}
+  {activeTab}
+  foodsTabHref={catalogueTabHref('foods')}
+  shortcutsTabHref={catalogueTabHref('shortcuts')}
   foodsCatalogueReady={tracker.cache !== null}
   {foodResults}
+  {shortcutsReady}
+  {shortcutResults}
   offlineCapabilityMessage={OFFLINE_CAPABILITY_MESSAGE}
   backHref={withHash(
     resolve(withQuery('/', { date: selectedDate })),
@@ -288,6 +382,8 @@
   onOpenScanner={() => (scannerOpen = true)}
   onBack={handleBackToDiary}
   actions={{ foodHref, editHref: editFoodHref, quickAdd, pendingFoodId }}
+  {editShortcutHref}
+  {applyShortcutHref}
 />
 
 {#if scannerOpen}
