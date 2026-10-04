@@ -1,39 +1,13 @@
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import type { D1Database } from '@cloudflare/workers-types';
+import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1';
 import * as schema from './schema';
 
-export interface DatabaseConnection {
-	client: Database.Database;
-	db: AppDatabase;
-}
-
-export type AppDatabase = ReturnType<typeof drizzle<typeof schema>>;
+export type AppDatabase = DrizzleD1Database<typeof schema>;
 export type ReadDatabase = Pick<AppDatabase, 'select'>;
+export interface DatabaseConnection { client: D1Database; db: AppDatabase; }
 
-export function configureSqlite(client: Database.Database): void {
-	client.pragma('busy_timeout = 5000');
-	client.pragma('foreign_keys = ON');
-
-	const journalMode = client.pragma('journal_mode = WAL', { simple: true });
-	const foreignKeysEnabled = client.pragma('foreign_keys', { simple: true });
-
-	if (journalMode !== 'wal') {
-		throw new Error(`SQLite WAL mode could not be enabled (received ${String(journalMode)})`);
-	}
-
-	if (foreignKeysEnabled !== 1) {
-		throw new Error('SQLite foreign key enforcement could not be enabled');
-	}
-}
-
-export function createDatabase(filename: string): DatabaseConnection {
-	const client = new Database(filename);
-
-	try {
-		configureSqlite(client);
-		return { client, db: drizzle(client, { schema }) };
-	} catch (error) {
-		client.close();
-		throw error;
-	}
+/** A database belongs to the current Worker request and its environment. */
+export function createDatabase(binding: D1Database): DatabaseConnection {
+  if (!binding) throw new Error('The Cloudflare DB binding is missing');
+  return { client: binding, db: drizzle(binding, { schema }) };
 }

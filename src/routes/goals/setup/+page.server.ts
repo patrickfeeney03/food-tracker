@@ -1,4 +1,3 @@
-import { db } from "$lib/server/db";
 import { nutritionGoals } from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
@@ -13,18 +12,18 @@ import { requireUser } from "$lib/server/auth/require-user";
 import { saveNutritionGoal } from "$lib/server/nutrition/save-nutrition-goal";
 import { todayInDublin } from '$lib/date';
 
-function hasGoal(userId: string): boolean {
-  return db
+async function hasGoal(db: App.Locals['db'], userId: string): Promise<boolean> {
+  return await db
     .select({ id: nutritionGoals.id })
     .from(nutritionGoals)
     .where(eq(nutritionGoals.userId, userId))
     .get() !== undefined;
 }
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = async ({ locals }) => {
   const user = requireUser(locals);
 
-  if (hasGoal(user.id)) {
+  if (await hasGoal(locals.db, user.id)) {
     return redirect(303, '/');
   }
 
@@ -94,8 +93,8 @@ export const actions = {
       });
     }
 
-    const goal = saveNutritionGoal(
-      db,
+    const goal = await saveNutritionGoal(
+      locals.db,
       user.id,
       result.data
     );

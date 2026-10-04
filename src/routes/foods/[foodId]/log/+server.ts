@@ -3,7 +3,6 @@ import { withQuery } from '$lib/navigation';
 import { readText } from '$lib/nutrition/food-form';
 import { logFoodInputSchema } from '$lib/nutrition/portion-input';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import {
   ExistingFoodLogConflictError,
   ExistingFoodNotFoundError,
@@ -52,7 +51,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
   }
 
   try {
-    const entry = logExistingFood(db, user.id, params.foodId, result.data);
+    const entry = await logExistingFood(locals.db, user.id, params.foodId, result.data);
 
     locals.log.info('diary_entry.logged', {
       diaryEntryId: entry.id,

@@ -1,6 +1,5 @@
 import { logFoodInputSchema } from '$lib/nutrition/portion-input';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import {
   ExistingFoodLogConflictError,
   ExistingFoodNotFoundError,
@@ -60,8 +59,8 @@ export const POST: RequestHandler = async ({
   }
 
   try {
-    logExistingFood(
-      db,
+    await logExistingFood(
+      locals.db,
       user.id,
       payload.data.foodId,
       payload.data.input
@@ -71,8 +70,8 @@ export const POST: RequestHandler = async ({
       schemaVersion: 1,
       acknowledgedMutationId:
         payload.data.input.clientMutationId,
-      snapshot: buildTrackerSnapshot(
-        db,
+      snapshot: await buildTrackerSnapshot(
+        locals.db,
         user,
         payload.data.input.diaryDate
       )

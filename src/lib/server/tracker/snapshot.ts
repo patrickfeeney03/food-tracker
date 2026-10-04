@@ -7,16 +7,18 @@ import type {
 } from '$lib/offline/types';
 import { shiftDate } from '$lib/date';
 import { mealSlots } from '$lib/nutrition/constants';
-import { and, asc, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, gte, lte } from 'drizzle-orm';
 import type { AppDatabase } from '$lib/server/db/connection';
 import {
   diaryLogs,
   foods,
+  nutritionGoals,
   type DiaryLog,
   type User
 } from '$lib/server/db/schema';
 import {
   loadDiaryDay,
+  summarizeDiaryDay,
   type DiaryDaySummary
 } from '$lib/server/nutrition/diary-summary';
 
@@ -92,19 +94,16 @@ function mapDiaryDay(summary: DiaryDaySummary): OfflineDiaryDay {
   };
 }
 
-export function buildTrackerDiaryDay(
+export async function buildTrackerDiaryDay(
   db: AppDatabase,
   userId: string,
   date: string
-): OfflineDiaryDay {
-  return mapDiaryDay(loadDiaryDay(db, userId, date));
+): Promise<OfflineDiaryDay> {
+  return mapDiaryDay(await loadDiaryDay(db, userId, date));
 }
 
-function listLatestFoodUses(
-  db: AppDatabase,
-  userId: string
-): Map<string, OfflineLatestFoodUse> {
-  const entries = db
+function latestFoodUsesQuery(db: AppDatabase, userId: string) {
+  return db
     .select({
       foodId: diaryLogs.foodId,
       diaryEntryId: diaryLogs.id,
@@ -141,8 +140,10 @@ function listLatestFoodUses(
       desc(diaryLogs.loggedAt),
       desc(diaryLogs.id)
     )
-    .all();
+;
+}
 
+function mapLatestFoodUses(entries: Awaited<ReturnType<typeof latestFoodUsesQuery>>) {
   const latestUseByFood = new Map<
     string,
     OfflineLatestFoodUse
@@ -175,16 +176,8 @@ function listLatestFoodUses(
   return latestUseByFood;
 }
 
-export function listFoodsForTrackerSnapshot(
-  db: AppDatabase,
-  userId: string
-): OfflineFood[] {
-  const latestUseByFood = listLatestFoodUses(
-    db,
-    userId
-  );
-
-  const activeFoods = db
+function activeFoodsQuery(db: AppDatabase, userId: string) {
+  return db
     .select({
       id: foods.id,
       name: foods.name,
@@ -211,8 +204,10 @@ export function listFoodsForTrackerSnapshot(
       )
     )
     .orderBy(asc(foods.name), asc(foods.id))
-    .all();
+;
+}
 
+function mapSnapshotFoods(activeFoods: Awaited<ReturnType<typeof activeFoodsQuery>>, latestUseByFood: Map<string, OfflineLatestFoodUse>): OfflineFood[] {
   return activeFoods
     .map((food) => ({
       ...food,
@@ -230,30 +225,49 @@ export function listFoodsForTrackerSnapshot(
     });
 }
 
-export function buildTrackerSnapshot(
+export async function listFoodsForTrackerSnapshot(db: AppDatabase, userId: string): Promise<OfflineFood[]> {
+  const [activeFoods, latestUses] = await db.batch([
+    activeFoodsQuery(db, userId), latestFoodUsesQuery(db, userId)
+  ]);
+  return mapSnapshotFoods(activeFoods, mapLatestFoodUses(latestUses));
+}
+
+export async function buildTrackerSnapshot(
   db: AppDatabase,
   user: Pick<User, 'id' | 'name'>,
   date: string,
   savedAt = new Date()
-): TrackerSnapshot {
+): Promise<TrackerSnapshot> {
   const dates = Array.from(
     { length: 11 },
     (_, index) => shiftDate(date, index - 5)
   );
 
+  // Read the complete offline view in one transaction so reconnects never
+  // combine diary totals, goals and foods from different database snapshots.
+  const [activeFoods, latestUses, entries, goals] = await db.batch([
+    activeFoodsQuery(db, user.id),
+    latestFoodUsesQuery(db, user.id),
+    db.select().from(diaryLogs).where(and(
+      eq(diaryLogs.userId, user.id), isNull(diaryLogs.deletedAt),
+      gte(diaryLogs.diaryDate, dates[0]), lte(diaryLogs.diaryDate, dates[dates.length - 1])
+    )).orderBy(asc(diaryLogs.loggedAt), asc(diaryLogs.id)),
+    db.select().from(nutritionGoals).where(and(
+      eq(nutritionGoals.userId, user.id), lte(nutritionGoals.effectiveFrom, dates[dates.length - 1])
+    )).orderBy(desc(nutritionGoals.effectiveFrom))
+  ]);
   return {
     schemaVersion: 1,
-    user: {
-      id: user.id,
-      name: user.name
-    },
+    user: { id: user.id, name: user.name },
     savedAt: savedAt.getTime(),
-    diaryDays: Object.fromEntries(
-      dates.map((diaryDate) => [
+    diaryDays: Object.fromEntries(dates.map((diaryDate) => [
+      diaryDate,
+      mapDiaryDay(summarizeDiaryDay(
         diaryDate,
-        buildTrackerDiaryDay(db, user.id, diaryDate)
-      ])
-    ),
-    foods: listFoodsForTrackerSnapshot(db, user.id)
+        goals.find((goal) => goal.effectiveFrom <= diaryDate) ?? null,
+        entries.filter((entry) => entry.diaryDate === diaryDate)
+      ))
+    ])),
+    foods: mapSnapshotFoods(activeFoods, mapLatestFoodUses(latestUses))
   };
 }

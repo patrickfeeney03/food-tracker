@@ -27,3 +27,8 @@ vite.config.ts.timestamp-*
 *.db-wal
 /.playwright/
 /deploy_to_vps.sh
+
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+/backups/

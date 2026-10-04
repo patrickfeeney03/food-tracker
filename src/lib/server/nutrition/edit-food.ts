@@ -2,8 +2,9 @@ import { editFoodSchema, type EditFoodFormInput } from '$lib/nutrition/food-inpu
 import { formatStoredValue } from '$lib/nutrition/math';
 import type { AppDatabase, ReadDatabase } from '$lib/server/db/connection';
 import { foods, mealShortcutItems, type Food } from '$lib/server/db/schema';
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNull, ne, sql } from 'drizzle-orm';
 import { mapFoodInput } from './food-mapper';
+import { atomicBatch, isAtomicGuardError, isConstraintError } from '$lib/server/db/atomic';
 
 export class FoodNotFoundError extends Error {
   constructor() {
@@ -33,11 +34,11 @@ export class FoodAmountUnitConflictError extends Error {
   }
 }
 
-export function getActiveFoodForEdit(
+export async function getActiveFoodForEdit(
   db: ReadDatabase,
   userId: string,
   foodId: string
-): Food | undefined {
+): Promise<Food | undefined> {
   return db
     .select()
     .from(foods)
@@ -86,15 +87,15 @@ export function formatFoodForEdit(food: Food): EditFoodFormInput {
   };
 }
 
-function barcodeBelongsToAnotherFood(
+async function barcodeBelongsToAnotherFood(
   db: ReadDatabase,
   userId: string,
   foodId: string,
   barcode: string
-): boolean {
+): Promise<boolean> {
   if (barcode === '') return false;
 
-  return db
+  return (await db
     .select({ id: foods.id })
     .from(foods)
     .where(
@@ -105,23 +106,15 @@ function barcodeBelongsToAnotherFood(
         isNull(foods.deletedAt)
       )
     )
-    .get() !== undefined;
+    .get()) !== undefined;
 }
 
-function isUniqueConstraintError(caught: unknown): boolean {
-  return (
-    caught instanceof Error &&
-    'code' in caught &&
-    String(caught.code).startsWith('SQLITE_CONSTRAINT')
-  );
-}
-
-export function updateFood(
+export async function updateFood(
   db: AppDatabase,
   userId: string,
   foodId: string,
   rawInput: unknown
-): Food {
+): Promise<Food> {
   const input = editFoodSchema.parse(rawInput);
   const expectedUpdatedAt = Number(input.expectedUpdatedAt);
 
@@ -132,25 +125,22 @@ export function updateFood(
   const updatedAt = new Date(Math.max(Date.now(), expectedUpdatedAt + 1));
 
   try {
-    return db.transaction((transaction) => {
-      const currentFood = getActiveFoodForEdit(transaction, userId, foodId);
+      const currentFood = await getActiveFoodForEdit(db, userId, foodId);
       if (currentFood === undefined) throw new FoodNotFoundError();
 
-      if (
-        input.amountUnit !== currentFood.amountUnit &&
-        transaction.select({ id: mealShortcutItems.id }).from(mealShortcutItems).where(and(
-          eq(mealShortcutItems.userId, userId),
-          eq(mealShortcutItems.foodId, foodId)
-        )).limit(1).get() !== undefined
-      ) {
+      if (input.amountUnit !== currentFood.amountUnit && (await db.select({ id: mealShortcutItems.id }).from(mealShortcutItems).where(and(eq(mealShortcutItems.userId, userId), eq(mealShortcutItems.foodId, foodId))).limit(1).get()) !== undefined) {
         throw new FoodAmountUnitConflictError();
       }
 
-      if (barcodeBelongsToAnotherFood(transaction, userId, foodId, input.barcode)) {
+      if (await barcodeBelongsToAnotherFood(db, userId, foodId, input.barcode)) {
         throw new FoodBarcodeConflictError();
       }
 
-      const updated = transaction
+      const guards = [sql`exists (select 1 from foods where id = ${foodId} and user_id = ${userId} and updated_at = ${expectedUpdatedAt} and deleted_at is null)`];
+      if (input.amountUnit !== currentFood.amountUnit) {
+        guards.push(sql`not exists (select 1 from meal_shortcut_items where user_id = ${userId} and food_id = ${foodId})`);
+      }
+      const [updatedRows] = await atomicBatch(db, guards, [db
         .update(foods)
         .set({
           ...mapFoodInput(input),
@@ -164,30 +154,33 @@ export function updateFood(
             eq(foods.updatedAt, new Date(expectedUpdatedAt))
           )
         )
-        .returning()
-        .get();
+        .returning()]);
+      const updated = updatedRows[0];
 
       if (updated !== undefined) return updated;
-      if (getActiveFoodForEdit(transaction, userId, foodId) === undefined) {
+      if (await getActiveFoodForEdit(db, userId, foodId) === undefined) {
         throw new FoodNotFoundError();
       }
       throw new FoodEditConflictError();
-    });
   } catch (caught) {
-    if (isUniqueConstraintError(caught)) {
-      throw new FoodBarcodeConflictError();
+    if (isAtomicGuardError(caught)) {
+      const current = await getActiveFoodForEdit(db, userId, foodId);
+      if (current === undefined) throw new FoodNotFoundError();
+      if (input.amountUnit !== current.amountUnit && await db.select({ id: mealShortcutItems.id }).from(mealShortcutItems).where(and(eq(mealShortcutItems.userId, userId), eq(mealShortcutItems.foodId, foodId))).limit(1).get()) throw new FoodAmountUnitConflictError();
+      throw new FoodEditConflictError();
     }
+    if (isConstraintError(caught)) throw new FoodBarcodeConflictError();
     throw caught;
   }
 
 }
 
-export function archiveFood(
+export async function archiveFood(
   db: AppDatabase,
   userId: string,
   foodId: string,
   expectedUpdatedAtText: string
-): Food {
+): Promise<Food> {
   const expectedUpdatedAt = Number(expectedUpdatedAtText);
 
   if (!Number.isSafeInteger(expectedUpdatedAt)) {
@@ -195,7 +188,7 @@ export function archiveFood(
   }
 
   const archivedAt = new Date(Math.max(Date.now(), expectedUpdatedAt + 1));
-  const archived = db
+  const archived = await db
     .update(foods)
     .set({
       deletedAt: archivedAt,
@@ -214,7 +207,7 @@ export function archiveFood(
 
   if (archived !== undefined) return archived;
 
-  if (getActiveFoodForEdit(db, userId, foodId) === undefined) {
+  if (await getActiveFoodForEdit(db, userId, foodId) === undefined) {
     throw new FoodNotFoundError();
   }
 

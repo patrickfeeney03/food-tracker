@@ -1,15 +1,14 @@
 import { todayInDublin } from '$lib/date';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import { nutritionGoals } from '$lib/server/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
   const user = requireUser(locals);
 
   const today = todayInDublin();
-  const goals = db
+  const goals = await locals.db
     .select({
       id: nutritionGoals.id,
       effectiveFrom: nutritionGoals.effectiveFrom,

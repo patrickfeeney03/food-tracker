@@ -1,13 +1,12 @@
 import { and, eq } from 'drizzle-orm';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import { authAccounts } from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = async ({ locals }) => {
   const user = requireUser(locals);
 
-  const authAccount = db
+  const authAccount = await locals.db
     .select({
       provider: authAccounts.provider,
       emailAtLink: authAccounts.emailAtLink,

@@ -6,7 +6,7 @@ import {
 } from '$lib/nutrition/navigation-context';
 import { calendarDateString } from '$lib/nutrition/portion-input';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
+import type { AppDatabase } from '$lib/server/db/connection';
 import { nutritionGoals } from '$lib/server/db/schema';
 import {
   getActiveDiaryEntry,
@@ -34,16 +34,17 @@ export interface InitialTrackerState {
   entryFeedback: DiaryEntryFeedback | null;
 }
 
-export function loadDiaryEntryFeedback(
+export async function loadDiaryEntryFeedback(
+  db: AppDatabase,
   userId: string,
   url: URL,
   date: string
-): DiaryEntryFeedback | null {
+): Promise<DiaryEntryFeedback | null> {
   const deletedEntryId = entryIdSchema.safeParse(
     url.searchParams.get('entryDeleted')
   );
   if (deletedEntryId.success) {
-    const entry = getDeletedDiaryEntry(db, userId, deletedEntryId.data);
+    const entry = await getDeletedDiaryEntry(db, userId, deletedEntryId.data);
     if (entry !== undefined && entry.diaryDate === date && entry.deletedAt !== null) {
       return {
         kind: 'deleted',
@@ -58,7 +59,7 @@ export function loadDiaryEntryFeedback(
     url.searchParams.get('entryRestored')
   );
   if (restoredEntryId.success) {
-    const entry = getActiveDiaryEntry(db, userId, restoredEntryId.data);
+    const entry = await getActiveDiaryEntry(db, userId, restoredEntryId.data);
     if (entry !== undefined && entry.diaryDate === date) {
       return {
         kind: 'restored',
@@ -72,7 +73,7 @@ export function loadDiaryEntryFeedback(
   );
   if (appliedId.success) {
     try {
-      const feedback = getMealShortcutApplicationFeedback(
+      const feedback = await getMealShortcutApplicationFeedback(
         db,
         userId,
         appliedId.data
@@ -99,7 +100,7 @@ export function loadDiaryEntryFeedback(
   );
   if (undoneId.success) {
     try {
-      const feedback = getMealShortcutApplicationFeedback(
+      const feedback = await getMealShortcutApplicationFeedback(
         db,
         userId,
         undoneId.data
@@ -120,22 +121,23 @@ export function loadDiaryEntryFeedback(
   return null;
 }
 
-function requireDiaryGoal(userId: string): void {
-  const hasGoal = db
+async function requireDiaryGoal(db: AppDatabase, userId: string): Promise<void> {
+  const hasGoal = (await db
     .select({ id: nutritionGoals.id })
     .from(nutritionGoals)
     .where(eq(nutritionGoals.userId, userId))
-    .get() !== undefined;
+    .get()) !== undefined;
 
   if (!hasGoal) {
     redirect(303, '/goals/setup');
   }
 }
 
-export function loadInitialTrackerState(
+export async function loadInitialTrackerState(
   locals: App.Locals,
   url: URL
-): InitialTrackerState {
+): Promise<InitialTrackerState> {
+  const db = locals.db;
   const logMatch = foodLogPathPattern.exec(url.pathname);
   const isDiary = url.pathname === '/';
   const isFoods = url.pathname === '/foods';
@@ -148,7 +150,7 @@ export function loadInitialTrackerState(
   let date: string;
 
   if (isDiary) {
-    requireDiaryGoal(user.id);
+    await requireDiaryGoal(db, user.id);
     const result = calendarDateString.safeParse(
       url.searchParams.get('date') ?? todayInDublin()
     );
@@ -187,7 +189,7 @@ export function loadInitialTrackerState(
     date = context.data.date;
   }
 
-  const snapshot = buildTrackerSnapshot(db, user, date);
+  const snapshot = await buildTrackerSnapshot(db, user, date);
 
   if (logMatch !== null) {
     const foodId = decodeURIComponent(logMatch[1]);
@@ -199,7 +201,7 @@ export function loadInitialTrackerState(
   return {
     snapshot,
     entryFeedback: isDiary
-      ? loadDiaryEntryFeedback(user.id, url, date)
+      ? await loadDiaryEntryFeedback(db, user.id, url, date)
       : null
   };
 }

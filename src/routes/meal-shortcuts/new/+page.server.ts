@@ -8,7 +8,6 @@ import {
 import { contextSchema, readContext } from '$lib/nutrition/navigation-context';
 import { formatStoredValue } from '$lib/nutrition/math';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import {
   createMealShortcut,
   loadMealShortcutDraft,
@@ -20,7 +19,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
 
-type PickerFood = ReturnType<typeof searchMealShortcutFoods>[number];
+type PickerFood = Awaited<ReturnType<typeof searchMealShortcutFoods>>[number];
 
 function blockedReason(reason: 'food_missing' | 'food_archived' | 'amount_unit_changed') {
   if (reason === 'amount_unit_changed') {
@@ -62,7 +61,7 @@ function submittedItems(rawItems: unknown, foods: readonly PickerFood[]) {
   });
 }
 
-export const load: PageServerLoad = ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
   const user = requireUser(locals);
 
   const sourceResult = mealShortcutDraftSourceSchema.safeParse({
@@ -78,8 +77,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
     return error(400, 'Invalid diary destination');
   }
 
-  const draft = loadMealShortcutDraft(
-    db,
+  const draft = await loadMealShortcutDraft(
+    locals.db,
     user.id,
     sourceResult.data.diaryDate,
     sourceResult.data.mealSlot
@@ -87,7 +86,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
   if (draft.items.length === 0 && draft.excludedEntries.length === 0) {
     return error(400, 'Log at least one food in this meal before creating a shortcut.');
   }
-  const foods = searchMealShortcutFoods(db, user.id, '', 200);
+  const foods = await searchMealShortcutFoods(locals.db, user.id, '', 200);
 
   return {
     context: contextResult.data,
@@ -135,7 +134,7 @@ export const actions = {
       mealSlot: String(formData.get('mealSlot') ?? ''),
       q: String(formData.get('q') ?? '')
     });
-    const foods = searchMealShortcutFoods(db, user.id, '', 200);
+    const foods = await searchMealShortcutFoods(locals.db, user.id, '', 200);
     const result = createMealShortcutInputSchema.safeParse(raw);
     const values = {
       clientMutationId: raw.clientMutationId,
@@ -156,7 +155,7 @@ export const actions = {
 
     let shortcut;
     try {
-      shortcut = createMealShortcut(db, user.id, result.data);
+      shortcut = await createMealShortcut(locals.db, user.id, result.data);
 
       locals.log.info('meal_shortcut.saved', {
         shortcutId: shortcut.id,

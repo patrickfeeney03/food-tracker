@@ -1,10 +1,9 @@
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
-import adapter from '@sveltejs/adapter-node';
+import adapter from '@sveltejs/adapter-cloudflare';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { SvelteKitPWA } from '@vite-pwa/sveltekit';
-import { SHARED_LOCAL_DIR } from './shared-local.ts';
 
 function boundedNetworkOnlyPlugin() {
   return {
@@ -25,7 +24,6 @@ function boundedNetworkOnlyPlugin() {
 }
 
 export default defineConfig({
-  envDir: SHARED_LOCAL_DIR,
   plugins: [
     tailwindcss(),
     sveltekit({
@@ -33,9 +31,6 @@ export default defineConfig({
       // deeply nested routes, so its client assets must stay root-relative.
       paths: {
         relative: false
-      },
-      env: {
-        dir: SHARED_LOCAL_DIR
       },
       compilerOptions: {
         // Force runes mode for the project, except for libraries. Can be removed in svelte 6.
@@ -46,7 +41,7 @@ export default defineConfig({
       // adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapters for a list.
       // If your environment is not supported, or you settled on a specific environment, switch out the adapter.
       // See https://svelte.dev/docs/kit/adapters for more information about adapters.
-      adapter: adapter(),
+      adapter: adapter({ config: 'wrangler.jsonc', platformProxy: { configPath: 'wrangler.jsonc' } }),
 
       typescript: {
         config: (config) => {
@@ -154,6 +149,7 @@ export default defineConfig({
         extends: './vite.config.ts',
         test: {
           name: 'client',
+          sequence: { groupOrder: 0 },
           browser: {
             enabled: true,
             provider: playwright(),
@@ -168,6 +164,9 @@ export default defineConfig({
         extends: './vite.config.ts',
         test: {
           name: 'server',
+          sequence: { groupOrder: 1 },
+          testTimeout: 20_000,
+          maxWorkers: 4,
           environment: 'node',
           include: ['src/**/*.{test,spec}.{js,ts}'],
           exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']

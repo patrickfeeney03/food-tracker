@@ -1,15 +1,16 @@
 import {
   SESSION_COOKIE_NAME,
-  SESSION_COOKIE_OPTIONS
+  sessionCookieOptions
 } from '$lib/server/auth/cookie';
 import { validateSessionToken } from '$lib/server/auth/session';
-import { db } from '$lib/server/db';
+import { createDatabase } from '$lib/server/db/connection';
 import { createRequestLogger } from '$lib/server/logging';
 import {
   parseTheme,
   THEME_COOKIE_NAME,
   THEME_COOKIE_OPTIONS
 } from '$lib/server/theme';
+import { building } from '$app/environment';
 import { isHttpError, isRedirect, redirect, type Handle } from '@sveltejs/kit';
 
 const PUBLIC_ROUTES = new Set([
@@ -53,13 +54,19 @@ const handleRequest: Handle = async ({
     'x-correlation-id': event.locals.correlationId
   });
 
+  const offlinePrerender = building && event.url.pathname === '/offline';
+  if (!offlinePrerender) {
+    if (!event.platform?.env?.DB) throw new Error('Cloudflare D1 binding DB is unavailable');
+    event.locals.db = createDatabase(event.platform.env.DB).db;
+  }
+
   const token = event.cookies.get(
     SESSION_COOKIE_NAME
   );
 
-  if (token !== undefined) {
-    const result = validateSessionToken(
-      db,
+  if (!offlinePrerender && token !== undefined) {
+    const result = await validateSessionToken(
+      event.locals.db,
       token
     );
 
@@ -74,7 +81,7 @@ const handleRequest: Handle = async ({
       event.cookies.set(
         SESSION_COOKIE_NAME,
         token,
-        SESSION_COOKIE_OPTIONS
+        sessionCookieOptions(event.url)
       );
     }
 
@@ -98,10 +105,14 @@ const handleRequest: Handle = async ({
   const themeAttributes =
     theme === 'dark' ? 'data-theme="dark" class="dark"' : `data-theme="${theme}"`;
 
-  return resolve(event, {
+  const response = await resolve(event, {
     transformPageChunk: ({ html }) =>
       html.replace('data-theme="system"', themeAttributes)
   });
+  if (event.locals.user !== null || event.url.pathname.startsWith('/auth/') || event.url.pathname === '/sign-in') {
+    response.headers.set('Cache-Control', 'private, no-store');
+  }
+  return response;
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -139,7 +150,8 @@ export const handle: Handle = async ({ event, resolve }) => {
         status: error.status,
         headers: {
           location: error.location,
-          'x-correlation-id': event.locals.correlationId
+          'x-correlation-id': event.locals.correlationId,
+          'Cache-Control': 'private, no-store'
         }
       });
     }

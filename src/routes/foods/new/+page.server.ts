@@ -11,14 +11,13 @@ import {
   FoodCreateMutationConflictError
 } from "$lib/server/nutrition/create-food-and-log";
 import { requireUser } from "$lib/server/auth/require-user";
-import { db } from "$lib/server/db";
 import { resolve } from "$app/paths";
 import { withQuery } from "$lib/navigation";
 import { readFoodFormValues, readText } from "$lib/nutrition/food-form";
 
 const barcodeSchema = z.string().trim().max(inputLimits.food.barcode.maxLength);
 
-export const load: PageServerLoad = ({
+export const load: PageServerLoad = async ({
   locals,
   url
 }) => {
@@ -118,8 +117,8 @@ export const actions = {
     }
 
     try {
-      const created = createFoodAndLog(
-        db,
+      const created = await createFoodAndLog(
+        locals.db,
         user.id,
         foodResult.data,
         logResult.data

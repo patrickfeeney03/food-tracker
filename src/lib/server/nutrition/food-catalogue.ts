@@ -4,6 +4,7 @@ import {
   desc,
   eq,
   inArray,
+  sql,
   isNull,
   like,
   max,
@@ -24,12 +25,12 @@ const foodSelection = {
   energyMkcalPerBasis: foods.energyMkcalPerBasis
 };
 
-export function findActiveFoodByBarcode(
+export async function findActiveFoodByBarcode(
   db: AppDatabase,
   userId: string,
   barcode: string
 ) {
-  const food = db
+  const food = await db
     .select(foodSelection)
     .from(foods)
     .where(
@@ -43,7 +44,7 @@ export function findActiveFoodByBarcode(
 
   if (food === undefined) return null;
 
-  const latestUse = db
+  const latestUse = await db
     .select({
       resolvedAmount: diaryLogs.resolvedAmount,
       amountUnit: diaryLogs.amountUnit,
@@ -70,7 +71,7 @@ export function findActiveFoodByBarcode(
   };
 }
 
-export function listActiveFoods(
+export async function listActiveFoods(
   db: AppDatabase,
   userId: string,
   query: string,
@@ -83,7 +84,7 @@ export function listActiveFoods(
 
   const results =
     query === ''
-      ? db
+      ? await db
           .select(foodSelection)
           .from(foods)
           .leftJoin(
@@ -102,7 +103,7 @@ export function listActiveFoods(
           )
           .limit(limit)
           .all()
-      : db
+      : await db
           .select(foodSelection)
           .from(foods)
           .where(
@@ -133,7 +134,7 @@ export function listActiveFoods(
   >();
 
   if (foodIds.length > 0) {
-    const diaryEntries = db
+    const diaryEntries = await db
       .select({
         foodId: diaryLogs.foodId,
         resolvedAmount: diaryLogs.resolvedAmount,
@@ -148,7 +149,7 @@ export function listActiveFoods(
         and(
           eq(diaryLogs.userId, userId),
           isNull(diaryLogs.deletedAt),
-          inArray(diaryLogs.foodId, foodIds)
+          inArray(diaryLogs.foodId, sql`(select value from json_each(${JSON.stringify(foodIds)}))`)
         )
       )
       .orderBy(

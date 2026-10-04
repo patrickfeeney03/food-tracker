@@ -2,7 +2,6 @@ import { resolve } from '$app/paths';
 import { withHash, withQuery } from '$lib/navigation';
 import { readText } from '$lib/nutrition/food-form';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import {
   MealShortcutApplicationNotFoundError,
   undoMealShortcutApplication
@@ -26,8 +25,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   try {
-    const feedback = undoMealShortcutApplication(
-      db,
+    const feedback = await undoMealShortcutApplication(
+      locals.db,
       user.id,
       result.data.applicationId
     );

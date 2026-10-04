@@ -1,64 +1,26 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
-import { basename, dirname, resolve } from 'node:path';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-
-const workspace = process.cwd();
-const allowedDirectory = resolve(workspace, '.playwright');
-const databasePath = resolve(process.env.DATABASE_URL ?? '');
-const databaseName = basename(databasePath);
-
-if (dirname(databasePath) !== allowedDirectory || !databaseName.startsWith('e2e') || !databaseName.endsWith('.db')) {
-  throw new Error(`Refusing to prepare an E2E database outside ${allowedDirectory}`);
-}
-
-mkdirSync(allowedDirectory, { recursive: true });
-for (const filename of [databasePath, `${databasePath}-shm`, `${databasePath}-wal`]) {
-  rmSync(filename, { force: true });
-}
-
-const sqlite = new Database(databasePath);
-try {
-  migrate(drizzle(sqlite), { migrationsFolder: resolve(workspace, 'drizzle') });
-} finally {
-  sqlite.close();
-}
+import { resolve } from 'node:path';
 
 const port = process.env.PORT || '4173';
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const production = process.env.PLAYWRIGHT_PRODUCTION === '1';
-
-if (production) {
-  const build = spawnSync(npmCommand, ['run', 'build'], {
-    env: process.env,
-    stdio: 'inherit'
-  });
-
-  if (build.error) throw build.error;
-  if (build.status !== 0) process.exit(build.status ?? 1);
+if (!/^\d{4,5}$/.test(port)) throw new Error('Invalid E2E port');
+const persistence = resolve('.playwright', `d1-${port}`);
+mkdirSync(resolve('.playwright'), { recursive: true });
+rmSync(persistence, { recursive: true, force: true });
+const wrangler = resolve('node_modules/.bin/wrangler');
+function run(command, args) {
+  const result = spawnSync(command, args, { env: process.env, stdio: 'inherit' });
+  if (result.error) throw result.error;
+  if (result.status !== 0) process.exit(result.status ?? 1);
 }
-
-const server = production
-  ? spawn(process.execPath, ['build'], { env: process.env, stdio: 'inherit' })
-  : spawn(
-      npmCommand,
-      ['run', 'dev', '--', '--host', '127.0.0.1', '--port', port],
-      { env: process.env, stdio: 'inherit' }
-    );
-
+// Both suites exercise the deployed Worker output, including real static assets.
+run('npm', ['run', 'build']);
+run(wrangler, ['d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persistence]);
+const vars = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI', 'GOOGLE_ALLOWED_EMAILS']
+  .flatMap((name) => ['--var', `${name}:${process.env[name] ?? ''}`]);
+const server = spawn(wrangler, ['dev', '--local', '--ip', '127.0.0.1', '--port', port,
+  '--persist-to', persistence, ...vars], { env: process.env, stdio: 'inherit' });
 for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.once(signal, () => {
-    if (!server.killed) server.kill(signal);
-  });
+  process.once(signal, () => { if (!server.killed) server.kill(signal); });
 }
-
-server.once('exit', (code, signal) => {
-  if (signal !== null) {
-    process.kill(process.pid, signal);
-    return;
-  }
-
-  process.exit(code ?? 1);
-});
+server.once('exit', (code) => process.exit(code ?? 1));

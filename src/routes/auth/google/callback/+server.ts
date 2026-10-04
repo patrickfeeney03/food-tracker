@@ -1,9 +1,8 @@
-import { GOOGLE_OAUTH_COOKIE_OPTIONS, GOOGLE_OAUTH_STATE_COOKIE_NAME, GOOGLE_OAUTH_VERIFIER_COOKIE_NAME, SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } from "$lib/server/auth/cookie";
+import { GOOGLE_OAUTH_COOKIE_OPTIONS, GOOGLE_OAUTH_STATE_COOKIE_NAME, GOOGLE_OAUTH_VERIFIER_COOKIE_NAME, SESSION_COOKIE_NAME, sessionCookieOptions } from "$lib/server/auth/cookie";
 import { createGoogleOAuthClient, getAllowedGoogleEmails } from "$lib/server/auth/google";
 import { findOrCreateGoogleUser, GoogleEmailNotAllowedError } from "$lib/server/auth/google-user";
 import { parseGoogleUserInfo } from "$lib/server/auth/google-user-info";
 import { createSession } from "$lib/server/auth/session";
-import { db } from "$lib/server/db";
 import { error, redirect, type RequestHandler } from "@sveltejs/kit";
 
 const GOOGLE_USER_INFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
@@ -13,7 +12,8 @@ export const GET: RequestHandler = async ({
   fetch,
   locals,
   request,
-  url
+  url,
+  platform
 }) => {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
@@ -42,8 +42,10 @@ export const GET: RequestHandler = async ({
     return error(400, 'Invalid OAuth callback');
   }
 
+  if (platform === undefined) return error(503, 'Authentication configuration is unavailable');
+
   try {
-    const tokens = await createGoogleOAuthClient(url)
+    const tokens = await createGoogleOAuthClient(platform.env, url)
       .validateAuthorizationCode(
         code,
         codeVerifier
@@ -64,13 +66,13 @@ export const GET: RequestHandler = async ({
     const identity = parseGoogleUserInfo(
       await response.json()
     );
-    const user = findOrCreateGoogleUser(
-      db,
+    const user = await findOrCreateGoogleUser(
+      locals.db,
       identity,
-      getAllowedGoogleEmails()
+      getAllowedGoogleEmails(platform.env)
     );
-    const { token, session } = createSession(
-      db,
+    const { token, session } = await createSession(
+      locals.db,
       user.id,
       request.headers.get('user-agent')
     );
@@ -84,7 +86,7 @@ export const GET: RequestHandler = async ({
     cookies.set(
       SESSION_COOKIE_NAME,
       token,
-      SESSION_COOKIE_OPTIONS
+      sessionCookieOptions(url)
     );
   } catch (error) {
     if (error instanceof GoogleEmailNotAllowedError) {

@@ -6,9 +6,8 @@ import {
 } from '$lib/server/auth/cookie';
 import { requireUser } from '$lib/server/auth/require-user';
 import { revokeSession } from '$lib/server/auth/session';
-import { db } from '$lib/server/db';
 
-export const POST: RequestHandler = ({
+export const POST: RequestHandler = async ({
   locals,
   cookies
 }) => {
@@ -19,8 +18,8 @@ export const POST: RequestHandler = ({
   ) {
     const sessionId = locals.session.id;
 
-    revokeSession(
-      db,
+    await revokeSession(
+      locals.db,
       user.id,
       sessionId
     );

@@ -1,42 +1,39 @@
-# sv
+# Food tracker
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+SvelteKit calorie and macro tracker with Google login, Cloudflare D1 storage,
+and offline/PWA food logging.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+For local setup, migrations, staging/production releases, data cutover and
+private R2 recovery, see [Cloudflare deployment](docs/cloudflare.md).
 
 ```sh
-# recreate this project
-npx sv@0.16.2 create --template minimal --types ts --add eslint vitest="usages:unit,component" tailwindcss="plugins:typography" drizzle="database:sqlite+sqlite:better-sqlite3" --install npm calories
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+npm ci
+cp .dev.vars.example .dev.vars
+# Fill in Google credentials in .dev.vars.
+npm run db:migrate
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+Deployments are manual. `git push` does not trigger a deployment; there are no
+GitHub deployment workflows. Each command deploys your current local code,
+including uncommitted changes, from whichever branch is checked out.
 
-To create a production version of your app:
+Deploy to staging with its separate D1 database:
 
 ```sh
-npm run build
+npm run deploy:staging
 ```
 
-You can preview the production build with `npm run preview`.
+Open https://food-tracker-staging.patrickfeeneytamayo.workers.dev/ afterward.
+Staging is shared: each deployment replaces the previous staging version.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+Deploy to production:
+
+```sh
+npm run deploy
+```
+
+This checks and builds the app, applies production D1 migrations, deploys the
+app, and updates the daily backup Worker. It uses your local Wrangler login;
+run `npx wrangler login` if needed. Production runs at
+https://food-tracker.patrick.pe/ and uses the production D1 database.

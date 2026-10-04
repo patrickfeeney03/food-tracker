@@ -2,7 +2,6 @@ import { resolve } from '$app/paths';
 import { withHash, withQuery } from '$lib/navigation';
 import { readText } from '$lib/nutrition/food-form';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import {
   DiaryEntryDeletionNotFoundError,
   restoreDeletedDiaryEntry
@@ -28,8 +27,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   try {
-    const entry = restoreDeletedDiaryEntry(
-      db,
+    const entry = await restoreDeletedDiaryEntry(
+      locals.db,
       user.id,
       result.data.entryId,
       new Date(result.data.deletedAt)

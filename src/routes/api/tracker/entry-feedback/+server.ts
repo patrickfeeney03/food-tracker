@@ -3,7 +3,7 @@ import { requireUser } from '$lib/server/auth/require-user';
 import { loadDiaryEntryFeedback } from '$lib/server/tracker/initial-state';
 import { error, json, type RequestHandler } from '@sveltejs/kit';
 
-export const GET: RequestHandler = ({ locals, url }) => {
+export const GET: RequestHandler = async ({ locals, url }) => {
   const user = requireUser(locals);
   const date = calendarDateString.safeParse(url.searchParams.get('date'));
 
@@ -12,7 +12,7 @@ export const GET: RequestHandler = ({ locals, url }) => {
   }
 
   return json(
-    loadDiaryEntryFeedback(user.id, url, date.data),
+    await loadDiaryEntryFeedback(locals.db, user.id, url, date.data),
     {
       headers: {
         'Cache-Control': 'private, no-store'

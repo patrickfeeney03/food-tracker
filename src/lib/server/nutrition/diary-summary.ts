@@ -65,14 +65,14 @@ export function sumDiaryNutrition(
   };
 }
 
-export function loadDiaryDay(
+export async function loadDiaryDay(
   db: AppDatabase,
   userId: string,
   rawDate: string
-): DiaryDaySummary {
+): Promise<DiaryDaySummary> {
   const date = calendarDateString.parse(rawDate);
 
-  const entries = db
+  const entries = await db
     .select()
     .from(diaryLogs)
     .where(
@@ -88,7 +88,7 @@ export function loadDiaryDay(
     )
     .all();
 
-  const goal = db
+  const goal = await db
     .select()
     .from(nutritionGoals)
     .where(
@@ -103,6 +103,14 @@ export function loadDiaryDay(
     .limit(1)
     .get() ?? null;
 
+  return summarizeDiaryDay(date, goal, entries);
+}
+
+export function summarizeDiaryDay(
+  date: string,
+  goal: NutritionGoal | null,
+  entries: DiaryLog[]
+): DiaryDaySummary {
   const meals = Object.fromEntries(
     mealSlots.map((slot) => {
       const mealEntries = entries.filter(

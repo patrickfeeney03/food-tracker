@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "food-tracker-backup",
+  "main": "workers/backup.ts",
+  "compatibility_date": "2026-09-30",
+  "workers_dev": false,
+  "observability": { "enabled": true },
+  "limits": { "cpu_ms": 30000 },
+  "triggers": { "crons": ["17 3 * * *"] },
+  "d1_databases": [{ "binding": "DB", "database_name": "food-tracker-production", "database_id": "2674fdf8-a07f-4dac-8900-9942d75fcfd5" }],
+  "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "food-tracker-backups" }]
+}

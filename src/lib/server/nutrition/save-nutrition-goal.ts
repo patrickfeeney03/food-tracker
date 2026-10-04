@@ -3,7 +3,7 @@ import type { AppDatabase } from '$lib/server/db/connection';
 import { nutritionGoals } from '$lib/server/db/schema';
 import { mapNutritionGoalInput } from './goal-mapper';
 
-export function saveNutritionGoal(
+export async function saveNutritionGoal(
   db: AppDatabase,
   userId: string,
   rawInput: unknown

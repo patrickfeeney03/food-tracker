@@ -12,15 +12,15 @@ export class DiaryEntryNotFoundError extends Error {
   }
 }
 
-export function updateDiaryEntry(
+export async function updateDiaryEntry(
   db: AppDatabase,
   userId: string,
   entryId: string,
   rawInput: EditDiaryEntryInput,
   updatedAt = new Date()
-): DiaryLog {
+): Promise<DiaryLog> {
   const input = editDiaryEntryInputSchema.parse(rawInput);
-  const entry = getActiveDiaryEntry(db, userId, entryId);
+  const entry = await getActiveDiaryEntry(db, userId, entryId);
 
   if (entry === undefined) {
     throw new DiaryEntryNotFoundError();

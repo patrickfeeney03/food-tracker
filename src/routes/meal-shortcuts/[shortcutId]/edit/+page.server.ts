@@ -8,7 +8,6 @@ import {
 import { readContext } from '$lib/nutrition/navigation-context';
 import { formatStoredValue } from '$lib/nutrition/math';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import {
   applyMealShortcut,
   archiveMealShortcut,
@@ -24,7 +23,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
 
-type PickerFood = ReturnType<typeof searchMealShortcutFoods>[number];
+type PickerFood = Awaited<ReturnType<typeof searchMealShortcutFoods>>[number];
 
 function unavailableReason(reason: 'food_archived' | 'amount_unit_changed') {
   return reason === 'food_archived'
@@ -78,7 +77,7 @@ function catalogueDestination(
   );
 }
 
-export const load: PageServerLoad = ({ locals, params, url }) => {
+export const load: PageServerLoad = async ({ locals, params, url }) => {
   const user = requireUser(locals);
 
   const context = readContext({
@@ -89,8 +88,8 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
   if (context === undefined) return error(400, 'Invalid catalogue context');
 
   try {
-    const shortcut = getMealShortcut(db, user.id, params.shortcutId);
-    const foods = searchMealShortcutFoods(db, user.id, '', 200);
+    const shortcut = await getMealShortcut(locals.db, user.id, params.shortcutId);
+    const foods = await searchMealShortcutFoods(locals.db, user.id, '', 200);
     return {
       context,
       foods,
@@ -128,7 +127,7 @@ export const actions = {
       mealSlot: String(formData.get('mealSlot') ?? ''),
       q: String(formData.get('q') ?? '')
     });
-    const foods = searchMealShortcutFoods(db, user.id, '', 200);
+    const foods = await searchMealShortcutFoods(locals.db, user.id, '', 200);
     const result = updateMealShortcutInputSchema.safeParse(raw);
     const values = {
       name: raw.name,
@@ -149,7 +148,7 @@ export const actions = {
 
     let shortcut;
     try {
-      shortcut = updateMealShortcut(db, user.id, params.shortcutId, result.data);
+      shortcut = await updateMealShortcut(locals.db, user.id, params.shortcutId, result.data);
 
       locals.log.info('meal_shortcut.saved', {
         shortcutId: shortcut.id,
@@ -174,7 +173,7 @@ export const actions = {
     };
 
     try {
-      const applied = applyMealShortcut(db, user.id, params.shortcutId, {
+      const applied = await applyMealShortcut(locals.db, user.id, params.shortcutId, {
         clientMutationId: crypto.randomUUID(),
         diaryDate: context.date,
         mealSlot: context.mealSlot
@@ -229,8 +228,8 @@ export const actions = {
     if (context === undefined) return fail(400, { archiveError: 'Invalid catalogue context' });
 
     try {
-      const shortcut = archiveMealShortcut(
-        db,
+      const shortcut = await archiveMealShortcut(
+        locals.db,
         user.id,
         params.shortcutId,
         expectedUpdatedAt

@@ -6,15 +6,14 @@ import {
 } from '$lib/server/auth/cookie';
 import { requireUser } from '$lib/server/auth/require-user';
 import { revokeSession } from '$lib/server/auth/session';
-import { db } from '$lib/server/db';
 import { sessions } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
   const user = requireUser(locals);
   const now = new Date();
 
-  const activeSessions = db
+  const activeSessions = await locals.db
     .select({
       id: sessions.id,
       createdAt: sessions.createdAt,
@@ -54,7 +53,7 @@ export const actions: Actions = {
       });
     }
 
-    const revoked = revokeSession(db, user.id, sessionId);
+    const revoked = await revokeSession(locals.db, user.id, sessionId);
 
     if (!revoked) {
       return fail(404, {

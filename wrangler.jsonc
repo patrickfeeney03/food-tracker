@@ -1,0 +1,60 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "food-tracker-dev",
+  "main": ".svelte-kit/cloudflare/_worker.js",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": ".svelte-kit/cloudflare",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "limits": {
+    "cpu_ms": 100
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "food-tracker-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "env": {
+    "staging": {
+      "name": "food-tracker-staging",
+      "vars": {},
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "food-tracker-staging",
+          "database_id": "7bffe7d0-25ba-4758-8b03-c8f31cb592db",
+          "migrations_dir": "migrations"
+        }
+      ]
+    },
+    "production": {
+      "name": "food-tracker-production",
+      "vars": {},
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "food-tracker-production",
+          "database_id": "2674fdf8-a07f-4dac-8900-9942d75fcfd5",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "routes": [
+        {
+          "pattern": "food-tracker.patrick.pe/*",
+          "zone_name": "patrick.pe"
+        }
+      ],
+      "workers_dev": false
+    }
+  }
+}

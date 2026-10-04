@@ -5,7 +5,6 @@ import { editFoodSchema } from '$lib/nutrition/food-input';
 import { readFoodFormValues, readText } from '$lib/nutrition/food-form';
 import { contextSchema, readContext } from '$lib/nutrition/navigation-context';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import {
   archiveFood,
   FoodAmountUnitConflictError,
@@ -37,10 +36,10 @@ function catalogueRedirect(
   );
 }
 
-export const load: PageServerLoad = ({ locals, params, url }) => {
+export const load: PageServerLoad = async ({ locals, params, url }) => {
   const user = requireUser(locals);
 
-  const food = getActiveFoodForEdit(db, user.id, params.foodId);
+  const food = await getActiveFoodForEdit(locals.db, user.id, params.foodId);
   if (food === undefined) {
     return error(404, 'Food not found');
   }
@@ -89,7 +88,7 @@ export const actions = {
     }
 
     try {
-      const food = updateFood(db, user.id, params.foodId, result.data);
+      const food = await updateFood(locals.db, user.id, params.foodId, result.data);
 
       locals.log.info('food.updated', {
         foodId: food.id
@@ -148,7 +147,7 @@ export const actions = {
     }
 
     try {
-      const food = archiveFood(db, user.id, params.foodId, expectedUpdatedAt);
+      const food = await archiveFood(locals.db, user.id, params.foodId, expectedUpdatedAt);
 
       locals.log.info('food.archived', {
         foodId: food.id

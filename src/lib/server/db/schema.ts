@@ -10,6 +10,11 @@ import {
   uniqueIndex
 } from 'drizzle-orm/sqlite-core';
 export const authProviders = ['google'] as const;
+// Transient assertions used inside atomic D1 batches; empty after commit.
+export const atomicGuards = sqliteTable('atomic_guards', {
+  operationId: text('operation_id').notNull(),
+  valid: integer('valid').notNull()
+}, (table) => [check('atomic_guard_valid', sql`${table.valid} = 1`)]);
 export const themes = ['light', 'dark', 'system'] as const;
 
 export type AuthProvider = (typeof authProviders)[number];

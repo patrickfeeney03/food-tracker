@@ -36,6 +36,13 @@
       "when": 1784458090032,
       "tag": "0004_modern_landau",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790726400000,
+      "tag": "0005_d1_atomic_guards",
+      "breakpoints": true
     }
   ]
 }

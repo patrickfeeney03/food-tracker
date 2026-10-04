@@ -5,7 +5,6 @@ import { readText } from "$lib/nutrition/food-form";
 import { editDiaryEntryInputSchema } from "$lib/nutrition/portion-input";
 import { formatStoredValue } from "$lib/nutrition/math";
 import { requireUser } from "$lib/server/auth/require-user";
-import { db } from "$lib/server/db";
 import { deleteDiaryEntry, DiaryEntryDeletionNotFoundError } from "$lib/server/nutrition/delete-diary-entry";
 import { getActiveDiaryEntry } from "$lib/server/nutrition/diary-entry-query";
 import { DiaryEntryNotFoundError, updateDiaryEntry } from "$lib/server/nutrition/update-diary-entry";
@@ -13,14 +12,14 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { z } from "zod";
 import type { Actions, PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = ({
+export const load: PageServerLoad = async ({
   locals,
   params
 }) => {
   const user = requireUser(locals);
 
-  const entry = getActiveDiaryEntry(
-    db,
+  const entry = await getActiveDiaryEntry(
+    locals.db,
     user.id,
     params.entryId
   );
@@ -100,8 +99,8 @@ export const actions = {
     }
 
     try {
-      const entry = updateDiaryEntry(
-        db,
+      const entry = await updateDiaryEntry(
+        locals.db,
         user.id,
         params.entryId,
         result.data
@@ -144,12 +143,12 @@ export const actions = {
     }
   },
 
-  delete: ({ locals, params }) => {
+  delete: async ({ locals, params }) => {
     const user = requireUser(locals);
 
     try {
-      const entry = deleteDiaryEntry(
-        db,
+      const entry = await deleteDiaryEntry(
+        locals.db,
         user.id,
         params.entryId
       );

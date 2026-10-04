@@ -1,16 +1,15 @@
 import { todayInDublin } from '$lib/date';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import {
   buildPortableDataExport,
   dataExportResponse
 } from '$lib/server/export/data-export';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = ({ locals }) => {
+export const GET: RequestHandler = async ({ locals }) => {
   const user = requireUser(locals);
   const exportedAt = new Date();
-  const data = buildPortableDataExport(db, user.id, exportedAt);
+  const data = await buildPortableDataExport(locals.db, user.id, exportedAt);
 
   locals.log.info('user.data_exported', {
     format: 'json',

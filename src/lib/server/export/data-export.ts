@@ -94,56 +94,27 @@ function nutritionValue(values: {
   };
 }
 
-export function buildPortableDataExport(
+export async function buildPortableDataExport(
   database: AppDatabase,
   userId: string,
   exportedAt = new Date()
 ) {
-  return database.transaction((transaction) => {
-    const account = transaction
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .get();
-
-    if (account === undefined) {
-      throw new Error('Cannot export data for a missing user');
-    }
-
-    const goals = transaction
-      .select()
-      .from(nutritionGoals)
-      .where(eq(nutritionGoals.userId, userId))
-      .orderBy(asc(nutritionGoals.effectiveFrom), asc(nutritionGoals.id))
-      .all();
-
-    const ownedFoods = transaction
-      .select()
-      .from(foods)
-      .where(eq(foods.userId, userId))
-      .orderBy(asc(foods.createdAt), asc(foods.id))
-      .all();
-
-    const entries = transaction
-      .select()
-      .from(diaryLogs)
-      .where(eq(diaryLogs.userId, userId))
-      .orderBy(asc(diaryLogs.diaryDate), asc(diaryLogs.loggedAt), asc(diaryLogs.id))
-      .all();
-
-    const shortcuts = transaction
-      .select()
-      .from(mealShortcuts)
-      .where(eq(mealShortcuts.userId, userId))
-      .orderBy(asc(mealShortcuts.createdAt), asc(mealShortcuts.id))
-      .all();
-
-    const shortcutItems = transaction
-      .select()
-      .from(mealShortcutItems)
-      .where(eq(mealShortcutItems.userId, userId))
+  // All reads share one D1 transaction, giving the export a consistent snapshot.
+  const [accounts, goals, ownedFoods, entries, shortcuts, shortcutItems] = await database.batch([
+    database.select().from(users).where(eq(users.id, userId)),
+    database.select().from(nutritionGoals).where(eq(nutritionGoals.userId, userId))
+      .orderBy(asc(nutritionGoals.effectiveFrom), asc(nutritionGoals.id)),
+    database.select().from(foods).where(eq(foods.userId, userId))
+      .orderBy(asc(foods.createdAt), asc(foods.id)),
+    database.select().from(diaryLogs).where(eq(diaryLogs.userId, userId))
+      .orderBy(asc(diaryLogs.diaryDate), asc(diaryLogs.loggedAt), asc(diaryLogs.id)),
+    database.select().from(mealShortcuts).where(eq(mealShortcuts.userId, userId))
+      .orderBy(asc(mealShortcuts.createdAt), asc(mealShortcuts.id)),
+    database.select().from(mealShortcutItems).where(eq(mealShortcutItems.userId, userId))
       .orderBy(asc(mealShortcutItems.shortcutId), asc(mealShortcutItems.position))
-      .all();
+  ]);
+  const account = accounts[0];
+  if (account === undefined) throw new Error('Cannot export data for a missing user');
 
     const itemsByShortcut = new Map<string, typeof shortcutItems>();
     for (const item of shortcutItems) {
@@ -264,10 +235,9 @@ export function buildPortableDataExport(
         archivedAt: toIsoString(shortcut.deletedAt)
       }))
     };
-  });
 }
 
-export type PortableDataExport = ReturnType<typeof buildPortableDataExport>;
+export type PortableDataExport = Awaited<ReturnType<typeof buildPortableDataExport>>;
 
 function csvCell(value: string | number | null): string {
   let text = value === null ? '' : String(value);
@@ -309,8 +279,8 @@ function optionalNutrientMilligrams(value: number | undefined): number | null {
   return value ?? null;
 }
 
-export function buildDiaryCsvExport(database: AppDatabase, userId: string) {
-  const entries = database
+export async function buildDiaryCsvExport(database: AppDatabase, userId: string) {
+  const entries = await database
     .select()
     .from(diaryLogs)
     .where(and(eq(diaryLogs.userId, userId), isNull(diaryLogs.deletedAt)))

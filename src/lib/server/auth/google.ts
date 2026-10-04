@@ -1,5 +1,3 @@
-import { env } from '$env/dynamic/private';
-import { dev } from '$app/environment';
 import { Google } from 'arctic';
 
 const GOOGLE_CALLBACK_PATH = '/auth/google/callback';
@@ -15,39 +13,41 @@ function requireEnvironmentVariable(
   return value;
 }
 
-export function getGoogleRedirectUri(requestUrl?: URL): string {
-  if (dev) {
-    if (requestUrl === undefined) {
-      throw new Error('A request URL is required during development');
-    }
+export interface GoogleAuthConfig {
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  GOOGLE_REDIRECT_URI: string;
+  GOOGLE_ALLOWED_EMAILS: string;
+}
 
+export function getGoogleRedirectUri(config: GoogleAuthConfig, requestUrl?: URL): string {
+  if (config.GOOGLE_REDIRECT_URI.trim() === '' && requestUrl !== undefined) {
     return new URL(GOOGLE_CALLBACK_PATH, requestUrl).toString();
   }
-
   return requireEnvironmentVariable(
     'GOOGLE_REDIRECT_URI',
-    env.GOOGLE_REDIRECT_URI
+    config.GOOGLE_REDIRECT_URI
   );
 }
 
-export function createGoogleOAuthClient(requestUrl?: URL): Google {
+export function createGoogleOAuthClient(config: GoogleAuthConfig, requestUrl?: URL): Google {
   return new Google(
     requireEnvironmentVariable(
       'GOOGLE_CLIENT_ID',
-      env.GOOGLE_CLIENT_ID
+      config.GOOGLE_CLIENT_ID
     ),
     requireEnvironmentVariable(
       'GOOGLE_CLIENT_SECRET',
-      env.GOOGLE_CLIENT_SECRET
+      config.GOOGLE_CLIENT_SECRET
     ),
-    getGoogleRedirectUri(requestUrl)
+    getGoogleRedirectUri(config, requestUrl)
   );
 }
 
-export function getAllowedGoogleEmails(): string[] {
+export function getAllowedGoogleEmails(config: GoogleAuthConfig): string[] {
   const allowedEmails = requireEnvironmentVariable(
     'GOOGLE_ALLOWED_EMAILS',
-    env.GOOGLE_ALLOWED_EMAILS
+    config.GOOGLE_ALLOWED_EMAILS
   )
     .split(',')
     .map((email) => email.trim().toLowerCase())

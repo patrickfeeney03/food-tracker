@@ -1,5 +1,5 @@
-import { createHash, randomBytes } from "node:crypto";
-import { and, eq, isNull } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
+import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { AppDatabase } from "../db/connection";
 import {
   sessions,
@@ -19,7 +19,7 @@ export interface SessionValidationResult {
   session: Session | null;
 }
 
-export function createSession(
+export async function createSession(
   db: AppDatabase,
   userId: string,
   userAgent: string | null,
@@ -27,7 +27,7 @@ export function createSession(
 ) {
   const token = generateSessionToken();
 
-  const session = db
+  const session = await db
     .insert(sessions)
     .values({
       userId,
@@ -54,15 +54,20 @@ export function hashSessionToken(token: string): string {
 }
 
 export function generateSessionToken(): string {
-  return randomBytes(32).toString('base64url');
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
+  return btoa(binary)
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/, '');
 }
 
-export function validateSessionToken(
+export async function validateSessionToken(
   db: AppDatabase,
   token: string,
   now = new Date()
-): SessionValidationResult {
-  const result = db
+): Promise<SessionValidationResult> {
+  const result = await db
     .select({
       user: users,
       session: sessions
@@ -96,7 +101,7 @@ export function validateSessionToken(
     result.session.lastSeenAt.getTime() >=
     SESSION_REFRESH_INTERVAL_MS
   ) {
-    const refreshedSession = db
+    const refreshedSession = await db
       .update(sessions)
       .set({
         lastSeenAt: now,
@@ -104,9 +109,17 @@ export function validateSessionToken(
           now.getTime() + SESSION_DURATION_MS
         )
       })
-      .where(eq(sessions.id, result.session.id))
+      .where(and(
+        eq(sessions.id, result.session.id),
+        isNull(sessions.revokedAt),
+        gt(sessions.expiresAt, now)
+      ))
       .returning()
       .get();
+
+    if (refreshedSession === undefined) {
+      return { user: null, session: null };
+    }
 
     return {
       user: result.user,
@@ -117,13 +130,13 @@ export function validateSessionToken(
   return result;
 }
 
-export function revokeSession(
+export async function revokeSession(
   db: AppDatabase,
   userId: string,
   sessionId: string,
   now = new Date()
-): boolean {
-  const result = db
+): Promise<boolean> {
+  const result = await db
     .update(sessions)
     .set({
       revokedAt: now
@@ -137,5 +150,5 @@ export function revokeSession(
     )
     .run();
 
-  return result.changes === 1;
+  return result.meta.changes === 1;
 }

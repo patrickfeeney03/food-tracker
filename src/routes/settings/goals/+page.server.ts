@@ -6,7 +6,6 @@ import { nutritionGoalInputSchema } from '$lib/nutrition/goal-input';
 import { formatStoredValue } from '$lib/nutrition/math';
 import { calendarDateString } from '$lib/nutrition/portion-input';
 import { requireUser } from '$lib/server/auth/require-user';
-import { db } from '$lib/server/db';
 import { nutritionGoals } from '$lib/server/db/schema';
 import { saveNutritionGoal } from '$lib/server/nutrition/save-nutrition-goal';
 import { error, fail, redirect } from '@sveltejs/kit';
@@ -14,7 +13,7 @@ import { and, desc, eq, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
   const user = requireUser(locals);
 
   const today = todayInDublin();
@@ -28,7 +27,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
   }
 
   const effectiveFrom = selectedDateResult?.data ?? today;
-  const currentGoal = db
+  const currentGoal = await locals.db
     .select()
     .from(nutritionGoals)
     .where(
@@ -84,7 +83,7 @@ export const actions = {
     }
 
     try {
-      const goal = saveNutritionGoal(db, user.id, result.data);
+      const goal = await saveNutritionGoal(locals.db, user.id, result.data);
 
       locals.log.info('nutrition_goal.saved', {
         nutritionGoalId: goal.id,

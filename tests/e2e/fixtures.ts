@@ -1,11 +1,19 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
+import { readdirSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { expect, test as base, type Page } from 'playwright/test';
 
 const port = process.env.PORT || '4173';
 const BASE_URL = `http://127.0.0.1:${port}`;
-const DATABASE_PATH = resolve(process.cwd(), `.playwright/e2e-${port}.db`);
+const D1_DIRECTORY = resolve(process.cwd(), `.playwright/d1-${port}`);
+
+function findD1Database(directory: string): string {
+  const files = readdirSync(directory, { recursive: true, withFileTypes: true });
+  const databases = files.filter((file) => file.isFile() && file.name.endsWith('.sqlite') && file.name !== 'metadata.sqlite' && file.parentPath.includes('/d1/'));
+  if (databases.length !== 1) throw new Error(`Expected one local D1 database in ${directory}, found ${databases.length}`);
+  return resolve(databases[0].parentPath, databases[0].name);
+}
 const SESSION_DURATION_MS = 90 * 24 * 60 * 60 * 1000;
 
 type FoodSeed = {
@@ -221,7 +229,7 @@ function insertMealShortcut(
 
 export const test = base.extend<Fixtures>({
   app: async ({ browser }, use) => {
-    const db = new Database(DATABASE_PATH);
+    const db = new Database(findD1Database(D1_DIRECTORY));
     db.pragma('busy_timeout = 5000');
     db.pragma('foreign_keys = ON');
     const trackedUserIds: string[] = [];
@@ -242,7 +250,7 @@ export const test = base.extend<Fixtures>({
       'Playwright'
     );
 
-    const context = await browser.newContext({ baseURL: BASE_URL });
+    const context = await browser.newContext({ baseURL: BASE_URL, extraHTTPHeaders: { Origin: BASE_URL } });
     const signInAs = async (sessionUserId: string) => {
       const token = randomBytes(32).toString('base64url');
       const now = Date.now();

@@ -1,6 +1,5 @@
 import { fail } from '@sveltejs/kit';
 import { and, desc, eq, gt, isNull, lte } from 'drizzle-orm';
-import { db } from '$lib/server/db';
 import {
   nutritionGoals,
   sessions,
@@ -17,10 +16,10 @@ import {
 import packageJson from '../../../package.json';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
   const user = requireUser(locals);
 
-  const currentGoal = db
+  const currentGoal = await locals.db
     .select({
       targetEnergyMkcal: nutritionGoals.targetEnergyMkcal,
       targetProteinMg: nutritionGoals.targetProteinMg,
@@ -38,7 +37,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
     .limit(1)
     .get();
 
-  const activeSessionCount = db
+  const activeSessionCount = (await locals.db
     .select({ id: sessions.id })
     .from(sessions)
     .where(
@@ -48,8 +47,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
         gt(sessions.expiresAt, new Date())
       )
     )
-    .all()
-    .length;
+    .all()).length;
 
   return {
     user: {
@@ -81,7 +79,7 @@ export const actions: Actions = {
       });
     }
 
-    db.update(users)
+    await locals.db.update(users)
       .set({
         settingsJson: {
           ...user.settingsJson,

@@ -9,13 +9,13 @@ export class DiaryEntryDeletionNotFoundError extends Error {
   }
 }
 
-export function deleteDiaryEntry(
+export async function deleteDiaryEntry(
   db: AppDatabase,
   userId: string,
   entryId: string,
   deletedAt = new Date(),
-): DiaryLog {
-  const entry = db
+): Promise<DiaryLog> {
+  const entry = await db
     .update(diaryLogs)
     .set({ deletedAt, updatedAt: deletedAt })
     .where(
@@ -35,14 +35,14 @@ export function deleteDiaryEntry(
   return entry;
 }
 
-export function restoreDeletedDiaryEntry(
+export async function restoreDeletedDiaryEntry(
   db: AppDatabase,
   userId: string,
   entryId: string,
   expectedDeletedAt: Date,
   restoredAt = new Date(),
-): DiaryLog {
-  const entry = db
+): Promise<DiaryLog> {
+  const entry = await db
     .update(diaryLogs)
     .set({ deletedAt: null, updatedAt: restoredAt })
     .where(
