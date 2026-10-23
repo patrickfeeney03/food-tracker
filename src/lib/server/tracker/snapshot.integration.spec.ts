@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { migrate } from '$lib/server/db/testing';
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { createDatabase, type DatabaseConnection } from '$lib/server/db/testing';
 import { diaryLogs, foods, nutritionGoals, users, type Food, type User } from '$lib/server/db/schema';
@@ -214,6 +215,61 @@ describe('buildTrackerSnapshot', () => {
                     resolvedAmount: 250000,
                     energyMkcal: 342000
                 }
+            });
+        });
+    });
+    it('reports only the newest live entry for each food', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const user = await insertUser(connection, 'Patrick', 'patrick@example.com');
+            const oats = await insertFood(connection, user.id, { name: 'Oats' });
+            const yoghurt = await insertFood(connection, user.id, { name: 'Yoghurt' });
+            const tiedAt = new Date('2026-07-23T07:30:00.000Z');
+            await insertDiaryEntry(connection, oats, {
+                diaryDate: '2026-07-10',
+                portionKind: 'hundred',
+                portionCount: '1',
+                loggedAt: new Date('2026-07-10T07:30:00.000Z')
+            });
+            await insertDiaryEntry(connection, oats, {
+                diaryDate: '2026-07-23',
+                portionKind: 'hundred',
+                portionCount: '1',
+                loggedAt: tiedAt
+            });
+            await insertDiaryEntry(connection, oats, {
+                diaryDate: '2026-07-23',
+                portionKind: 'serving',
+                portionCount: '3',
+                loggedAt: tiedAt
+            });
+            await insertDiaryEntry(connection, yoghurt, {
+                diaryDate: '2026-07-21',
+                portionKind: 'serving',
+                portionCount: '1',
+                loggedAt: new Date('2026-07-21T12:00:00.000Z')
+            });
+            await insertDiaryEntry(connection, yoghurt, {
+                diaryDate: '2026-07-24',
+                portionKind: 'hundred',
+                portionCount: '4',
+                loggedAt: new Date('2026-07-24T12:00:00.000Z'),
+                deletedAt: new Date('2026-07-24T12:05:00.000Z')
+            });
+            const tiedEntryIds = (await connection.db
+                .select({ id: diaryLogs.id })
+                .from(diaryLogs)
+                .where(eq(diaryLogs.loggedAt, tiedAt))
+                .all()).map((entry) => entry.id).sort();
+            const result = await buildTrackerSnapshot(connection.db, user, '2026-07-24');
+            expect(result.foods.map((food) => food.name)).toEqual(['Oats', 'Yoghurt']);
+            expect(result.foods[0].latestUse).toMatchObject({
+                diaryEntryId: tiedEntryIds[tiedEntryIds.length - 1],
+                loggedAt: '2026-07-23T07:30:00.000Z'
+            });
+            expect(result.foods[1].latestUse).toMatchObject({
+                loggedAt: '2026-07-21T12:00:00.000Z',
+                portionKind: 'serving',
+                portionCountMilli: 1000
             });
         });
     });

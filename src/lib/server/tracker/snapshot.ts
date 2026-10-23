@@ -7,7 +7,7 @@ import type {
 } from '$lib/offline/types';
 import { shiftDate } from '$lib/date';
 import { mealSlots } from '$lib/nutrition/constants';
-import { and, asc, desc, eq, isNull, gte, lte } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, gte, lte, sql } from 'drizzle-orm';
 import type { AppDatabase } from '$lib/server/db/connection';
 import {
   diaryLogs,
@@ -103,7 +103,9 @@ export async function buildTrackerDiaryDay(
 }
 
 function latestFoodUsesQuery(db: AppDatabase, userId: string) {
-  return db
+  // Rank each food's live entries newest first and return only the newest, so
+  // the result grows with the food catalogue rather than with diary history.
+  const rankedUses = db
     .select({
       foodId: diaryLogs.foodId,
       diaryEntryId: diaryLogs.id,
@@ -119,7 +121,11 @@ function latestFoodUsesQuery(db: AppDatabase, userId: string) {
       carbsMg: diaryLogs.carbsMg,
       fatMg: diaryLogs.fatMg,
       additionalNutritionTotal:
-        diaryLogs.additionalNutritionTotalJson
+        diaryLogs.additionalNutritionTotalJson,
+      useRank: sql<number>`row_number() over (
+        partition by ${diaryLogs.foodId}
+        order by ${diaryLogs.loggedAt} desc, ${diaryLogs.id} desc
+      )`.as('use_rank')
     })
     .from(diaryLogs)
     .innerJoin(
@@ -136,11 +142,12 @@ function latestFoodUsesQuery(db: AppDatabase, userId: string) {
         isNull(diaryLogs.deletedAt)
       )
     )
-    .orderBy(
-      desc(diaryLogs.loggedAt),
-      desc(diaryLogs.id)
-    )
-;
+    .as('ranked_uses');
+
+  return db
+    .select()
+    .from(rankedUses)
+    .where(eq(rankedUses.useRank, 1));
 }
 
 function mapLatestFoodUses(entries: Awaited<ReturnType<typeof latestFoodUsesQuery>>) {
@@ -150,10 +157,7 @@ function mapLatestFoodUses(entries: Awaited<ReturnType<typeof latestFoodUsesQuer
   >();
 
   for (const entry of entries) {
-    if (
-      entry.foodId !== null &&
-      !latestUseByFood.has(entry.foodId)
-    ) {
+    if (entry.foodId !== null) {
       latestUseByFood.set(entry.foodId, {
         diaryEntryId: entry.diaryEntryId,
         loggedAt: toIsoString(entry.loggedAt),
