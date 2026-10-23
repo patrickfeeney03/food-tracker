@@ -23,7 +23,7 @@
   import { useTrackerStore } from '$lib/tracker/tracker-store.svelte';
   import type { SubmitFunction } from '@sveltejs/kit';
   import { untrack } from 'svelte';
-  import { z } from 'zod';
+  import * as z from 'zod';
 
   const tracker = useTrackerStore();
   let cameFromFoodSearch = $state(false);

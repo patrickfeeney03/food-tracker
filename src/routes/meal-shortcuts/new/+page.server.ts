@@ -16,7 +16,7 @@ import {
   searchMealShortcutFoods
 } from '$lib/server/nutrition/meal-shortcut';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { z } from 'zod';
+import * as z from 'zod';
 import type { Actions, PageServerLoad } from './$types';
 
 type PickerFood = Awaited<ReturnType<typeof searchMealShortcutFoods>>[number];

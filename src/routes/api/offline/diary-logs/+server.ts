@@ -7,7 +7,7 @@ import {
 } from '$lib/server/nutrition/log-existing-food';
 import { buildTrackerSnapshot } from '$lib/server/tracker/snapshot';
 import { json, type RequestHandler } from '@sveltejs/kit';
-import z from 'zod';
+import * as z from 'zod';
 
 const queuedDiaryLogSchema = z.object({
   schemaVersion: z.literal(1),

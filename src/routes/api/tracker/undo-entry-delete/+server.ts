@@ -7,7 +7,7 @@ import {
   restoreDeletedDiaryEntry
 } from '$lib/server/nutrition/delete-diary-entry';
 import { error, redirect, type RequestHandler } from '@sveltejs/kit';
-import { z } from 'zod';
+import * as z from 'zod';
 
 const inputSchema = z.object({
   entryId: z.uuid(),

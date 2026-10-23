@@ -1,7 +1,7 @@
 import { inputLimits } from "$lib/nutrition/input-limits";
 import { destinationSchema } from "$lib/nutrition/navigation-context";
 import { logFoodInputSchema } from "$lib/nutrition/portion-input";
-import z from "zod";
+import * as z from "zod";
 import type { Actions, PageServerLoad } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
 import { createFoodSchema } from "$lib/nutrition/food-input";

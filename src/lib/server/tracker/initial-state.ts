@@ -21,7 +21,7 @@ import type { DiaryEntryFeedback } from '$lib/tracker/types';
 import type { TrackerSnapshot } from '$lib/offline/types';
 import { error, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { z } from 'zod';
+import * as z from 'zod';
 
 const entryIdSchema = z.uuid();
 const searchSchema = z.string().trim().max(inputLimits.catalogueQuery.maxLength);

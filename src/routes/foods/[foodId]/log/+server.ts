@@ -9,7 +9,7 @@ import {
   logExistingFood
 } from '$lib/server/nutrition/log-existing-food';
 import { error, json, redirect, type RequestHandler } from '@sveltejs/kit';
-import { z } from 'zod';
+import * as z from 'zod';
 
 function expectsHtml(request: Request): boolean {
   return request.headers.get('accept')?.includes('text/html') === true;

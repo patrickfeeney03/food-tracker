@@ -1,4 +1,4 @@
-import z from "zod";
+import * as z from "zod";
 import { decimalString } from "./food-input";
 import { inputLimits } from "./input-limits";
 import { calendarDateString } from "./portion-input";

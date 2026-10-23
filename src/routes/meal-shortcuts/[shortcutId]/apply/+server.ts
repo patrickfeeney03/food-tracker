@@ -10,7 +10,7 @@ import {
   MealShortcutNotFoundError
 } from '$lib/server/nutrition/meal-shortcut';
 import { error, redirect, type RequestHandler } from '@sveltejs/kit';
-import { z } from 'zod';
+import * as z from 'zod';
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
   const user = requireUser(locals);

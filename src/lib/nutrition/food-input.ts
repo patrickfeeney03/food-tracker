@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { amountUnits } from "./constants";
 import { inputLimits } from "./input-limits";
 

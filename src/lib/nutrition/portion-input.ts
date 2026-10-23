@@ -1,4 +1,4 @@
-import z from "zod";
+import * as z from "zod";
 import { mealSlots, portionKinds } from "./constants";
 import { positiveDecimalString } from "./food-input";
 import { inputLimits } from "./input-limits";

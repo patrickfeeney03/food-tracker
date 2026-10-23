@@ -10,7 +10,7 @@ import { nutritionGoals } from '$lib/server/db/schema';
 import { saveNutritionGoal } from '$lib/server/nutrition/save-nutrition-goal';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, desc, eq, lte } from 'drizzle-orm';
-import { z } from 'zod';
+import * as z from 'zod';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {

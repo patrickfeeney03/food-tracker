@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { mealSlots } from './constants';
 import { readText } from './food-form';
 import { positiveDecimalString } from './food-input';

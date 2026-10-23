@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { mealSlots } from './constants';
 import { inputLimits } from './input-limits';
 import { calendarDateString } from './portion-input';

@@ -7,7 +7,7 @@ import {
   nutritionGoalInputSchema
 } from "$lib/nutrition/goal-input";
 import { readText } from "$lib/nutrition/food-form";
-import z from "zod";
+import * as z from "zod";
 import { requireUser } from "$lib/server/auth/require-user";
 import { saveNutritionGoal } from "$lib/server/nutrition/save-nutrition-goal";
 import { todayInDublin } from '$lib/date';

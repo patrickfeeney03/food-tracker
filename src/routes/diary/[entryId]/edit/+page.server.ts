@@ -9,7 +9,7 @@ import { deleteDiaryEntry, DiaryEntryDeletionNotFoundError } from "$lib/server/n
 import { getActiveDiaryEntry } from "$lib/server/nutrition/diary-entry-query";
 import { DiaryEntryNotFoundError, updateDiaryEntry } from "$lib/server/nutrition/update-diary-entry";
 import { error, fail, redirect } from "@sveltejs/kit";
-import { z } from "zod";
+import * as z from "zod";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({
