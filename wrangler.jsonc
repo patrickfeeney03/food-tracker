@@ -14,7 +14,7 @@
     "enabled": true
   },
   "limits": {
-    "cpu_ms": 100
+    "cpu_ms": 300
   },
   "d1_databases": [
     {

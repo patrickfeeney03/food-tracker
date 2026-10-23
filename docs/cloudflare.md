@@ -125,8 +125,9 @@ empty D1 database, check foreign keys and schema, and test the app against it.
 Treat these backups as sensitive because they include session token hashes.
 
 Set Cloudflare usage notifications and review aggregate Workers/D1 allowances.
-The Worker has a 100ms CPU ceiling and observability enabled; adjust from real
-request logs if necessary. The subscription does not cap overage spending.
+The Worker has a 300ms CPU ceiling and observability enabled; cold starts measured
+100–226ms CPU in October 2026, warm requests under 50ms. Adjust from real request
+logs if necessary. The subscription does not cap overage spending.
 
 Primary references: [SvelteKit Workers](https://developers.cloudflare.com/workers/framework-guides/web-apps/sveltekit/),
 [D1 batches](https://developers.cloudflare.com/d1/worker-api/d1-database/),
