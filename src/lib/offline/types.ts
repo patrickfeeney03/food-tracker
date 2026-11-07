@@ -53,6 +53,8 @@ export interface OfflineDiaryEntry extends OfflineCoreNutrition {
   sourceShortcutId: string | null;
   shortcutBatchId: string | null;
   clientMutationId: string | null;
+  // Optional so snapshots cached before untracked entries existed stay valid.
+  untracked?: boolean;
   foodName: string;
   foodBrand: string | null;
   amountUnit: AmountUnit;

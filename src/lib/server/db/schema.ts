@@ -312,6 +312,9 @@ export const diaryLogs = sqliteTable(
     }),
     clientMutationId: text('client_mutation_id'),
     clientRequestFingerprint: text('client_request_fingerprint').notNull().default(''),
+    // Untracked entries record that something was eaten without known nutrition.
+    // They carry a fixed zero-nutrition snapshot so totals and constraints are unaffected.
+    untracked: integer('untracked', { mode: 'boolean' }).notNull().default(false),
 
     foodName: text('food_name').notNull(),
     foodBrand: text('food_brand'),

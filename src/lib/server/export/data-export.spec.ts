@@ -5,6 +5,7 @@ import { migrate } from '$lib/server/db/testing';
 import { describe, expect, it } from 'vitest';
 import { createDatabase, type DatabaseConnection } from '$lib/server/db/testing';
 import { authAccounts, diaryLogs, foods, mealShortcutItems, mealShortcuts, nutritionGoals, sessions, users, type NewDiaryLog } from '$lib/server/db/schema';
+import { buildUntrackedDiaryLogValues } from '$lib/server/nutrition/diary-entry';
 import { buildDiaryCsvExport, buildPortableDataExport } from './data-export';
 async function withMigratedDatabase(run: (connection: DatabaseConnection) => Promise<void>): Promise<void> {
     const directory = mkdtempSync(join(tmpdir(), 'calories-export-'));
@@ -304,13 +305,49 @@ describe('data export', () => {
             expect(result.diaryEntryCount).toBe(2);
             expect(result.content.startsWith('\uFEFFdiary_date,meal,food_name')).toBe(true);
             expect(result.content.indexOf('Breakfast,Water')).toBeLessThan(result.content.indexOf('Lunch,'));
-            expect(result.content).toContain('2026-07-20,Breakfast,Water,,unit,1 ml,1.5,1.5,ml,0,0,0,0,,,,,,2026-07-20T09:00:00.000Z');
+            expect(result.content).toContain('2026-07-20,Breakfast,Water,,unit,1 ml,1.5,1.5,ml,0,0,0,0,,,,,,2026-07-20T09:00:00.000Z,false');
             expect(result.content).toContain('"\'=SUM(1,1)"');
             expect(result.content).toContain('"Brand, ""Quoted""\nLine"');
             expect(result.content).toContain(',62.5,10,4,0.5,1.5,,,230,,');
             expect(result.content).not.toContain('Deleted entry');
             expect(result.content).not.toContain('Other private entry');
-            expect(result.content.endsWith('\r\n')).toBe(true);
+            expect(result.content.split('\r\n')[0].endsWith(',logged_at_utc,untracked')).toBe(true);
+        expect(result.content.endsWith('\r\n')).toBe(true);
+        });
+    });
+    it('exports untracked entries without their sentinel nutrition values', async () => {
+        await withMigratedDatabase(async (connection) => {
+            await seedExportData(connection);
+            await connection.db.insert(diaryLogs).values({
+                ...buildUntrackedDiaryLogValues('user-a', {
+                    clientMutationId: crypto.randomUUID(),
+                    name: 'Boojum',
+                    diaryDate: '2026-07-20',
+                    mealSlot: 'dinner'
+                }),
+                id: 'entry-untracked',
+                loggedAt: new Date('2026-07-20T22:00:00.000Z')
+            }).run();
+            const json = await buildPortableDataExport(connection.db, 'user-a');
+            const untracked = json.diaryEntries.find((entry) => entry.id === 'entry-untracked');
+            expect(untracked).toMatchObject({
+                foodId: null,
+                untracked: true,
+                food: { name: 'Boojum', brand: null },
+                snapshot: null,
+                portion: null,
+                nutritionTotal: null
+            });
+            expect(json.diaryEntries.filter((entry) => entry.untracked).map((entry) => entry.id)).toEqual(['entry-untracked']);
+            expect(json.diaryEntries.find((entry) => entry.id === 'entry-lunch')).toMatchObject({
+                untracked: false,
+                snapshot: expect.any(Object),
+                portion: expect.any(Object),
+                nutritionTotal: expect.any(Object)
+            });
+            const csv = await buildDiaryCsvExport(connection.db, 'user-a');
+            expect(csv.diaryEntryCount).toBe(3);
+            expect(csv.content).toContain('2026-07-20,Dinner,Boojum,,,,,,,,,,,,,,,,2026-07-20T22:00:00.000Z,true');
         });
     });
     it('returns a header-only CSV for an empty diary', async () => {

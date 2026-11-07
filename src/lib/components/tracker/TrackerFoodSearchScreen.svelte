@@ -38,6 +38,7 @@
     backHref,
     clearHref,
     createFoodHref,
+    untrackedFoodHref,
     onSearchInput,
     onOpenScanner,
     onBack,
@@ -63,6 +64,7 @@
     backHref: ResolvedPathname;
     clearHref: string;
     createFoodHref: string;
+    untrackedFoodHref: string;
     onSearchInput: (value: string) => void;
     onOpenScanner: () => void;
     onBack?: (event: MouseEvent) => void;
@@ -263,8 +265,9 @@
 
   {#if activeTab === 'foods'}
     <div
-      class="sticky bottom-0 mt-8 bg-gradient-to-t from-[var(--app-surface)]
-        via-[var(--app-surface)] via-80% to-transparent pt-5 sm:flex sm:justify-end"
+      class="sticky bottom-0 mt-8 flex flex-col gap-2 bg-gradient-to-t
+        from-[var(--app-surface)] via-[var(--app-surface)] via-80% to-transparent pt-5
+        sm:flex-row-reverse sm:justify-start"
     >
       {#if isOffline}
         <button
@@ -278,6 +281,16 @@
           <span aria-hidden="true" class="mr-1.5 text-base leading-none">+</span>
           Create a custom food
         </button>
+        <button
+          type="button"
+          disabled
+          title="Available when online"
+          class="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center
+            rounded-xl border border-[var(--app-border)] bg-[var(--app-panel)] px-5 text-sm
+            font-bold text-[var(--app-accent)] opacity-40 sm:w-auto"
+        >
+          Add untracked food
+        </button>
       {:else}
         <a
           href={createFoodHref}
@@ -290,6 +303,17 @@
         >
           <span aria-hidden="true" class="mr-1.5 text-base leading-none">+</span>
           Create a custom food
+        </a>
+        <a
+          href={untrackedFoodHref}
+          data-sveltekit-replacestate
+          class="inline-flex min-h-12 w-full items-center justify-center rounded-xl border
+            border-[var(--app-border)] bg-[var(--app-panel)] px-5 text-sm font-bold
+            text-[var(--app-accent)] transition hover:bg-[var(--app-panel-hover)]
+            focus-visible:outline-2 focus-visible:outline-offset-2
+            focus-visible:outline-[var(--app-accent)] sm:w-auto"
+        >
+          Add untracked food
         </a>
       {/if}
     </div>

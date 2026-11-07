@@ -174,11 +174,13 @@ export async function buildPortableDataExport(
         diaryDate: entry.diaryDate,
         meal: entry.mealSlot,
         sourceShortcutId: entry.sourceShortcutId,
+        untracked: entry.untracked,
         food: {
           name: entry.foodName,
           brand: entry.foodBrand
         },
-        snapshot: {
+        // Untracked entries store sentinel zero values that are not real data.
+        snapshot: entry.untracked ? null : {
           amountUnit: entry.amountUnit,
           basisAmount: amountValue(entry.basisAmount, entry.amountUnit),
           nutritionPerBasis: nutritionValue({
@@ -189,14 +191,14 @@ export async function buildPortableDataExport(
             additionalNutrition: entry.additionalNutritionPerBasisJson
           })
         },
-        portion: {
+        portion: entry.untracked ? null : {
           kind: entry.portionKind,
           label: entry.portionLabel,
           amount: amountValue(entry.portionAmount, entry.amountUnit),
           count: portionCountValue(entry.portionCountMilli),
           resolvedAmount: amountValue(entry.resolvedAmount, entry.amountUnit)
         },
-        nutritionTotal: nutritionValue({
+        nutritionTotal: entry.untracked ? null : nutritionValue({
           energyMkcal: entry.energyMkcal,
           proteinMg: entry.proteinMg,
           carbsMg: entry.carbsMg,
@@ -268,7 +270,8 @@ const diaryCsvHeaders = [
   'saturated_fat_g',
   'sodium_mg',
   'potassium_mg',
-  'logged_at_utc'
+  'logged_at_utc',
+  'untracked'
 ] as const;
 
 function optionalNutrientGrams(value: number | undefined): string | null {
@@ -301,27 +304,30 @@ export async function buildDiaryCsvExport(database: AppDatabase, userId: string)
 
   const rows = entries.map((entry) => {
     const additional = entry.additionalNutritionTotalJson;
+    // Untracked entries store sentinel zero values that are not real data.
+    const tracked = <T>(value: () => T): T | null => entry.untracked ? null : value();
 
     return [
       entry.diaryDate,
       mealNames[entry.mealSlot],
       entry.foodName,
       entry.foodBrand,
-      entry.portionKind,
-      entry.portionLabel,
-      formatStoredValue(BigInt(entry.portionCountMilli), 3),
-      formatStoredValue(BigInt(entry.resolvedAmount), 3),
-      entry.amountUnit === 'mg' ? 'g' : 'ml',
-      formatStoredValue(BigInt(entry.energyMkcal), 3),
-      formatStoredValue(BigInt(entry.proteinMg), 3),
-      formatStoredValue(BigInt(entry.carbsMg), 3),
-      formatStoredValue(BigInt(entry.fatMg), 3),
+      tracked(() => entry.portionKind),
+      tracked(() => entry.portionLabel),
+      tracked(() => formatStoredValue(BigInt(entry.portionCountMilli), 3)),
+      tracked(() => formatStoredValue(BigInt(entry.resolvedAmount), 3)),
+      tracked(() => entry.amountUnit === 'mg' ? 'g' : 'ml'),
+      tracked(() => formatStoredValue(BigInt(entry.energyMkcal), 3)),
+      tracked(() => formatStoredValue(BigInt(entry.proteinMg), 3)),
+      tracked(() => formatStoredValue(BigInt(entry.carbsMg), 3)),
+      tracked(() => formatStoredValue(BigInt(entry.fatMg), 3)),
       optionalNutrientGrams(additional?.fibreMg),
       optionalNutrientGrams(additional?.sugarMg),
       optionalNutrientGrams(additional?.saturatedFatMg),
       optionalNutrientMilligrams(additional?.sodiumMg),
       optionalNutrientMilligrams(additional?.potassiumMg),
-      entry.loggedAt.toISOString()
+      entry.loggedAt.toISOString(),
+      String(entry.untracked)
     ].map(csvCell);
   });
 

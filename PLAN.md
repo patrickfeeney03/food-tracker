@@ -190,6 +190,15 @@ Identity, destination, and provenance:
 - `source_shortcut_id`, nullable provenance reference
 - `shortcut_batch_id`, nullable UUID shared by one shortcut application
 - `client_mutation_id`, nullable retry/idempotency key
+- `untracked`, boolean, default false
+
+Untracked entries:
+
+- Record that something was eaten when its nutrition is unknown, such as a takeaway, without creating a reusable food.
+- `food_id` is null and `food_name` holds the user's description.
+- They store a fixed zero-nutrition snapshot: `amount_unit = mg`, a one-unit `1000` basis/portion/resolved amount, `portion_kind = unit`, and zero nutrition values. This satisfies the positive-amount constraints and contributes nothing to totals.
+- The sentinel portion is not data. Readers present the entry as untracked, never as `1 g` or `0 kcal`; exports null the snapshot, portion and nutrition for these rows.
+- Only the name, diary date and meal slot are editable. They are never meal shortcut items and never become a food's latest use.
 
 Food snapshot:
 

@@ -11,6 +11,7 @@ import { diaryLogs, foods, type DiaryLog } from '$lib/server/db/schema';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { atomicBatch, isAtomicGuardError } from '$lib/server/db/atomic';
 import { buildDiaryLogValues } from './diary-entry';
+import { getDiaryEntryByClientMutation as findExistingMutation } from './diary-entry-query';
 
 export class ExistingFoodNotFoundError extends Error {
   constructor() {
@@ -31,23 +32,6 @@ export class QuickAddUnavailableError extends Error {
     super('Log an amount for this food before using Quick Add.');
     this.name = 'QuickAddUnavailableError';
   }
-}
-
-async function findExistingMutation(
-  db: AppDatabase,
-  userId: string,
-  clientMutationId: string
-): Promise<DiaryLog | undefined> {
-  return db
-    .select()
-    .from(diaryLogs)
-    .where(
-      and(
-        eq(diaryLogs.userId, userId),
-        eq(diaryLogs.clientMutationId, clientMutationId)
-      )
-    )
-    .get();
 }
 
 function replayExistingMutation(

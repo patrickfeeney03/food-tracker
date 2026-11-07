@@ -251,6 +251,8 @@ export async function loadMealShortcutDraft(
     eq(diaryLogs.userId, userId),
     eq(diaryLogs.diaryDate, source.diaryDate),
     eq(diaryLogs.mealSlot, source.mealSlot),
+    // Untracked entries are not foods, so they can never be shortcut items.
+    eq(diaryLogs.untracked, false),
     isNull(diaryLogs.deletedAt)
   )).orderBy(asc(diaryLogs.loggedAt), asc(diaryLogs.id)).all();
   const foodIds = entries.flatMap((entry) => entry.foodId === null ? [] : [entry.foodId]);

@@ -378,6 +378,11 @@
     date: selectedDate,
     mealSlot: destinationMealSlot
   }))}
+  untrackedFoodHref={resolve(withQuery('/diary/untracked/new', {
+    date: selectedDate,
+    mealSlot: destinationMealSlot,
+    name: foodQuery.trim() || undefined
+  }))}
   onSearchInput={updateFoodSearch}
   onOpenScanner={() => (scannerOpen = true)}
   onBack={handleBackToDiary}

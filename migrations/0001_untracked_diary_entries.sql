@@ -1,0 +1,1 @@
+ALTER TABLE `diary_logs` ADD `untracked` integer DEFAULT false NOT NULL;

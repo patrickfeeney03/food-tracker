@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { createDatabase, type DatabaseConnection } from '$lib/server/db/testing';
 import { diaryLogs, foods, nutritionGoals, users, type Food, type User } from '$lib/server/db/schema';
-import { buildDiaryLogValues } from '$lib/server/nutrition/diary-entry';
+import { buildDiaryLogValues, buildUntrackedDiaryLogValues } from '$lib/server/nutrition/diary-entry';
 import { buildTrackerSnapshot } from './snapshot';
 async function withMigratedDatabase(run: (connection: DatabaseConnection) => Promise<void>): Promise<void> {
     const directory = mkdtempSync(join(tmpdir(), 'calories-tracker-snapshot-'));
@@ -216,6 +216,35 @@ describe('buildTrackerSnapshot', () => {
                     energyMkcal: 342000
                 }
             });
+        });
+    });
+    it('includes untracked entries without creating food latest use', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const user = await insertUser(connection, 'Patrick', 'patrick@example.com');
+            const food = await insertFood(connection, user.id, { name: 'Oats' });
+            await insertDiaryEntry(connection, food, {
+                diaryDate: '2026-07-24',
+                portionKind: 'hundred',
+                portionCount: '1',
+                loggedAt: new Date('2026-07-24T08:00:00.000Z')
+            });
+            await connection.db.insert(diaryLogs).values({
+                ...buildUntrackedDiaryLogValues(user.id, {
+                    clientMutationId: crypto.randomUUID(),
+                    name: 'Boojum',
+                    diaryDate: '2026-07-24',
+                    mealSlot: 'dinner'
+                }),
+                loggedAt: new Date('2026-07-24T23:00:00.000Z')
+            }).run();
+            const result = await buildTrackerSnapshot(connection.db, user, '2026-07-24', new Date('2026-07-25T00:00:00.000Z'));
+            const day = result.diaryDays['2026-07-24'];
+            expect(day.meals.breakfast.entries[0]).toMatchObject({ foodName: 'Oats', untracked: false });
+            expect(day.meals.dinner.entries).toHaveLength(1);
+            expect(day.meals.dinner.entries[0]).toMatchObject({ foodId: null, foodName: 'Boojum', untracked: true });
+            expect(day.totals.energyMkcal).toBe(342000 * 0.4);
+            expect(result.foods).toHaveLength(1);
+            expect(result.foods[0]).toMatchObject({ id: food.id, latestUse: { loggedAt: '2026-07-24T08:00:00.000Z' } });
         });
     });
     it('reports only the newest live entry for each food', async () => {

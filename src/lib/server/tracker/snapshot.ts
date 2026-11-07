@@ -35,6 +35,7 @@ function mapDiaryEntry(entry: DiaryLog): OfflineDiaryEntry {
     sourceShortcutId: entry.sourceShortcutId,
     shortcutBatchId: entry.shortcutBatchId,
     clientMutationId: entry.clientMutationId,
+    untracked: entry.untracked,
     foodName: entry.foodName,
     foodBrand: entry.foodBrand,
     amountUnit: entry.amountUnit,

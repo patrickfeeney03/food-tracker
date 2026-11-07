@@ -185,6 +185,18 @@ describe('tracker selectors', () => {
         snacks: true
       });
     });
+
+    it('does not make a meal eligible when it only has untracked entries', () => {
+      const diary = diaryWithEntries('2026-07-24', ['breakfast', 'lunch']);
+      diary.meals.breakfast.entries[0].untracked = true;
+
+      expect(selectShortcutEligibility(undefined, diary)).toEqual({
+        breakfast: false,
+        lunch: true,
+        dinner: false,
+        snacks: false
+      });
+    });
   });
 
 });

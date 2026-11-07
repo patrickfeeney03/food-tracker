@@ -7,6 +7,7 @@
   import BottomSubmitBar from "$lib/components/BottomSubmitBar.svelte";
   import AppPageShell from "$lib/components/AppPageShell.svelte";
   import BackPageHeader from "$lib/components/BackPageHeader.svelte";
+  import UntrackedEntryFields from "$lib/components/UntrackedEntryFields.svelte";
   import { withQuery } from "$lib/navigation";
   import { mealNames, type MealSlot, type PortionKind } from "$lib/nutrition/constants";
   import { formatTime } from "$lib/nutrition/format";
@@ -22,15 +23,17 @@
   let { data, form }: PageProps = $props();
 
   type FieldErrors = Partial<
-    Record<"portionKind" | "portionCount" | "diaryDate" | "mealSlot", string[]>
+    Record<"name" | "portionKind" | "portionCount" | "diaryDate" | "mealSlot", string[]>
   >;
 
   let values = $derived(form?.values ?? data.values);
   let errors = $derived((form?.errors ?? {}) as FieldErrors);
   let portionKind = $state<PortionKind>(
-    untrack(() => values.portionKind as PortionKind),
+    untrack(() => ("portionKind" in values ? (values.portionKind as PortionKind) : "hundred")),
   );
-  let portionCount = $state(untrack(() => values.portionCount));
+  let portionCount = $state(
+    untrack(() => ("portionCount" in values ? values.portionCount : "1")),
+  );
   let diaryDate = $state(untrack(() => values.diaryDate));
   let mealSlot = $state<MealSlot>(untrack(() => values.mealSlot as MealSlot));
 
@@ -99,7 +102,7 @@
 
   <form
     method="POST"
-    action="?/save"
+    action={data.entry.untracked ? "?/saveUntracked" : "?/save"}
     class="flex flex-1 flex-col px-3 pb-28 sm:px-8"
   >
     <div class="mx-auto w-full max-w-xl flex-1">
@@ -110,40 +113,52 @@
           {data.entry.foodName}
         </h2>
         <p class="mt-1 text-[12px] text-[var(--app-muted)]">
-          {data.entry.foodBrand ?? "Custom food"}
+          {data.entry.untracked ? "Untracked" : (data.entry.foodBrand ?? "Custom food")}
         </p>
       </section>
 
-      <div class="mb-6">
-        <PortionBasisSelector
-          options={data.portionOptions}
-          bind:portionKind
-          error={errors.portionKind?.[0]}
+      {#if data.entry.untracked}
+        <UntrackedEntryFields
+          name={"name" in values ? values.name : data.values.name}
+          bind:diaryDate
+          bind:mealSlot
+          nameError={errors.name?.[0]}
+          diaryDateError={errors.diaryDate?.[0]}
+          mealSlotError={errors.mealSlot?.[0]}
+          loggedAt={formatTime(data.entry.loggedAt)}
         />
-      </div>
+      {:else}
+        <div class="mb-6">
+          <PortionBasisSelector
+            options={data.portionOptions}
+            bind:portionKind
+            error={errors.portionKind?.[0]}
+          />
+        </div>
 
-      <div class="mb-5">
-        <PortionQuantityField
-          bind:portionCount
-          portionLabel={selectedPortion?.label}
-          resolvedAmount={preview
-            ? `${formatStoredValue(preview.resolvedAmount, 1)} ${displayUnit}`
-            : "—"}
-          error={errors.portionCount?.[0]}
+        <div class="mb-5">
+          <PortionQuantityField
+            bind:portionCount
+            portionLabel={selectedPortion?.label}
+            resolvedAmount={preview
+              ? `${formatStoredValue(preview.resolvedAmount, 1)} ${displayUnit}`
+              : "—"}
+            error={errors.portionCount?.[0]}
+          />
+        </div>
+
+        <div class="mb-7">
+          <NutritionPreview {preview} />
+        </div>
+
+        <DiaryDestinationFields
+          bind:diaryDate
+          bind:mealSlot
+          diaryDateError={errors.diaryDate?.[0]}
+          mealSlotError={errors.mealSlot?.[0]}
+          loggedAt={formatTime(data.entry.loggedAt)}
         />
-      </div>
-
-      <div class="mb-7">
-        <NutritionPreview {preview} />
-      </div>
-
-      <DiaryDestinationFields
-        bind:diaryDate
-        bind:mealSlot
-        diaryDateError={errors.diaryDate?.[0]}
-        mealSlotError={errors.mealSlot?.[0]}
-        loggedAt={formatTime(data.entry.loggedAt)}
-      />
+      {/if}
 
       <section
         aria-labelledby="delete-entry-heading"
@@ -172,6 +187,9 @@
       </section>
     </div>
 
-    <BottomSubmitBar label="Save changes" disabled={preview === null} />
+    <BottomSubmitBar
+      label="Save changes"
+      disabled={!data.entry.untracked && preview === null}
+    />
   </form>
 </AppPageShell>

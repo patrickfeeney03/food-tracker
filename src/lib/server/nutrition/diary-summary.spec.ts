@@ -13,6 +13,7 @@ function makeDiaryLog(overrides: Partial<DiaryLog> = {}): DiaryLog {
         shortcutBatchId: null,
         clientMutationId: crypto.randomUUID(),
         clientRequestFingerprint: '',
+        untracked: false,
         foodName: 'Test food',
         foodBrand: null,
         amountUnit: 'mg',

@@ -11,6 +11,10 @@ import {
   toSafeInteger
 } from "$lib/nutrition/math";
 import type { EditDiaryEntryInput, LogFoodInput } from "$lib/nutrition/portion-input";
+import type {
+  EditUntrackedEntryInput,
+  LogUntrackedEntryInput
+} from "$lib/nutrition/untracked-entry-input";
 import type { DiaryLog, Food, NewDiaryLog } from "$lib/server/db/schema";
 
 export { resolvePortionDefinition } from "$lib/nutrition/food-log-calculation";
@@ -183,6 +187,67 @@ export function buildDiaryLogValuesForExactAmount(
   };
 }
 
+// Untracked entries keep a fixed one-unit, zero-nutrition snapshot. It satisfies
+// the positive-amount constraints and contributes nothing to any total; the
+// `untracked` flag tells readers not to present it as a measured portion.
+const untrackedSnapshot = {
+  foodId: null,
+  foodBrand: null,
+  amountUnit: 'mg',
+  basisAmount: 1_000,
+  energyMkcalPerBasis: 0,
+  proteinMgPerBasis: 0,
+  carbsMgPerBasis: 0,
+  fatMgPerBasis: 0,
+  additionalNutritionPerBasisJson: null,
+  portionKind: 'unit',
+  portionLabel: 'Untracked',
+  portionAmount: 1_000,
+  portionCountMilli: 1_000,
+  resolvedAmount: 1_000,
+  energyMkcal: 0,
+  proteinMg: 0,
+  carbsMg: 0,
+  fatMg: 0,
+  additionalNutritionTotalJson: null
+} as const satisfies Partial<NewDiaryLog>;
+
+export function buildUntrackedDiaryLogValues(
+  userId: string,
+  input: LogUntrackedEntryInput
+): NewDiaryLog {
+  return {
+    ...untrackedSnapshot,
+    userId,
+    untracked: true,
+    diaryDate: input.diaryDate,
+    mealSlot: input.mealSlot,
+    clientMutationId: input.clientMutationId,
+    foodName: input.name
+  };
+}
+
+export function buildUntrackedDiaryLogUpdateValues(
+  entry: DiaryLog,
+  input: EditUntrackedEntryInput,
+  updatedAt = new Date()
+): Partial<NewDiaryLog> {
+  if (entry.deletedAt !== null) {
+    throw new RangeError('Cannot edit a deleted diary entry');
+  }
+
+  if (!entry.untracked) {
+    throw new RangeError('Only untracked entries can be renamed');
+  }
+
+  return {
+    foodName: input.name,
+    diaryDate: input.diaryDate,
+    mealSlot: input.mealSlot,
+    updatedAt
+  };
+}
+
 export function buildDiaryLogUpdateValues(
   entry: DiaryLog,
   input: EditDiaryEntryInput,
@@ -192,6 +257,10 @@ export function buildDiaryLogUpdateValues(
     throw new RangeError(
       'Cannot edit a deleted diary entry'
     );
+  }
+
+  if (entry.untracked) {
+    throw new RangeError('Untracked entries do not have a portion to edit');
   }
 
   const portion = resolveDiaryEntryPortionDefinition(

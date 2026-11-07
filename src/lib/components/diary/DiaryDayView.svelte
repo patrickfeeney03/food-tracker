@@ -15,6 +15,7 @@
     amountUnit: AmountUnit;
     resolvedAmount: number;
     energyMkcal: number;
+    untracked?: boolean;
   }
 
   interface MealView {
@@ -55,11 +56,30 @@
     actions?: DiaryDayViewActions;
   } = $props();
 
+  let untrackedCount = $derived(
+    mealSlots.reduce(
+      (count, slot) =>
+        count + diary.meals[slot].entries.filter((entry) => entry.untracked).length,
+      0,
+    ),
+  );
+
   function progress(consumed: number, target: number): number {
     if (target === 0) return consumed > 0 ? 100 : 0;
     return Math.min(100, Math.round((consumed / target) * 100));
   }
 </script>
+
+{#snippet entrySubtitle(entry: DiaryEntryView)}
+  <p class="mb-0 mt-1 text-[12px] text-[var(--app-muted)]">
+    {#if entry.untracked}
+      Untracked
+    {:else}
+      {formatAmount(entry.resolvedAmount, entry.amountUnit)}
+      · {formatKcal(entry.energyMkcal)} kcal
+    {/if}
+  </p>
+{/snippet}
 
 <div
   class="contents lg:grid lg:grid-cols-[minmax(320px,360px)_minmax(0,1fr)]
@@ -214,6 +234,12 @@
         No nutrition goal applies to this date.
       </div>
     {/if}
+
+    {#if untrackedCount > 0}
+      <p class="mb-6 mt-0 px-1 text-[11px] text-[var(--app-muted)] lg:mb-0 lg:mt-3">
+        {untrackedCount} untracked {untrackedCount === 1 ? "item" : "items"} not counted
+      </p>
+    {/if}
   </aside>
 
   <div
@@ -237,7 +263,7 @@
           >
             {mealNames[slot]}
           </h2>
-          {#if meal.entries.length > 0}
+          {#if meal.entries.some((entry) => !entry.untracked)}
             <span class="text-[11px] font-bold text-[var(--app-muted)]">
               {formatKcal(meal.totals.energyMkcal)} kcal
             </span>
@@ -287,10 +313,7 @@
                   <h3 class="m-0 min-w-0 max-w-full truncate text-[15px] font-bold leading-tight">
                     {entry.foodName}
                   </h3>
-                  <p class="mb-0 mt-1 text-[12px] text-[var(--app-muted)]">
-                    {formatAmount(entry.resolvedAmount, entry.amountUnit)}
-                    · {formatKcal(entry.energyMkcal)} kcal
-                  </p>
+                  {@render entrySubtitle(entry)}
                 </a>
               {:else}
                 <div
@@ -301,10 +324,7 @@
                   <h3 class="m-0 min-w-0 max-w-full truncate text-[15px] font-bold leading-tight">
                     {entry.foodName}
                   </h3>
-                  <p class="mb-0 mt-1 text-[12px] text-[var(--app-muted)]">
-                    {formatAmount(entry.resolvedAmount, entry.amountUnit)}
-                    · {formatKcal(entry.energyMkcal)} kcal
-                  </p>
+                  {@render entrySubtitle(entry)}
                 </div>
               {/if}
             {/each}

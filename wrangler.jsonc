@@ -11,10 +11,12 @@
     "binding": "ASSETS"
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "traces": {"enabled": true},
+    "logs": {"enabled": true}
   },
   "limits": {
-    "cpu_ms": 300
+    "cpu_ms": 500
   },
   "d1_databases": [
     {

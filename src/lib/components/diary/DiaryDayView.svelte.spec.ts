@@ -100,4 +100,61 @@ describe("DiaryDayView", () => {
     await expect.element(page.getByText("Save as meal shortcut"))
       .toHaveAttribute("aria-disabled", "true");
   });
+
+  it("shows untracked entries without nutrition and notes they are not counted", async () => {
+    const diary = diaryViewData();
+    diary.meals.dinner = {
+      entries: [{
+        id: "entry-2",
+        foodName: "Boojum",
+        amountUnit: "mg",
+        resolvedAmount: 1_000,
+        energyMkcal: 0,
+        untracked: true,
+      }],
+      totals: { energyMkcal: 0 },
+    };
+    render(DiaryDayView, {
+      diary,
+      shortcutEligibility,
+      actions: { entryHref: (entryId) => `/diary/${entryId}/edit` },
+    });
+
+    const dinner = page.getByRole("region", { name: "Dinner" });
+    await expect.element(dinner.getByRole("link", { name: /Boojum/ }))
+      .toHaveTextContent("Untracked");
+    await expect.element(dinner.getByText(/kcal/)).not.toBeInTheDocument();
+    await expect.element(dinner.getByText(/1 g/)).not.toBeInTheDocument();
+    await expect.element(page.getByText("1 untracked item not counted"))
+      .toBeInTheDocument();
+    await expect.element(
+      page.getByRole("region", { name: "Breakfast" }).getByText("120 kcal", { exact: true }),
+    ).toBeInTheDocument();
+  });
+
+  it("pluralises the untracked note and shows it without a goal", async () => {
+    const diary = diaryViewData();
+    diary.balances = null;
+    diary.meals.snacks = {
+      entries: ["a", "b"].map((id) => ({
+        id,
+        foodName: `Item ${id}`,
+        amountUnit: "mg" as const,
+        resolvedAmount: 1_000,
+        energyMkcal: 0,
+        untracked: true,
+      })),
+      totals: { energyMkcal: 0 },
+    };
+    render(DiaryDayView, { diary, shortcutEligibility });
+
+    await expect.element(page.getByText("2 untracked items not counted"))
+      .toBeInTheDocument();
+  });
+
+  it("omits the untracked note when every entry is tracked", async () => {
+    render(DiaryDayView, { diary: diaryViewData(), shortcutEligibility });
+
+    await expect.element(page.getByText(/untracked/)).not.toBeInTheDocument();
+  });
 });

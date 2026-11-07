@@ -9,7 +9,8 @@ import { createFoodAndLog } from "./create-food-and-log";
 import { deleteDiaryEntry, DiaryEntryDeletionNotFoundError, restoreDeletedDiaryEntry, } from "./delete-diary-entry";
 import { getActiveDiaryEntry, getDeletedDiaryEntry } from "./diary-entry-query";
 import { loadDiaryDay } from "./diary-summary";
-import { DiaryEntryNotFoundError, updateDiaryEntry } from "./update-diary-entry";
+import { logUntrackedEntry } from "./log-untracked-entry";
+import { DiaryEntryNotFoundError, updateDiaryEntry, updateUntrackedEntry } from "./update-diary-entry";
 async function withMigratedDatabase(run: (connection: DatabaseConnection) => Promise<void>): Promise<void> {
     const directory = mkdtempSync(join(tmpdir(), 'calories-edit-entry-'));
     const connection = await createDatabase(join(directory, 'test.db'));
@@ -168,6 +169,74 @@ describe('deleteDiaryEntry', () => {
             await expect(restoreDeletedDiaryEntry(connection.db, otherUserId, created.diaryLog.id, deletedAt)).rejects.toThrow(DiaryEntryDeletionNotFoundError);
             await expect(restoreDeletedDiaryEntry(connection.db, ownerId, created.diaryLog.id, new Date(deletedAt.getTime() + 1))).rejects.toThrow(DiaryEntryDeletionNotFoundError);
             expect(await getDeletedDiaryEntry(connection.db, ownerId, created.diaryLog.id)).toBeDefined();
+        });
+    });
+});
+
+async function createUntracked(connection: DatabaseConnection, userId: string) {
+    return (await logUntrackedEntry(connection.db, userId, {
+        clientMutationId: crypto.randomUUID(),
+        name: 'Boojum',
+        diaryDate: '2026-07-16',
+        mealSlot: 'dinner'
+    })).entry;
+}
+describe('updateUntrackedEntry', () => {
+    it('renames and moves an untracked entry while keeping it untracked', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            const entry = await createUntracked(connection, userId);
+            const updatedAt = new Date('2026-07-17T10:00:00.000Z');
+            const updated = await updateUntrackedEntry(connection.db, userId, entry.id, {
+                name: 'Burrito',
+                diaryDate: '2026-07-17',
+                mealSlot: 'lunch'
+            }, updatedAt);
+            expect(updated).toMatchObject({
+                id: entry.id,
+                untracked: true,
+                foodId: null,
+                foodName: 'Burrito',
+                diaryDate: '2026-07-17',
+                mealSlot: 'lunch',
+                energyMkcal: 0,
+                loggedAt: entry.loggedAt,
+                updatedAt
+            });
+        });
+    });
+    it('rejects tracked entries', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            const created = await createEntry(connection, userId);
+            await expect(updateUntrackedEntry(connection.db, userId, created.diaryLog.id, {
+                name: 'Renamed',
+                diaryDate: '2026-07-16',
+                mealSlot: 'breakfast'
+            })).rejects.toThrow(RangeError);
+        });
+    });
+    it('does not find deleted entries or another user’s entries', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            const otherUserId = await insertUser(connection, 'other@example.com');
+            const entry = await createUntracked(connection, userId);
+            const input = { name: 'Burrito', diaryDate: '2026-07-16', mealSlot: 'dinner' as const };
+            await expect(updateUntrackedEntry(connection.db, otherUserId, entry.id, input)).rejects.toThrow(DiaryEntryNotFoundError);
+            await deleteDiaryEntry(connection.db, userId, entry.id);
+            await expect(updateUntrackedEntry(connection.db, userId, entry.id, input)).rejects.toThrow(DiaryEntryNotFoundError);
+        });
+    });
+    it('is not editable through updateDiaryEntry', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            const entry = await createUntracked(connection, userId);
+            await expect(updateDiaryEntry(connection.db, userId, entry.id, {
+                portionKind: 'unit',
+                portionCount: '1',
+                diaryDate: '2026-07-16',
+                mealSlot: 'dinner'
+            })).rejects.toThrow(RangeError);
         });
     });
 });

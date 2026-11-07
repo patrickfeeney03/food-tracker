@@ -13,3 +13,9 @@ export async function getDeletedDiaryEntry(db: ReadDatabase, userId: string, ent
     eq(diaryLogs.id, entryId), eq(diaryLogs.userId, userId), isNotNull(diaryLogs.deletedAt)
   )).get();
 }
+
+export async function getDiaryEntryByClientMutation(db: ReadDatabase, userId: string, clientMutationId: string): Promise<DiaryLog | undefined> {
+  return db.select().from(diaryLogs).where(and(
+    eq(diaryLogs.userId, userId), eq(diaryLogs.clientMutationId, clientMutationId)
+  )).get();
+}

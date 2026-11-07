@@ -44,6 +44,7 @@ export type DiaryRow = {
   portionCountMilli: number;
   resolvedAmount: number;
   energyMkcal: number;
+  untracked: number;
   deletedAt: number | null;
 };
 
@@ -311,6 +312,7 @@ export const test = base.extend<Fixtures>({
             portion_count_milli AS portionCountMilli,
             resolved_amount AS resolvedAmount,
             energy_mkcal AS energyMkcal,
+            untracked,
             deleted_at AS deletedAt
           FROM diary_logs
           WHERE user_id = ?

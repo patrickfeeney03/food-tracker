@@ -118,7 +118,7 @@ export function selectShortcutEligibility(
   return Object.fromEntries(
     mealSlots.map((slot) => [
       slot,
-      (diary?.meals?.[slot]?.entries?.length ?? 0) > 0
+      (diary?.meals?.[slot]?.entries ?? []).some((entry) => !entry.untracked)
     ])
   ) as Record<MealSlot, boolean>;
 }

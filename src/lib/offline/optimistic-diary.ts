@@ -32,6 +32,7 @@ function optimisticEntry(
     sourceShortcutId: null,
     shortcutBatchId: null,
     clientMutationId: mutation.clientMutationId,
+    untracked: false,
     foodName: food.name,
     foodBrand: food.brand,
     amountUnit: food.amountUnit,

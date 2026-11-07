@@ -6,7 +6,7 @@ import { migrate } from '$lib/server/db/testing';
 import { describe, expect, it } from 'vitest';
 import { createDatabase, type DatabaseConnection } from '$lib/server/db/testing';
 import { diaryLogs, foods, mealShortcutApplications, mealShortcutItems, mealShortcuts, users, type Food } from '$lib/server/db/schema';
-import { buildDiaryLogValues } from './diary-entry';
+import { buildDiaryLogValues, buildUntrackedDiaryLogValues } from './diary-entry';
 import { applyMealShortcut, archiveMealShortcut, createMealShortcut, getMealShortcut, listMealShortcuts, loadMealShortcutDraft, MealShortcutApplicationConflictError, MealShortcutBlockedError, MealShortcutCreateConflictError, MealShortcutEditConflictError, MealShortcutNotFoundError, undoMealShortcutApplication, updateMealShortcut } from './meal-shortcut';
 async function withMigratedDatabase(run: (connection: DatabaseConnection) => Promise<void>): Promise<void> {
     const directory = mkdtempSync(join(tmpdir(), 'calories-meal-shortcut-'));
@@ -128,6 +128,22 @@ describe('meal shortcuts', () => {
                 name: 'Different request'
             })).rejects.toThrow(MealShortcutCreateConflictError);
             expect(await connection.db.select().from(mealShortcuts).all()).toHaveLength(1);
+        });
+    });
+    it('skips untracked entries when loading a shortcut draft', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection, 'untracked-draft@example.com');
+            const food = await insertFood(connection, userId);
+            const tracked = await logFood(connection, food, 'hundred', '1');
+            await connection.db.insert(diaryLogs).values(buildUntrackedDiaryLogValues(userId, {
+                clientMutationId: crypto.randomUUID(),
+                name: 'Boojum',
+                diaryDate: '2026-07-18',
+                mealSlot: 'breakfast'
+            })).run();
+            const draft = await loadMealShortcutDraft(connection.db, userId, '2026-07-18', 'breakfast');
+            expect(draft.items.map((item) => item.sourceEntryId)).toEqual([tracked.id]);
+            expect(draft.excludedEntries).toEqual([]);
         });
     });
     it('loads repairable drafts and blocks archived shortcut items from catalogue application', async () => {
