@@ -13,7 +13,7 @@
   } from "$lib/components/FoodFormFields.svelte";
   import { readFoodFormValues } from "$lib/nutrition/food-form";
   import { withQuery } from "$lib/navigation";
-  import type { PortionKind } from "$lib/nutrition/constants";
+  import { mealNames, type PortionKind } from "$lib/nutrition/constants";
   import {
     formatStoredValue,
     parseFixedPoint,
@@ -66,6 +66,7 @@
     }),
   );
   let portionCount = $state(untrack(() => values.portionCount));
+  let addToDiary = $state(untrack(() => values.addToDiary));
   let previewInput = $state<PreviewInput>(
     untrack(() => ({
       basisAmount: values.basisAmount,
@@ -225,6 +226,38 @@
       <FoodFormFields values={foodValues} {errors} bind:amountUnit />
 
       <div class="mt-6 space-y-3 sm:col-span-2">
+        <label
+          class="flex min-h-14 cursor-pointer items-center justify-between gap-3 rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-3.5 py-2.5"
+        >
+          <span class="min-w-0">
+            <span id="add-to-diary-label" class="block text-[14px] font-semibold text-[var(--app-text)]">
+              Add to diary
+            </span>
+            <span id="add-to-diary-description" class="block text-[11px] leading-4 text-[var(--app-muted)]">
+              {addToDiary
+                ? `Also logs it in ${mealNames[data.destination.mealSlot].toLowerCase()}`
+                : "Only saves it to your foods"}
+            </span>
+          </span>
+          <!-- The server treats a lone "0" as off; the checked switch adds "1". -->
+          <input type="hidden" name="addToDiary" value="0" />
+          <input
+            class="peer sr-only"
+            type="checkbox"
+            role="switch"
+            name="addToDiary"
+            value="1"
+            bind:checked={addToDiary}
+            aria-labelledby="add-to-diary-label"
+            aria-describedby="add-to-diary-description"
+          />
+          <span
+            aria-hidden="true"
+            class="relative h-7 w-12 shrink-0 rounded-full bg-[var(--app-border)] transition after:absolute after:left-0.5 after:top-0.5 after:size-6 after:rounded-full after:bg-white after:shadow-sm after:transition peer-checked:bg-[var(--app-accent)] peer-checked:after:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--app-accent)]"
+          ></span>
+        </label>
+
+        {#if addToDiary}
         <PortionBasisSelector
           options={portionOptions}
           bind:portionKind
@@ -250,8 +283,9 @@
           energyFractionalDigits={1}
           compact
         />
+        {/if}
       </div>
 
-      <BottomSubmitBar label="Save food" disabled={preview === null} layout="floating" />
+      <BottomSubmitBar label="Save food" disabled={addToDiary && preview === null} layout="floating" />
     </form>
 </AppPageShell>

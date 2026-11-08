@@ -60,7 +60,8 @@
     isOffline: boolean;
     foodQuery: string;
     queueError: string | null;
-    created: boolean;
+    /** Set after Create Food: whether the new food was also added to the diary. */
+    created: 'logged' | 'saved' | null;
     shortcutArchived: boolean;
     batchArchived: boolean;
     activeTab: CatalogueTab;
@@ -144,10 +145,12 @@
     <FeedbackBanner class="mt-4" message={queueError} tone="danger" />
   {/if}
 
-  {#if created && activeTab === 'foods'}
+  {#if created !== null && activeTab === 'foods'}
     <FeedbackBanner
       class="mt-4"
-      message={`Food created and added to ${mealNames[destinationMealSlot].toLowerCase()}.`}
+      message={created === 'logged'
+        ? `Food created and added to ${mealNames[destinationMealSlot].toLowerCase()}.`
+        : 'Food created.'}
     />
   {/if}
 

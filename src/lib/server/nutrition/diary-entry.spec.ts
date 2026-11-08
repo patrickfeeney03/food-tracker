@@ -19,6 +19,8 @@ function makeFood(overrides: Partial<Food> = {}): Food {
         fatMgPerBasis: 5000,
         additionalNutritionJson: null,
         notes: null,
+        clientMutationId: null,
+        clientRequestFingerprint: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null,

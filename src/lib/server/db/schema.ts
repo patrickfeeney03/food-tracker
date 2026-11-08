@@ -169,6 +169,9 @@ export const foods = sqliteTable(
     fatMgPerBasis: integer('fat_mg_per_basis').notNull(),
     additionalNutritionJson: text('additional_nutrition_json', { mode: 'json' }).$type<AdditionalNutrition>(),
     notes: text('notes'),
+    // Create Food requests replay through these so a retried save never duplicates the food.
+    clientMutationId: text('client_mutation_id'),
+    clientRequestFingerprint: text('client_request_fingerprint'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: deletedAt()
@@ -177,6 +180,9 @@ export const foods = sqliteTable(
     index('foods_user_active_name_idx').on(table.userId, table.deletedAt, table.name),
     index('foods_user_active_brand_idx').on(table.userId, table.deletedAt, table.brand),
     uniqueIndex('foods_id_user_unique').on(table.id, table.userId),
+    uniqueIndex('foods_user_client_mutation_unique')
+      .on(table.userId, table.clientMutationId)
+      .where(sql`${table.clientMutationId} is not null`),
     uniqueIndex('foods_user_active_barcode_unique')
       .on(table.userId, table.barcode)
       .where(sql`${table.barcode} is not null and ${table.deletedAt} is null`),

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { migrate } from '$lib/server/db/testing';
 import { diaryLogs, foods, users } from "../db/schema";
 import { describe, expect, it } from 'vitest';
-import { createFoodAndLog, FoodCreateBarcodeConflictError, FoodCreateMutationConflictError } from "./create-food-and-log";
+import { createFood, createFoodAndLog, FoodCreateBarcodeConflictError, FoodCreateMutationConflictError } from "./create-food-and-log";
 import { eq } from "drizzle-orm";
 const clientMutationId = '550e8400-e29b-41d4-a716-446655440000';
 async function withMigratedDatabase(run: (connection: DatabaseConnection) => Promise<void>): Promise<void> {
@@ -266,4 +266,81 @@ describe('createFoodAndLog', () => {
         });
     });
 
+});
+
+describe('createFood', () => {
+    const foodInput = { name: 'Plain oats', amountUnit: 'mg', basisAmount: '100', energyKcal: '65', proteinG: '10', carbsG: '3.5', fatG: '0.8' } as const;
+    const logInput = { clientMutationId, portionKind: 'hundred', portionCount: '2', diaryDate: '2026-07-12', mealSlot: 'breakfast' } as const;
+
+    it('inserts the food without a diary entry', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            const result = await createFood(connection.db, userId, foodInput, { clientMutationId });
+            expect(result.diaryLog).toBeNull();
+            expect(result.replayed).toBe(false);
+            expect(result.food).toEqual(expect.objectContaining({ userId, name: 'Plain oats', basisAmount: 100000, clientMutationId }));
+            expect(await connection.db.select().from(foods).where(eq(foods.userId, userId)).all()).toHaveLength(1);
+            expect(await connection.db.select().from(diaryLogs).all()).toHaveLength(0);
+        });
+    });
+    it('returns the original food when the mutation is retried', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            const first = await createFood(connection.db, userId, foodInput, { clientMutationId });
+            const replayed = await createFood(connection.db, userId, foodInput, { clientMutationId });
+            expect(replayed.replayed).toBe(true);
+            expect(replayed.diaryLog).toBeNull();
+            expect(replayed.food.id).toBe(first.food.id);
+            expect(await connection.db.select().from(foods).all()).toHaveLength(1);
+            expect(await connection.db.select().from(diaryLogs).all()).toHaveLength(0);
+        });
+    });
+    it('atomically replays concurrent duplicate requests', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            const results = await Promise.all([
+                createFood(connection.db, userId, foodInput, { clientMutationId }),
+                createFood(connection.db, userId, foodInput, { clientMutationId })
+            ]);
+            expect(new Set(results.map((result) => result.food.id)).size).toBe(1);
+            expect(results.filter((result) => result.replayed)).toHaveLength(1);
+            expect(await connection.db.select().from(foods).all()).toHaveLength(1);
+            expect(await connection.db.select().from(diaryLogs).all()).toHaveLength(0);
+        });
+    });
+    it('rejects a retried mutation when the food details changed', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            await createFood(connection.db, userId, foodInput, { clientMutationId });
+            await expect(createFood(connection.db, userId, { ...foodInput, name: 'Changed oats' }, { clientMutationId })).rejects.toThrow(FoodCreateMutationConflictError);
+            expect(await connection.db.select().from(foods).all()).toHaveLength(1);
+        });
+    });
+    it('rejects reusing a mutation ID between createFoodAndLog and createFood', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            await createFoodAndLog(connection.db, userId, foodInput, logInput);
+            await expect(createFood(connection.db, userId, foodInput, { clientMutationId })).rejects.toThrow(FoodCreateMutationConflictError);
+            expect(await connection.db.select().from(foods).all()).toHaveLength(1);
+            expect(await connection.db.select().from(diaryLogs).all()).toHaveLength(1);
+        });
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            await createFood(connection.db, userId, foodInput, { clientMutationId });
+            await expect(createFoodAndLog(connection.db, userId, foodInput, logInput)).rejects.toThrow(FoodCreateMutationConflictError);
+            expect(await connection.db.select().from(foods).all()).toHaveLength(1);
+            expect(await connection.db.select().from(diaryLogs).all()).toHaveLength(0);
+        });
+    });
+    it('rejects a duplicate active barcode', async () => {
+        await withMigratedDatabase(async (connection) => {
+            const userId = await insertUser(connection);
+            await createFood(connection.db, userId, { ...foodInput, barcode: '0012345678905' }, { clientMutationId });
+            await expect(createFood(connection.db, userId, { ...foodInput, name: 'Other oats', barcode: '0012345678905' }, {
+                clientMutationId: '550e8400-e29b-41d4-a716-446655440001'
+            })).rejects.toThrow(FoodCreateBarcodeConflictError);
+            expect(await connection.db.select().from(foods).all()).toHaveLength(1);
+            expect(await connection.db.select().from(diaryLogs).all()).toHaveLength(0);
+        });
+    });
 });

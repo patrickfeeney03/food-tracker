@@ -73,6 +73,10 @@ export const editDiaryEntryInputSchema = logFoodInputSchema.omit({
   clientMutationId: true
 });
 
+export const createFoodMutationSchema = logFoodInputSchema.pick({
+  clientMutationId: true
+});
+
 export const quickAddFoodInputSchema = logFoodInputSchema.pick({
   clientMutationId: true,
   diaryDate: true,

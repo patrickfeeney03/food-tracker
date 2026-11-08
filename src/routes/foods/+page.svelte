@@ -121,6 +121,13 @@
         }));
   }
 
+  /** Create Food redirects with created=1 after adding to the diary, created=saved otherwise. */
+  function createdState(value: string | null): 'logged' | 'saved' | null {
+    if (value === '1') return 'logged';
+    if (value === 'saved') return 'saved';
+    return null;
+  }
+
   function catalogueTabHref(tab: 'foods' | 'shortcuts'): string {
     return resolve(withQuery('/foods', {
       date: selectedDate,
@@ -399,7 +406,7 @@
   isOffline={tracker.isOffline}
   {foodQuery}
   {queueError}
-  created={page.url.searchParams.get('created') === '1'}
+  created={createdState(page.url.searchParams.get('created'))}
   shortcutArchived={page.url.searchParams.get('shortcutArchived') === '1'}
   batchArchived={page.url.searchParams.get('batchArchived') === '1'}
   {activeTab}

@@ -559,6 +559,40 @@ test('supports fractional liquid servings without normalising the label basis', 
   ]);
 });
 
+test('saves a food without adding it to the diary when Add to diary is off', async ({ app }) => {
+  const { page } = app;
+  await page.goto(`/foods/new?date=${diaryDate}&mealSlot=breakfast`);
+  await page.waitForLoadState('networkidle');
+  await fillCoreFoodFields(page, {
+    name: 'Catalogue only oats',
+    basisAmount: '100',
+    servingAmount: '40',
+    energyKcal: '380',
+    proteinG: '12',
+    carbsG: '60',
+    fatG: '7'
+  });
+
+  const addToDiary = page.getByRole('switch', { name: 'Add to diary' });
+  await expect(addToDiary).toBeChecked();
+  await expect(page.getByRole('group', { name: 'First diary entry' })).toBeVisible();
+  await addToDiary.locator('..').click();
+  await expect(addToDiary).not.toBeChecked();
+  await expect(page.getByRole('group', { name: 'First diary entry' })).toBeHidden();
+  await expect(page.getByLabel('Number of portions')).toBeHidden();
+  await expect(page.getByLabel('First entry nutrition preview')).toBeHidden();
+
+  await page.getByRole('button', { name: 'Save food' }).click();
+
+  await expect(page).toHaveURL(/\/foods\?/);
+  expectSearchParameters(page, { created: 'saved', date: diaryDate, mealSlot: 'breakfast' });
+  await expect(page.getByRole('status')).toContainText('Food created.');
+  expect(app.diaryRows()).toHaveLength(0);
+  expect(
+    app.db.prepare('SELECT name FROM foods WHERE user_id = ? AND deleted_at IS NULL').all(app.userId)
+  ).toEqual([{ name: 'Catalogue only oats' }]);
+});
+
 test('rejects a changed Create Food retry that reuses a mutation ID', async ({ app }) => {
   const { page } = app;
   await page.goto(`/foods/new?date=${diaryDate}&mealSlot=breakfast`);
