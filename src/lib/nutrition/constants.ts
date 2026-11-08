@@ -13,9 +13,12 @@ export const mealSlots = [
   'snacks'
 ] as const;
 
+export const mealShortcutKinds = ['shortcut', 'batch'] as const;
+
 export type AmountUnit = (typeof amountUnits)[number];
 export type PortionKind = (typeof portionKinds)[number];
 export type MealSlot = (typeof mealSlots)[number];
+export type MealShortcutKind = (typeof mealShortcutKinds)[number];
 
 export const mealNames: Record<MealSlot, string> = {
   breakfast: 'Breakfast',

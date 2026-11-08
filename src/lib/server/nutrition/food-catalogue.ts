@@ -22,7 +22,10 @@ const foodSelection = {
   servingAmount: foods.servingAmount,
   containerAmount: foods.containerAmount,
   barcode: foods.barcode,
-  energyMkcalPerBasis: foods.energyMkcalPerBasis
+  energyMkcalPerBasis: foods.energyMkcalPerBasis,
+  proteinMgPerBasis: foods.proteinMgPerBasis,
+  carbsMgPerBasis: foods.carbsMgPerBasis,
+  fatMgPerBasis: foods.fatMgPerBasis
 };
 
 export async function findActiveFoodByBarcode(

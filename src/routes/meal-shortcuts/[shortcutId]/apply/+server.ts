@@ -3,6 +3,7 @@ import { withHash, withQuery } from '$lib/navigation';
 import { readText } from '$lib/nutrition/food-form';
 import { applyMealShortcutInputSchema } from '$lib/nutrition/meal-shortcut-input';
 import { requireUser } from '$lib/server/auth/require-user';
+import { BatchFinishedError } from '$lib/server/nutrition/batch';
 import {
   applyMealShortcut,
   MealShortcutApplicationConflictError,
@@ -59,6 +60,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     }
 
     if (
+      caught instanceof BatchFinishedError ||
       caught instanceof MealShortcutBlockedError ||
       caught instanceof MealShortcutApplicationConflictError
     ) {

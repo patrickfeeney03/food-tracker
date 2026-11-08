@@ -6,6 +6,7 @@
   import BarcodeScanner from '$lib/components/BarcodeScanner.svelte';
   import type { FoodResultView } from '$lib/components/foods/FoodResultList.svelte';
   import TrackerFoodSearchScreen from '$lib/components/tracker/TrackerFoodSearchScreen.svelte';
+  import type { BatchResult } from '$lib/components/batches/types';
   import type { MealShortcutResult } from '$lib/components/meal-shortcuts/types';
   import {
     CATALOGUE_RESULT_LIMIT,
@@ -43,6 +44,8 @@
   let queueError = $state<string | null>(null);
   let pendingFoodId = $state<string | null>(null);
   let catalogueShortcuts = $state<MealShortcutResult[]>([]);
+  let activeBatches = $state<BatchResult[]>([]);
+  let recentBatches = $state<BatchResult[]>([]);
   let shortcutsReady = $state(false);
   let shortcutLoadRequest = 0;
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -143,6 +146,35 @@
       : resolve(`/meal-shortcuts/${shortcutId}/apply`);
   }
 
+  function editBatchHref(batchId: string): string | null {
+    return tracker.isOffline
+      ? null
+      : resolve(withQuery(`/batches/${batchId}/edit`, {
+          date: selectedDate,
+          mealSlot: destinationMealSlot,
+          q: foodQuery.trim() || undefined
+        }));
+  }
+
+  function cookAgainHref(batchId: string): string | null {
+    return tracker.isOffline
+      ? null
+      : resolve(withQuery('/batches/new', {
+          date: selectedDate,
+          mealSlot: destinationMealSlot,
+          from: batchId
+        }));
+  }
+
+  let newBatchHref = $derived(
+    tracker.isOffline
+      ? null
+      : resolve(withQuery('/batches/new', {
+          date: selectedDate,
+          mealSlot: destinationMealSlot
+        }))
+  );
+
   async function loadShortcuts(): Promise<void> {
     if (tracker.isOffline) {
       return;
@@ -151,15 +183,21 @@
     const requestId = ++shortcutLoadRequest;
 
     try {
-      const response = await fetch(resolve('/api/tracker/meal-shortcuts'), {
-        headers: { accept: 'application/json' }
-      });
-      if (!response.ok) {
+      const headers = { accept: 'application/json' };
+      const [response, batchResponse] = await Promise.all([
+        fetch(resolve('/api/tracker/meal-shortcuts'), { headers }),
+        fetch(resolve('/api/tracker/batches'), { headers })
+      ]);
+      if (!response.ok || !batchResponse.ok) {
         throw new Error('Meal shortcuts request failed');
       }
 
       const payload = await response.json() as {
         shortcuts?: MealShortcutResult[];
+      };
+      const batchPayload = await batchResponse.json() as {
+        active?: BatchResult[];
+        recent?: BatchResult[];
       };
       if (requestId !== shortcutLoadRequest) {
         return;
@@ -168,6 +206,8 @@
       catalogueShortcuts = Array.isArray(payload.shortcuts)
         ? payload.shortcuts
         : [];
+      activeBatches = Array.isArray(batchPayload.active) ? batchPayload.active : [];
+      recentBatches = Array.isArray(batchPayload.recent) ? batchPayload.recent : [];
       shortcutsReady = true;
       if (queueError === 'Meal shortcuts could not be loaded.') {
         queueError = null;
@@ -361,6 +401,7 @@
   {queueError}
   created={page.url.searchParams.get('created') === '1'}
   shortcutArchived={page.url.searchParams.get('shortcutArchived') === '1'}
+  batchArchived={page.url.searchParams.get('batchArchived') === '1'}
   {activeTab}
   foodsTabHref={catalogueTabHref('foods')}
   shortcutsTabHref={catalogueTabHref('shortcuts')}
@@ -389,6 +430,12 @@
   actions={{ foodHref, editHref: editFoodHref, quickAdd, pendingFoodId }}
   {editShortcutHref}
   {applyShortcutHref}
+  {activeBatches}
+  {recentBatches}
+  {editBatchHref}
+  applyBatchHref={applyShortcutHref}
+  {newBatchHref}
+  {cookAgainHref}
 />
 
 {#if scannerOpen}

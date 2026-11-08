@@ -15,51 +15,13 @@ import {
   MealShortcutCreateConflictError,
   searchMealShortcutFoods
 } from '$lib/server/nutrition/meal-shortcut';
+import {
+  submittedEditorItems,
+  unavailableItemReason
+} from '$lib/server/nutrition/meal-shortcut-form';
 import { error, fail, redirect } from '@sveltejs/kit';
 import * as z from 'zod';
 import type { Actions, PageServerLoad } from './$types';
-
-type PickerFood = Awaited<ReturnType<typeof searchMealShortcutFoods>>[number];
-
-function blockedReason(reason: 'food_missing' | 'food_archived' | 'amount_unit_changed') {
-  if (reason === 'amount_unit_changed') {
-    return 'This food changed between g and ml. Replace it to choose a new exact amount.';
-  }
-  if (reason === 'food_archived') {
-    return 'This food is archived. Replace or remove it.';
-  }
-  return 'This diary food is no longer available. Replace or remove it.';
-}
-
-function submittedItems(rawItems: unknown, foods: readonly PickerFood[]) {
-  if (!Array.isArray(rawItems)) return [];
-  const foodsById = new Map(foods.map((food) => [food.id, food]));
-
-  return rawItems.map((rawItem, index) => {
-    const item = typeof rawItem === 'object' && rawItem !== null
-      ? rawItem as Record<string, unknown>
-      : {};
-    const foodId = typeof item.foodId === 'string' ? item.foodId : null;
-    const food = foodId === null ? undefined : foodsById.get(foodId);
-    return {
-      key:
-        (typeof item.itemId === 'string' && item.itemId) ||
-        (typeof item.sourceEntryId === 'string' && item.sourceEntryId) ||
-        `submitted-${index}`,
-      itemId: typeof item.itemId === 'string' ? item.itemId : undefined,
-      sourceEntryId: typeof item.sourceEntryId === 'string' ? item.sourceEntryId : undefined,
-      foodId: food === undefined ? null : foodId,
-      foodName: food?.name ?? 'Unavailable food',
-      foodBrand: food?.brand ?? null,
-      amountUnit: food?.amountUnit ?? null,
-      amount: typeof item.amount === 'string' ? item.amount : '',
-      blocked: food === undefined,
-      blockedReason: food === undefined
-        ? 'This food is unavailable. Replace or remove it.'
-        : undefined
-    };
-  });
-}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const user = requireUser(locals);
@@ -116,7 +78,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
           amountUnit: null,
           amount: '',
           blocked: true,
-          blockedReason: blockedReason(item.reason)
+          blockedReason: unavailableItemReason(item.reason)
         }))
       ].sort((left, right) => left.position - right.position)
     }
@@ -139,7 +101,7 @@ export const actions = {
     const values = {
       clientMutationId: raw.clientMutationId,
       name: raw.name,
-      items: submittedItems(raw.items, foods)
+      items: submittedEditorItems(raw.items, foods)
     };
 
     if (!result.success || context === undefined) {

@@ -215,6 +215,22 @@ Display formatting does not alter stored values. Initial defaults:
 
 Display rounding also uses half-up behavior. Values such as `12.0 g` may be displayed as `12 g`; this is formatting only.
 
+## Batch Portions
+
+A batch stores the TOTAL raw amount of each ingredient and a portion count `n` (1 to 10). One portion of an ingredient is:
+
+```text
+portion_amount = round_half_up(total_amount / portion_count)
+```
+
+using the same half-up integer division as the rest of this contract, on the stored fixed-point amount (mg or ul). Each portion's diary row is then scaled with the normal nutrition scaling and rounding rules from the food's CURRENT basis values, and uses the canonical unit portion (`1 g` or `1 ml`, portion amount 1000, count equal to the resolved amount).
+
+Example: 500 g of beef mince split into 3 portions is `round_half_up(500000 mg / 3) = 166667 mg` (166.667 g) per portion. At 250 kcal per 100 g that is `round_half_up(250000 * 166667 / 100000) = 416668 mkcal` (416.668 kcal). Rounding is per ingredient, so three portions may differ from the total by a few mg.
+
+A portion is rejected (`RangeError`) when an ingredient is too small to give a non-zero amount, for example 1 mg split into 3.
+
+Saving a batch recalculates every already-logged portion (past and future dates) from the new totals, portion count and current food nutrition. The superseded diary rows are soft-deleted and replaced, so the diary always matches the batch.
+
 ## Logging, Editing, and Quick Add
 
 Creating a diary entry snapshots the current food identity and entered-basis nutrition, selected portion representation, resolved amount, and independently calculated nutrition totals.

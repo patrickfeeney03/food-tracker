@@ -16,7 +16,9 @@ describe('local tracker route policy', () => {
     '/settings',
     '/foods/new',
     '/foods/food-id/edit',
-    '/meal-shortcuts/new'
+    '/meal-shortcuts/new',
+    '/batches/new',
+    '/batches/some-id/edit'
   ])('keeps %s server-backed', (pathname) => {
     expect(isLocalTrackerPath(pathname)).toBe(false);
   });

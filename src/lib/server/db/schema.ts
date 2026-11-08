@@ -1,4 +1,4 @@
-import { amountUnits, mealSlots, portionKinds } from '$lib/nutrition/constants';
+import { amountUnits, mealShortcutKinds, mealSlots, portionKinds } from '$lib/nutrition/constants';
 import { sql } from 'drizzle-orm';
 import {
   check,
@@ -201,6 +201,10 @@ export const mealShortcuts = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    // 'batch' rows are batch-cooking recipes; see migrations/0002_batch_cooking.sql for the
+    // hand-written column CHECKs (a table-level check() would force a table rebuild on D1).
+    kind: text('kind', { enum: mealShortcutKinds }).notNull().default('shortcut'),
+    portionCount: integer('portion_count'),
     clientMutationId: text('client_mutation_id'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -283,6 +287,11 @@ export const mealShortcutApplications = sqliteTable(
       table.clientMutationId
     ),
     index('meal_shortcut_applications_user_created_idx').on(table.userId, table.createdAt),
+    index('meal_shortcut_applications_user_shortcut_idx').on(
+      table.userId,
+      table.shortcutId,
+      table.undoneAt
+    ),
     check(
       'meal_shortcut_applications_diary_date_check',
       sql`length(${table.diaryDate}) = 10 and ${table.diaryDate} glob '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'`

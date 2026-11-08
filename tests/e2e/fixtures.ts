@@ -64,6 +64,15 @@ type MealShortcutSeed = {
   }[];
 };
 
+type BatchSeed = {
+  name?: string;
+  portionCount: number;
+  items: {
+    foodId: string;
+    amount?: number;
+  }[];
+};
+
 type AuthenticatedApp = {
   page: Page;
   db: Database.Database;
@@ -73,6 +82,7 @@ type AuthenticatedApp = {
   createFood: (seed?: FoodSeed) => string;
   createDiaryEntry: (seed: DiaryEntrySeed) => string;
   createMealShortcut: (seed: MealShortcutSeed) => string;
+  createBatch: (seed: BatchSeed) => string;
   diaryRows: () => DiaryRow[];
 };
 
@@ -228,6 +238,30 @@ function insertMealShortcut(
   return shortcutId;
 }
 
+function insertBatch(db: Database.Database, ownerId: string, seed: BatchSeed): string {
+  const batchId = randomUUID();
+  const now = Date.now();
+  db.prepare(`
+    INSERT INTO meal_shortcuts (
+      id, user_id, name, kind, portion_count, client_mutation_id,
+      created_at, updated_at, deleted_at
+    ) VALUES (?, ?, ?, 'batch', ?, NULL, ?, ?, NULL)
+  `).run(batchId, ownerId, seed.name ?? 'Saved batch', seed.portionCount, now, now);
+
+  seed.items.forEach((item, position) => {
+    const amount = item.amount ?? 100_000;
+    db.prepare(`
+      INSERT INTO meal_shortcut_items (
+        id, user_id, shortcut_id, food_id, amount_unit, position, default_amount,
+        default_portion_kind, default_portion_label, default_portion_amount,
+        default_portion_count_milli
+      ) VALUES (?, ?, ?, ?, 'mg', ?, ?, 'unit', '1 g', 1000, ?)
+    `).run(randomUUID(), ownerId, batchId, item.foodId, position, amount, amount);
+  });
+
+  return batchId;
+}
+
 export const test = base.extend<Fixtures>({
   app: async ({ browser }, use) => {
     const db = new Database(findD1Database(D1_DIRECTORY));
@@ -298,6 +332,7 @@ export const test = base.extend<Fixtures>({
         createFood: (seed) => insertFood(db, userId, seed),
         createDiaryEntry: (seed) => insertDiaryEntry(db, userId, seed),
         createMealShortcut: (seed) => insertMealShortcut(db, userId, seed),
+        createBatch: (seed) => insertBatch(db, userId, seed),
         diaryRows: () => db.prepare(`
           SELECT
             id,

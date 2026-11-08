@@ -146,4 +146,23 @@ describe('MealShortcutEditor', () => {
       amount: '175'
     });
   });
+
+  it('accepts custom labels for batch ingredients', async () => {
+    render(MealShortcutEditor, {
+      name: 'Work chili',
+      items: [],
+      availableFoods: foods,
+      nameLabel: 'Batch name',
+      amountLabel: 'Total amount',
+      addLabel: '+ Add ingredient',
+      emptyMessage: 'Add each ingredient as you weigh it.'
+    });
+
+    await expect.element(page.getByLabelText('Batch name')).toHaveValue('Work chili');
+    await expect.element(page.getByText('Add each ingredient as you weigh it.')).toBeInTheDocument();
+
+    await page.getByRole('button', { name: /Add ingredient/ }).click();
+    await page.getByRole('button', { name: /Greek yogurt/ }).click();
+    await expect.element(page.getByLabelText('Total amount')).toHaveValue(175);
+  });
 });

@@ -19,46 +19,13 @@ import {
   searchMealShortcutFoods,
   updateMealShortcut
 } from '$lib/server/nutrition/meal-shortcut';
+import {
+  submittedEditorItems,
+  unavailableItemReason
+} from '$lib/server/nutrition/meal-shortcut-form';
 import { error, fail, redirect } from '@sveltejs/kit';
 import * as z from 'zod';
 import type { Actions, PageServerLoad } from './$types';
-
-type PickerFood = Awaited<ReturnType<typeof searchMealShortcutFoods>>[number];
-
-function unavailableReason(reason: 'food_archived' | 'amount_unit_changed') {
-  return reason === 'food_archived'
-    ? 'This food is archived. Replace or remove it.'
-    : 'This food changed between g and ml. Replace it to choose a new exact amount.';
-}
-
-function submittedItems(rawItems: unknown, foods: readonly PickerFood[]) {
-  if (!Array.isArray(rawItems)) return [];
-  const foodsById = new Map(foods.map((food) => [food.id, food]));
-  return rawItems.map((rawItem, index) => {
-    const item = typeof rawItem === 'object' && rawItem !== null
-      ? rawItem as Record<string, unknown>
-      : {};
-    const foodId = typeof item.foodId === 'string' ? item.foodId : null;
-    const food = foodId === null ? undefined : foodsById.get(foodId);
-    return {
-      key:
-        (typeof item.itemId === 'string' && item.itemId) ||
-        (typeof item.sourceEntryId === 'string' && item.sourceEntryId) ||
-        `submitted-${index}`,
-      itemId: typeof item.itemId === 'string' ? item.itemId : undefined,
-      sourceEntryId: typeof item.sourceEntryId === 'string' ? item.sourceEntryId : undefined,
-      foodId: food === undefined ? null : foodId,
-      foodName: food?.name ?? 'Unavailable food',
-      foodBrand: food?.brand ?? null,
-      amountUnit: food?.amountUnit ?? null,
-      amount: typeof item.amount === 'string' ? item.amount : '',
-      blocked: food === undefined,
-      blockedReason: food === undefined
-        ? 'This food is unavailable. Replace or remove it.'
-        : undefined
-    };
-  });
-}
 
 function catalogueDestination(
   context: { date: string; mealSlot: string; q: string }
@@ -89,6 +56,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
   try {
     const shortcut = await getMealShortcut(locals.db, user.id, params.shortcutId);
+    if (shortcut.kind === 'batch') {
+      redirect(303, `${resolve('/batches/[batchId]/edit', { batchId: shortcut.id })}${url.search}`);
+    }
     const foods = await searchMealShortcutFoods(locals.db, user.id, '', 200);
     return {
       context,
@@ -106,7 +76,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
           amount: formatStoredValue(BigInt(item.defaultAmount), 3),
           blocked: item.blockedReason !== null,
           blockedReason:
-            item.blockedReason === null ? undefined : unavailableReason(item.blockedReason)
+            item.blockedReason === null ? undefined : unavailableItemReason(item.blockedReason)
         }))
       }
     };
@@ -132,7 +102,7 @@ export const actions = {
     const values = {
       name: raw.name,
       expectedUpdatedAt: raw.expectedUpdatedAt,
-      items: submittedItems(raw.items, foods)
+      items: submittedEditorItems(raw.items, foods)
     };
 
     if (!result.success || context === undefined) {

@@ -256,13 +256,32 @@ Fields:
 - `id`
 - `user_id` → `users.id` with cascade
 - `name`
+- `kind`, text `'shortcut'` (default) or `'batch'`
+- `portion_count`, nullable integer: NULL for shortcuts, 1 to 10 for batches
 - `created_at`
 - `updated_at`
 - `deleted_at`, nullable
 
+Constraints:
+
+- `kind IN ('shortcut', 'batch')`.
+- `(kind = 'shortcut' AND portion_count IS NULL) OR (kind = 'batch' AND portion_count IS NOT NULL AND portion_count BETWEEN 1 AND 10)`. These are column-level CHECKs added by hand in `migrations/0002_batch_cooking.sql`; a table-level check would make Drizzle rebuild the table, and dropping `meal_shortcuts` on D1 would cascade-delete `meal_shortcut_items`.
+
 Indexes:
 
 - `(user_id, deleted_at, name)`
+- Applications: `meal_shortcut_applications_user_shortcut_idx` on `(user_id, shortcut_id, undone_at)`.
+
+### Batches
+
+A batch (batch cooking) is a `meal_shortcuts` row with `kind = 'batch'`. Its items hold the TOTAL raw amount of each ingredient (`default_amount`) with the canonical unit portion. One portion of each ingredient is `round_half_up(total_amount / portion_count)`; see `NUTRITION_MATH.md`.
+
+- Each logged portion is a `meal_shortcut_applications` row whose diary rows have `shortcut_batch_id = application.id` and `source_shortcut_id = batch.id`.
+- A portion is logged when its application is not undone AND has at least one active (not deleted) diary row. Deleting all rows of a portion from the diary un-logs it. Counting, the apply guard and resync all use this one definition.
+- `remaining = portion_count - logged`. Applying a batch logs exactly one portion; the limit is enforced by an atomic guard so concurrent applies cannot exceed `portion_count`, and a failure caused by the limit is reported as "every portion already logged".
+- Saving a batch resyncs: every logged portion keeps its application, date and meal slot, its active diary rows are soft-deleted and replaced by rows recalculated from the new items, portion count and current food nutrition. Un-logged applications are not recreated.
+- `portion_count` cannot be lowered below the number of logged portions.
+- Batches never appear in the regular meal shortcut list and cannot be edited through the shortcut editor.
 
 ## `meal_shortcut_items`
 

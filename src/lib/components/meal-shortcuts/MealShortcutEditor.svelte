@@ -13,12 +13,22 @@
     availableFoods,
     nameError,
     itemsError,
+    nameLabel = "Meal shortcut name",
+    amountLabel = "Exact amount",
+    addLabel = "+ Add food",
+    emptyMessage = "Add at least one food to save this shortcut.",
+    itemsHint = "Amounts are exact and use each food's g or ml unit.",
   }: {
     name: string;
     items: MealShortcutEditorItem[];
     availableFoods: readonly MealShortcutPickerFood[];
     nameError?: string;
     itemsError?: string;
+    nameLabel?: string;
+    amountLabel?: string;
+    addLabel?: string;
+    emptyMessage?: string;
+    itemsHint?: string;
   } = $props();
 
   let pickerMode = $state<"add" | string | null>(null);
@@ -95,7 +105,7 @@
   <label
     for="shortcut-name"
     class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
-  >Meal shortcut name</label>
+  >{nameLabel}</label>
   <input
     id="shortcut-name"
     name="name"
@@ -122,7 +132,7 @@
         class="text-[10px] font-bold uppercase tracking-[0.02em] text-[var(--app-muted)]"
       >Foods</h2>
       <p class="mt-1 text-xs text-[var(--app-muted)]">
-        Amounts are exact and use each food's g or ml unit.
+        {itemsHint}
       </p>
     </div>
     <button
@@ -131,14 +141,14 @@
       class="inline-flex min-h-11 shrink-0 items-center rounded-lg px-2 text-xs font-bold
         text-[var(--app-accent)] focus-visible:outline-2 focus-visible:outline-offset-2
         focus-visible:outline-[var(--app-accent)]"
-    >+ Add food</button>
+    >{addLabel}</button>
   </div>
 
   {#if items.length === 0}
     <div
       class="rounded-xl border border-dashed border-[var(--app-border)] bg-[var(--app-panel)]
         px-4 py-6 text-center text-sm text-[var(--app-muted)]"
-    >Add at least one food to save this shortcut.</div>
+    >{emptyMessage}</div>
   {:else}
     <ol class="grid gap-3">
       {#each items as item, index (item.key)}
@@ -202,7 +212,7 @@
                   for={`shortcut-amount-${item.key}`}
                   class="pointer-events-none absolute left-3 top-2 z-10 !text-[10px]
                     !font-medium text-[var(--app-muted)]"
-                >Exact amount</label>
+                >{amountLabel}</label>
                 <input
                   id={`shortcut-amount-${item.key}`}
                   type="number"

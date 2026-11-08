@@ -36,6 +36,7 @@ There is no permanent bottom navigation in the initial release. The diary is the
 | Edit Food | Correct reusable food data for future uses | Save Food |
 | Barcode Scanner | Scan or manually enter a local code | Use code |
 | Meal Shortcut Editor | Rename/change/archive a shortcut | Save Shortcut |
+| New Batch / Edit Batch | Record raw ingredient totals while cooking and split them into portions | Save batch |
 | Settings | Entry point for goals, sessions, export, theme | Open setting |
 | Goal History | Add or edit effective-dated targets | Save Goal |
 | Active Sessions | View and revoke phone/desktop sessions | Revoke |
@@ -174,6 +175,15 @@ Food row:
 - Success returns to the diary and shows `shortcut added — Undo`.
 - Undo removes the whole application batch.
 - A shortcut containing an archived food is visibly blocked and links to its editor.
+- A **Batches** section sits above the shortcut list with a `+ New batch` link.
+  Each active batch shows `N of M left · X kcal per portion`; its name opens the batch editor and
+  the circular `+` logs one portion to the destination day and meal.
+- `+` is disabled when a food is unavailable.
+- A batch is finished as soon as every portion is logged, even if those days are still ahead.
+  The five most recently eaten finished batches appear under `Cooked before`, newest first, each with the day of
+  its last portion. Its name opens the batch editor; `Cook again` opens a new batch prefilled from it.
+  Undoing or deleting a portion makes the batch active again.
+- Archiving a batch returns here with a `Batch archived.` banner.
 
 ### Search/Add State Preservation
 
@@ -337,6 +347,21 @@ Creation mode starts from all non-deleted entries in one diary slot after amount
 - Archive Shortcut in destructive-actions section.
 
 Cooked-yield recipe behavior is not present.
+
+### Batch Editor (New / Edit Batch)
+
+Batch cooking: the user weighs each RAW ingredient while cooking, records its total, and splits the cooked food into equal containers. The app never asks for cooked or container weight.
+
+- Name, required (`Batch name`).
+- Ingredient rows reuse the shortcut editor with `Total amount` fields and `+ Add ingredient`.
+- Portions: chips 1-4 plus a number input (1-10) and an `Each portion` nutrition preview (total / portions).
+  When editing, counts below the number of already logged portions are disabled.
+- Log portions: `Add to the next days` (starting date and meal, with a planned list) or `Hold`
+  (log one portion later from Search/Add). New batches default to the next days, starting the day after the
+  destination date at lunch. Editing defaults to Hold; the start date follows the last logged portion.
+- Already logged portions are listed; once every portion is logged only that list is shown.
+- Every save recalculates all logged portions of the batch so the diary stays correct. Saved edits show `Batch saved.`
+- Archive Batch in the destructive-actions section keeps diary history.
 
 ## 10. Settings
 

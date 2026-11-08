@@ -30,5 +30,9 @@ export const inputLimits = {
     name: { maxLength: 200 },
     amount: { max: 10_000 },
   },
+  batch: {
+    portionCount: { max: 10 },
+    items: { max: 30 },
+  },
   catalogueQuery: { maxLength: 200 },
 } as const;

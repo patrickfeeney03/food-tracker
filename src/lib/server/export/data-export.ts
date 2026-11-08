@@ -213,6 +213,8 @@ export async function buildPortableDataExport(
       mealShortcuts: shortcuts.map((shortcut) => ({
         id: shortcut.id,
         name: shortcut.name,
+        kind: shortcut.kind,
+        portionCount: shortcut.portionCount,
         items: (itemsByShortcut.get(shortcut.id) ?? []).map((item) => ({
           id: item.id,
           foodId: item.foodId,

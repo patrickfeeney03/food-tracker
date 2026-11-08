@@ -220,6 +220,18 @@ async function seedExportData(connection: DatabaseConnection): Promise<void> {
     })
         .run();
     await connection.db
+        .insert(mealShortcuts)
+        .values({
+        id: 'batch-a',
+        userId: 'user-a',
+        name: 'Bolognese',
+        kind: 'batch',
+        portionCount: 2,
+        createdAt: new Date('2026-07-20T07:30:00.000Z'),
+        updatedAt: baseTime
+    })
+        .run();
+    await connection.db
         .insert(mealShortcutItems)
         .values({
         id: 'shortcut-item-a',
@@ -288,6 +300,11 @@ describe('data export', () => {
                         defaultAmount: { storageValue: 125000, displayValue: '125' },
                         defaultPortion: { count: { milli: 1000, value: '1' } }
                     }]
+            });
+            expect(result.mealShortcuts[0]).toMatchObject({ kind: 'shortcut', portionCount: null });
+            expect(result.mealShortcuts.find((shortcut) => shortcut.id === 'batch-a')).toMatchObject({
+                kind: 'batch',
+                portionCount: 2
             });
             const serialized = JSON.stringify(result);
             expect(serialized).not.toContain('Other private');

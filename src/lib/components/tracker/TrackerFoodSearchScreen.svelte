@@ -7,6 +7,8 @@
     type FoodResultListActions,
     type FoodResultView
   } from '$lib/components/foods/FoodResultList.svelte';
+  import BatchResultList from '$lib/components/batches/BatchResultList.svelte';
+  import type { BatchResult } from '$lib/components/batches/types';
   import MealShortcutResultList from '$lib/components/meal-shortcuts/MealShortcutResultList.svelte';
   import type { MealShortcutResult } from '$lib/components/meal-shortcuts/types';
   import BarcodeIcon from '$lib/components/icons/BarcodeIcon.svelte';
@@ -27,6 +29,7 @@
     queueError,
     created,
     shortcutArchived,
+    batchArchived,
     activeTab,
     foodsTabHref,
     shortcutsTabHref,
@@ -44,7 +47,13 @@
     onBack,
     actions,
     editShortcutHref,
-    applyShortcutHref
+    applyShortcutHref,
+    activeBatches,
+    recentBatches,
+    editBatchHref,
+    applyBatchHref,
+    newBatchHref,
+    cookAgainHref
   }: {
     selectedDate: string;
     destinationMealSlot: MealSlot;
@@ -53,6 +62,7 @@
     queueError: string | null;
     created: boolean;
     shortcutArchived: boolean;
+    batchArchived: boolean;
     activeTab: CatalogueTab;
     foodsTabHref: string;
     shortcutsTabHref: string;
@@ -71,6 +81,12 @@
     actions: FoodResultListActions;
     editShortcutHref: (shortcutId: string) => string | null;
     applyShortcutHref: (shortcutId: string) => string | null;
+    activeBatches: BatchResult[];
+    recentBatches: BatchResult[];
+    editBatchHref: (batchId: string) => string | null;
+    applyBatchHref: (batchId: string) => string | null;
+    newBatchHref: string | null;
+    cookAgainHref: (batchId: string) => string | null;
   } = $props();
 
   let searchLabel = $derived(
@@ -137,6 +153,10 @@
 
   {#if shortcutArchived && activeTab === 'shortcuts'}
     <FeedbackBanner class="mt-4" message="Meal shortcut archived." />
+  {/if}
+
+  {#if batchArchived && activeTab === 'shortcuts'}
+    <FeedbackBanner class="mt-4" message="Batch archived." />
   {/if}
 
   <div class="sm:mt-2 sm:grid sm:grid-cols-[minmax(0,1fr)_300px] sm:gap-4">
@@ -236,6 +256,16 @@
         Loading meal shortcuts…
       </p>
     {:else}
+      <BatchResultList
+        active={activeBatches}
+        recent={recentBatches}
+        {selectedDate}
+        mealSlot={destinationMealSlot}
+        editHref={editBatchHref}
+        applyHref={applyBatchHref}
+        {newBatchHref}
+        {cookAgainHref}
+      />
       <MealShortcutResultList
         shortcuts={shortcutResults}
         activeQuery={foodQuery.trim()}

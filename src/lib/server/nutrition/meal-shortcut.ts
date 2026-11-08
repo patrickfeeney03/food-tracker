@@ -23,6 +23,14 @@ import {
 } from '$lib/server/db/schema';
 import { and, asc, eq, inArray, isNull, like, sql, type SQL } from 'drizzle-orm';
 import { atomicBatch, isAtomicGuardError, isConstraintError } from '$lib/server/db/atomic';
+import {
+  BatchFinishedError,
+  buildBatchPortionRows,
+  foodSnapshotGuard,
+  loadActiveFoodsById,
+  loggedPortionCountSql,
+  listLoggedPortions
+} from './batch-portions';
 import { buildDiaryLogValuesForExactAmount } from './diary-entry';
 import { getActiveDiaryEntry } from './diary-entry-query';
 import { listActiveFoods } from './food-catalogue';
@@ -82,7 +90,7 @@ export interface MealShortcutDetail extends MealShortcut {
   items: MealShortcutDetailItem[];
 }
 
-interface NormalizedItem {
+export interface NormalizedItem {
   snapshotGuard?: SQL;
   userId: string;
   foodId: string;
@@ -98,7 +106,7 @@ function exactAmount(value: string): number {
   return toSafeInteger(parseFixedPoint(value, 3));
 }
 
-function canonicalPortion(unit: 'mg' | 'ul', amount: number) {
+export function canonicalPortion(unit: 'mg' | 'ul', amount: number) {
   return {
     defaultPortionKind: 'unit' as const,
     defaultPortionLabel: `1 ${unit === 'mg' ? 'g' : 'ml'}`,
@@ -115,7 +123,7 @@ async function activeOwnedFood(db: ReadDatabase, userId: string, foodId: string)
   )).get();
 }
 
-function itemSnapshotGuard(item: MealShortcutItem): SQL {
+export function itemSnapshotGuard(item: MealShortcutItem): SQL {
   return sql`exists (select 1 from meal_shortcut_items where id = ${item.id} and user_id = ${item.userId} and shortcut_id = ${item.shortcutId} and food_id = ${item.foodId} and amount_unit = ${item.amountUnit} and position = ${item.position} and default_amount = ${item.defaultAmount} and default_portion_kind is ${item.defaultPortionKind} and default_portion_label is ${item.defaultPortionLabel} and default_portion_amount is ${item.defaultPortionAmount} and default_portion_count_milli is ${item.defaultPortionCountMilli})`;
 }
 
@@ -189,7 +197,7 @@ async function preservedSnapshot(
   return null;
 }
 
-async function normalizeItems(
+export async function normalizeItems(
   db: ReadDatabase,
   userId: string,
   inputs: readonly MealShortcutItemInput[],
@@ -213,7 +221,7 @@ async function normalizeItems(
   }));
 }
 
-async function isMatchingShortcutCreationReplay(
+export async function isMatchingShortcutCreationReplay(
   db: ReadDatabase,
   shortcut: MealShortcut,
   input: CreateMealShortcutInput
@@ -230,7 +238,7 @@ async function isMatchingShortcutCreationReplay(
     });
 }
 
-async function findCreationReplay(db: ReadDatabase, userId: string, mutationId: string) {
+export async function findCreationReplay(db: ReadDatabase, userId: string, mutationId: string) {
   return db.select().from(mealShortcuts).where(and(
     eq(mealShortcuts.userId, userId),
     eq(mealShortcuts.clientMutationId, mutationId)
@@ -330,6 +338,11 @@ export async function searchMealShortcutFoods(
     name: food.name,
     brand: food.brand,
     amountUnit: food.amountUnit,
+    basisAmount: food.basisAmount,
+    energyMkcalPerBasis: food.energyMkcalPerBasis,
+    proteinMgPerBasis: food.proteinMgPerBasis,
+    carbsMgPerBasis: food.carbsMgPerBasis,
+    fatMgPerBasis: food.fatMgPerBasis,
     suggestedAmount: food.latestUse?.amountUnit === food.amountUnit
       ? food.latestUse.resolvedAmount
       : food.servingAmount ?? 100_000
@@ -418,9 +431,10 @@ export async function listMealShortcuts(
   limit = 50
 ) {
   const where = query.trim() === ''
-    ? and(eq(mealShortcuts.userId, userId), isNull(mealShortcuts.deletedAt))
+    ? and(eq(mealShortcuts.userId, userId), eq(mealShortcuts.kind, 'shortcut'), isNull(mealShortcuts.deletedAt))
     : and(
         eq(mealShortcuts.userId, userId),
+        eq(mealShortcuts.kind, 'shortcut'),
         isNull(mealShortcuts.deletedAt),
         like(mealShortcuts.name, `%${query.trim()}%`)
       );
@@ -462,10 +476,10 @@ export async function updateMealShortcut(db: AppDatabase, userId: string, shortc
   const expectedDate = new Date(expectedUpdatedAt);
   const updatedAt = new Date(Math.max(Date.now(), expectedUpdatedAt + 1));
   const current = await db.select().from(mealShortcuts).where(and(eq(mealShortcuts.id, shortcutId), eq(mealShortcuts.userId, userId), isNull(mealShortcuts.deletedAt))).get();
-  if (!current) throw new MealShortcutNotFoundError();
+  if (!current || current.kind === 'batch') throw new MealShortcutNotFoundError();
   if (current.updatedAt.getTime() !== expectedUpdatedAt) throw new MealShortcutEditConflictError();
   const normalized = await normalizeItems(db, userId, input.items, shortcutId);
-  const guards = [sql`exists (select 1 from meal_shortcuts where id = ${shortcutId} and user_id = ${userId} and updated_at = ${expectedUpdatedAt} and deleted_at is null)`];
+  const guards = [sql`exists (select 1 from meal_shortcuts where id = ${shortcutId} and user_id = ${userId} and updated_at = ${expectedUpdatedAt} and kind = 'shortcut' and deleted_at is null)`];
   for (const item of normalized) {
     if (item.snapshotGuard) guards.push(item.snapshotGuard);
     guards.push(sql`exists (select 1 from foods where id = ${item.foodId} and user_id = ${userId} and amount_unit = ${item.amountUnit} and deleted_at is null)`);
@@ -551,15 +565,24 @@ export async function applyMealShortcut(db: AppDatabase, userId: string, shortcu
   if (replay) return await replayExistingShortcutApplication(db, replay, shortcutId, input);
   const detail = await getMealShortcut(db, userId, shortcutId);
   if (detail.items.length === 0 || detail.items.some((item) => item.blockedReason !== null)) throw new MealShortcutBlockedError();
-  const foodIds = detail.items.map((item) => item.foodId);
-  const activeFoods = await db.select().from(foods).where(and(eq(foods.userId, userId), isNull(foods.deletedAt), inArray(foods.id, sql`(select value from json_each(${JSON.stringify(foodIds)}))`))).all();
-  const foodsById = new Map(activeFoods.map((food) => [food.id, food]));
+  const foodsById = await loadActiveFoodsById(db, userId, detail.items.map((item) => item.foodId));
+  for (const item of detail.items) {
+    const food = foodsById.get(item.foodId);
+    if (!food || food.amountUnit !== item.amountUnit) throw new MealShortcutBlockedError();
+  }
+  const isBatch = detail.kind === 'batch' && detail.portionCount !== null;
+  if (isBatch && (await listLoggedPortions(db, userId, shortcutId)).length >= detail.portionCount!) {
+    throw new BatchFinishedError();
+  }
   const applicationId = crypto.randomUUID();
   const timestamp = new Date();
   const applicationValues = { id: applicationId, userId, shortcutId, shortcutName: detail.name, clientMutationId: input.clientMutationId, diaryDate: input.diaryDate, mealSlot: input.mealSlot, createdAt: timestamp, undoneAt: null };
-  const entriesValues = detail.items.map((item, index) => {
-    const food = foodsById.get(item.foodId);
-    if (!food || food.amountUnit !== item.amountUnit) throw new MealShortcutBlockedError();
+  const entriesValues = isBatch
+    ? buildBatchPortionRows(detail.items, foodsById, detail.portionCount!, {
+        batchId: detail.id, applicationId, diaryDate: input.diaryDate, mealSlot: input.mealSlot, createdAt: timestamp
+      })
+    : detail.items.map((item, index) => {
+    const food = foodsById.get(item.foodId)!;
     const snapshot = item.defaultPortionKind === null || item.defaultPortionLabel === null || item.defaultPortionAmount === null || item.defaultPortionCountMilli === null
       ? canonicalPortion(item.amountUnit, item.defaultAmount)
       : { defaultPortionKind: item.defaultPortionKind, defaultPortionLabel: item.defaultPortionLabel, defaultPortionAmount: item.defaultPortionAmount, defaultPortionCountMilli: item.defaultPortionCountMilli };
@@ -574,10 +597,10 @@ export async function applyMealShortcut(db: AppDatabase, userId: string, shortcu
     sql`not exists (select 1 from meal_shortcut_applications where user_id = ${userId} and client_mutation_id = ${input.clientMutationId})`,
     sql`exists (select 1 from meal_shortcuts where id = ${shortcutId} and user_id = ${userId} and updated_at = ${detail.updatedAt.getTime()} and deleted_at is null)`
   ];
+  if (isBatch) guards.push(sql`${loggedPortionCountSql(userId, shortcutId)} < ${detail.portionCount}`);
   for (const item of detail.items) {
-    const food = foodsById.get(item.foodId)!;
     guards.push(itemSnapshotGuard(item));
-    guards.push(sql`exists (select 1 from foods where id = ${food.id} and user_id = ${userId} and updated_at = ${food.updatedAt.getTime()} and amount_unit = ${item.amountUnit} and deleted_at is null)`);
+    guards.push(foodSnapshotGuard(userId, foodsById.get(item.foodId)!));
   }
   try {
     const [apps, ...entryBatches] = await atomicBatch(db, guards, [
@@ -590,7 +613,12 @@ export async function applyMealShortcut(db: AppDatabase, userId: string, shortcu
   } catch (error) {
     const raced = await findExistingShortcutApplicationByMutationId(db, userId, input.clientMutationId);
     if (raced) return await replayExistingShortcutApplication(db, raced, shortcutId, input);
-    if (isAtomicGuardError(error)) throw new MealShortcutBlockedError();
+    if (isAtomicGuardError(error)) {
+      if (isBatch && (await listLoggedPortions(db, userId, shortcutId)).length >= detail.portionCount!) {
+        throw new BatchFinishedError();
+      }
+      throw new MealShortcutBlockedError();
+    }
     if (isConstraintError(error)) throw new MealShortcutApplicationConflictError();
     throw error;
   }
